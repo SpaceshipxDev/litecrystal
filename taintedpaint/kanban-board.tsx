@@ -61,19 +61,12 @@ export default function KanbanBoard() {
 
   const getNextYnmxId = useCallback(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const prefix = `YNMX-${today}-`;
-    let max = 0;
-    Object.values(tasks).forEach((t) => {
-      if (t.ynmxId && t.ynmxId.startsWith(prefix)) {
-        const num = parseInt(t.ynmxId.slice(prefix.length), 10);
-        if (!isNaN(num) && num > max) max = num;
-      }
-    });
-    return prefix + String(max + 1).padStart(3, '0');
-  }, [tasks]);
+    const random = Math.floor(1000 + Math.random() * 9000);
+    return `YNMX-${today}-${random}`;
+  }, []);
 
   const getTaskDisplayName = (task: Task) => {
-    if (['approval', 'production'].includes(task.columnId)) {
+    if (['sheet', 'approval', 'program', 'ship', 'archive2'].includes(task.columnId)) {
       return task.ynmxId || `${task.customerName} - ${task.representative}`;
     }
     return `${task.customerName} - ${task.representative}`;
@@ -138,7 +131,7 @@ export default function KanbanBoard() {
     if (!draggedTask || draggedTask.columnId === targetColumnId) return;
 
     let updatedTask: Task = { ...draggedTask, columnId: targetColumnId };
-    if (['approval', 'production'].includes(targetColumnId) && !draggedTask.ynmxId) {
+    if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
       updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() };
     }
 
@@ -200,7 +193,7 @@ export default function KanbanBoard() {
   const allTasksForSearch = useMemo(() => Object.values(tasks), [tasks]);
   const visibleColumns = useMemo(() => {
     if (viewMode === 'production') {
-      return columns.filter(c => ['approval', 'production'].includes(c.id))
+      return columns.filter(c => ['approval', 'program', 'ship', 'archive2'].includes(c.id))
     }
     return columns
   }, [viewMode, columns])

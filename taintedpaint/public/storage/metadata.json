@@ -132,8 +132,18 @@
       "taskIds": []
     },
     {
-      "id": "production",
-      "title": "投产",
+      "id": "program",
+      "title": "编程",
+      "taskIds": []
+    },
+    {
+      "id": "ship",
+      "title": "出货",
+      "taskIds": []
+    },
+    {
+      "id": "archive2",
+      "title": "存档2",
       "taskIds": []
     }
   ]
