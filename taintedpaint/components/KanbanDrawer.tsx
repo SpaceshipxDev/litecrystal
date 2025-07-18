@@ -2,6 +2,7 @@
 "use client";
 
 import type { Task } from "@/types";
+import type { ElectronAPI } from "@/types/electron";
 import { useState, useCallback } from "react";
 import { X, CalendarDays, MessageSquare, Folder, FileCode } from "lucide-react";
 import {
@@ -29,7 +30,8 @@ export default function KanbanDrawer({
 
   const handleDownloadAndOpen = useCallback(async () => {
     if (!task) return;
-    if (!window.electronAPI) {
+    const electronAPI: ElectronAPI | undefined = window.electronAPI;
+    if (!electronAPI) {
       alert("此功能仅在桌面应用中可用。请下载桌面版以获得最佳体验。");
       return;
     }
@@ -43,7 +45,7 @@ export default function KanbanDrawer({
         return;
       }
       const folderName = task.ynmxId || `${task.customerName} - ${task.representative}`;
-      await window.electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesToDownload);
+      await electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesToDownload);
     } catch (err: any) {
       console.error("Download and open failed:", err);
       alert(`下载失败: ${err.message}`);
