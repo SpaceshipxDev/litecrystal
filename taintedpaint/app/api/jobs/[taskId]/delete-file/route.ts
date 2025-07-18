@@ -3,6 +3,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData } from "@/types";
 import { writeJsonAtomic } from "@/lib/fileUtils";
+import { sanitizeRelativePath } from "@/lib/pathUtils.mjs";
 
 // --- Path Definitions ---
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
@@ -27,8 +28,14 @@ export async function POST(
       return NextResponse.json({ error: "Filename is required" }, { status: 400 });
     }
 
+    let safeFilename: string;
+    try {
+      safeFilename = sanitizeRelativePath(filename);
+    } catch {
+      return NextResponse.json({ error: "Invalid filename" }, { status: 400 });
+    }
     const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
-    const filePath = path.join(taskDirectoryPath, filename);
+    const filePath = path.join(taskDirectoryPath, safeFilename);
 
     // 1. Delete the file from the filesystem
     try {
@@ -52,7 +59,7 @@ export async function POST(
 
     // 3. IMPORTANT: Update metadata by filtering the existing array to preserve order
     if (taskToUpdate.files) {
-      taskToUpdate.files = taskToUpdate.files.filter(f => f !== filename);
+      taskToUpdate.files = taskToUpdate.files.filter(f => f !== safeFilename);
     }
 
     // 4. Write the updated metadata back
