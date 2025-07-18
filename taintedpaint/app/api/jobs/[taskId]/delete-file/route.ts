@@ -20,7 +20,7 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const { filename } = body;
+    const { filename } = body; // treat as relative path
 
     if (!filename) {
       return NextResponse.json({ error: "Filename is required" }, { status: 400 });

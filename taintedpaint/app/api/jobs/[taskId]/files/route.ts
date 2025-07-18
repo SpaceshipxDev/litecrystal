@@ -10,9 +10,11 @@ const TASKS_STORAGE_DIR = path.join(process.cwd(), "public", "storage", "tasks")
 const ignoredFiles = ['.DS_Store', 'Thumbs.db'];
 
 // This is our recursive helper function
-async function getFilesRecursively(directory: string, basePath: string): Promise<{ filename: string, relativePath: string, url: string }[]> {
+type FileInfo = { filename: string; relativePath: string; url: string; mtimeMs: number };
+
+async function getFilesRecursively(directory: string, basePath: string): Promise<FileInfo[]> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
-  let fileList: { filename:string, relativePath:string, url:string }[] = [];
+  let fileList: FileInfo[] = [];
 
   for (const entry of entries) {
     // ** THIS IS THE FIX **
@@ -28,6 +30,7 @@ async function getFilesRecursively(directory: string, basePath: string): Promise
       fileList = fileList.concat(subFiles);
     } else if (entry.isFile()) {
       const relativePath = path.relative(basePath, fullPath);
+      const stats = await fs.stat(fullPath);
 
       // --- PROACTIVE IMPROVEMENT ---
       // To handle all special characters (like #, ?, etc.) safely in URLs,
@@ -40,7 +43,8 @@ async function getFilesRecursively(directory: string, basePath: string): Promise
       fileList.push({
         filename: entry.name,
         relativePath: relativePath,
-        url: url
+        url: url,
+        mtimeMs: stats.mtimeMs,
       });
     }
   }

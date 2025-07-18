@@ -21,8 +21,9 @@ export async function POST(
   }
 
   try {
-    const formData = await req.formData( );
+    const formData = await req.formData();
     const files = formData.getAll("files") as File[];
+    const paths = formData.getAll("paths") as string[];
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
@@ -33,15 +34,15 @@ export async function POST(
 
     const newlyAddedFiles: string[] = [];
 
-    for (const file of files) {
-      // --- FIX: Use a less restrictive regex that allows Unicode characters ---
-      const sanitizedFilename = file.name.replace(/[\\/:*?"<>|]/g, '_');
-      // ----------------------------------------------------------------------
-
-      const filePath = path.join(taskDirectoryPath, sanitizedFilename);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const relPath = paths[i] || file.name;
+      const safeRelPath = path.normalize(relPath).replace(/^(\.\.[\/\\])+/, '');
+      const filePath = path.join(taskDirectoryPath, safeRelPath);
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
       const buf = Buffer.from(await file.arrayBuffer());
       await fs.writeFile(filePath, buf);
-      newlyAddedFiles.push(sanitizedFilename);
+      newlyAddedFiles.push(safeRelPath);
     }
 
     const rawMeta = await fs.readFile(META_FILE, "utf-8");

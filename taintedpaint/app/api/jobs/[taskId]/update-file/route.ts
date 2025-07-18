@@ -22,18 +22,18 @@ export async function POST(
     const formData = await req.formData();
     const newFile = formData.get("newFile") as File | null;
     const oldFilename = formData.get("oldFilename") as string | null;
+    const relativePath = formData.get("relativePath") as string | null;
     if (!newFile || !oldFilename) {
       return NextResponse.json({ error: "Missing newFile or oldFilename" }, { status: 400 });
     }
 
     const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
-    const oldFilePath = path.join(taskDirectoryPath, oldFilename);
+    const oldFilePath = path.join(taskDirectoryPath, relativePath || oldFilename);
 
     // --- FIX: Use a less restrictive regex that allows Unicode characters ---
     const sanitizedNewFilename = newFile.name.replace(/[\\/:*?"<>|]/g, '_');
     // ----------------------------------------------------------------------
-    
-    const newFilePath = path.join(taskDirectoryPath, sanitizedNewFilename);
+    const newFilePath = path.join(taskDirectoryPath, relativePath ? path.dirname(relativePath) : '', sanitizedNewFilename);
 
     await fs.mkdir(taskDirectoryPath, { recursive: true });
 
@@ -58,12 +58,13 @@ export async function POST(
     }
 
     // Replace the item in the array to preserve order
+    const newPath = relativePath ? path.join(path.dirname(relativePath), sanitizedNewFilename) : sanitizedNewFilename;
     const fileIndex = taskToUpdate.files?.indexOf(oldFilename);
     if (taskToUpdate.files && fileIndex !== undefined && fileIndex > -1) {
-      taskToUpdate.files[fileIndex] = sanitizedNewFilename;
+      taskToUpdate.files[fileIndex] = newPath;
     } else {
       // Fallback: if the old file wasn't in the list, add the new one
-      taskToUpdate.files = [...(taskToUpdate.files || []), sanitizedNewFilename];
+      taskToUpdate.files = [...(taskToUpdate.files || []), newPath];
     }
 
     await fs.writeFile(META_FILE, JSON.stringify(boardData, null, 2));
