@@ -5,6 +5,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData, Column, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
+import { writeJsonAtomic } from "@/lib/fileUtils";
 
 // --- Path Definitions ---
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
       boardData.columns[0].taskIds.push(taskId);
     }
 
-    await fs.writeFile(META_FILE, JSON.stringify(boardData, null, 2));
+    await writeJsonAtomic(META_FILE, boardData);
 
     return NextResponse.json(newTask);
   } catch (err) {
@@ -117,7 +118,7 @@ export async function PUT(req: NextRequest) {
     if (!boardData.tasks || !boardData.columns) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
-    await fs.writeFile(META_FILE, JSON.stringify(boardData, null, 2));
+    await writeJsonAtomic(META_FILE, boardData);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Failed to update board:", err);

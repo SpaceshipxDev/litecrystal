@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData } from "@/types";
+import { writeJsonAtomic } from "@/lib/fileUtils";
 
 // --- Path Definitions ---
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
@@ -60,7 +61,7 @@ export async function POST(
     taskToUpdate.files.push(...newlyAddedFiles);
     // ----------------------------------------------------------------------
 
-    await fs.writeFile(META_FILE, JSON.stringify(boardData, null, 2));
+    await writeJsonAtomic(META_FILE, boardData);
 
     return NextResponse.json(taskToUpdate);
   } catch (err) {

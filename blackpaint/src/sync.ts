@@ -10,11 +10,13 @@ interface RemoteFile {
   mtimeMs: number;
 }
 
-const activeSyncs = new Map<string, { watcher: FSWatcher; interval: NodeJS.Timer }>();
+const activeSyncs = new Map<string, { watcher: FSWatcher; interval: NodeJS.Timeout }>();
 
 // Simple helper to upload or update a file
 async function uploadFile(taskId: string, localRoot: string, relPath: string) {
   const fullPath = path.join(localRoot, relPath);
+  const stat = await fs.stat(fullPath);
+  if (!stat.isFile()) return;
   const file = await fs.readFile(fullPath);
 
   const form = new FormData();
@@ -67,14 +69,23 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
   const watcher = watch(localRoot, { recursive: true }, async (eventType, filename) => {
     if (!filename) return;
     const relPath = filename.replace(/\\/g, '/');
+    const fullPath = path.join(localRoot, relPath);
     if (eventType === 'rename') {
       try {
-        await fs.stat(path.join(localRoot, relPath));
-        await uploadFile(taskId, localRoot, relPath);
+        const stat = await fs.stat(fullPath);
+        if (stat.isFile()) {
+          await uploadFile(taskId, localRoot, relPath);
+        }
       } catch {
         await deleteFile(taskId, relPath);
       }
     } else if (eventType === 'change') {
+      try {
+        const stat = await fs.stat(fullPath);
+        if (!stat.isFile()) return;
+      } catch {
+        return;
+      }
       await uploadFile(taskId, localRoot, relPath);
     }
   });
