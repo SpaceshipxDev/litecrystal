@@ -14,7 +14,7 @@ declare global {
   interface Window {
     electronAPI?: {
       downloadAndOpenTaskFolder: (
-        taskId: string, 
+        folderName: string,
         filesToDownload: { filename: string, url: string }[]
       ) => Promise<void>;
     }
@@ -143,7 +143,8 @@ export default function KanbanDrawer({
       }
       
       // Step 2: Pass the list to the Electron main process to handle the download and open.
-      await window.electronAPI.downloadAndOpenTaskFolder(task.id, filesToDownload);
+      const folderName = `${task.customerName} - ${task.representative}`;
+      await window.electronAPI.downloadAndOpenTaskFolder(folderName, filesToDownload);
 
     } catch (error) {
       console.error("Download and open failed:", error);

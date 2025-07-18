@@ -38,9 +38,10 @@ app.on('ready', () => {
 
   // This is our new "backend" logic
   ipcMain.handle(
-    'download-and-open-task-folder', 
-    async (_, taskId: string, filesToDownload: { filename: string, relativePath: string, url: string }[]) => {
-      const destinationFolder = path.join(app.getPath('downloads'), `Eldaline-Task-${taskId}`);
+    'download-and-open-task-folder',
+    async (_, folderName: string, filesToDownload: { filename: string, relativePath: string, url: string }[]) => {
+      const safeFolderName = folderName.replace(/[\\/:*?"<>|]/g, '').trim();
+      const destinationFolder = path.join(app.getPath('downloads'), safeFolderName);
       await fs.mkdir(destinationFolder, { recursive: true });
 
       const downloadPromises = filesToDownload.map(async (file) => {
