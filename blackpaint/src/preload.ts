@@ -7,10 +7,11 @@ import { contextBridge, ipcRenderer } from 'electron';
 export const ELECTRON_API = {
   // We update the type definition for filesToDownload here
   downloadAndOpenTaskFolder: (
+    taskId: string,
     folderName: string,
     // This is the corrected type, now including relativePath
     filesToDownload: { filename: string, relativePath: string, url: string }[]
-  ) => ipcRenderer.invoke('download-and-open-task-folder', folderName, filesToDownload),
+  ) => ipcRenderer.invoke('download-and-open-task-folder', taskId, folderName, filesToDownload),
 };
 
 // Expose it securely

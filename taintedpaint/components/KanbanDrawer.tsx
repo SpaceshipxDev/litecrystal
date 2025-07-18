@@ -14,8 +14,9 @@ declare global {
   interface Window {
     electronAPI?: {
       downloadAndOpenTaskFolder: (
+        taskId: string,
         folderName: string,
-        filesToDownload: { filename: string, url: string }[]
+        filesToDownload: { filename: string, url: string; relativePath: string }[]
       ) => Promise<void>;
     }
   }
@@ -135,7 +136,7 @@ export default function KanbanDrawer({
       // Step 1: Get the list of file URLs from our Next.js backend.
       const res = await fetch(`/api/jobs/${task.id}/files`);
       if (!res.ok) throw new Error('无法获取文件列表');
-      const filesToDownload: { filename: string; url: string }[] = await res.json();
+      const filesToDownload: { filename: string; url: string; relativePath: string }[] = await res.json();
       
       if (filesToDownload.length === 0) {
         alert("此任务没有可下载的文件。");
@@ -144,7 +145,7 @@ export default function KanbanDrawer({
       
       // Step 2: Pass the list to the Electron main process to handle the download and open.
       const folderName = `${task.customerName} - ${task.representative}`;
-      await window.electronAPI.downloadAndOpenTaskFolder(folderName, filesToDownload);
+      await window.electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesToDownload);
 
     } catch (error) {
       console.error("Download and open failed:", error);
