@@ -58,6 +58,26 @@ export default function KanbanBoard() {
     return () => clearTimeout(timer);
   }, [highlightedTaskId]);
 
+  const getNextYnmxId = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const prefix = `YNMX-${today}-`;
+    let max = 0;
+    Object.values(tasks).forEach((t) => {
+      if (t.ynmxId && t.ynmxId.startsWith(prefix)) {
+        const num = parseInt(t.ynmxId.slice(prefix.length), 10);
+        if (!isNaN(num) && num > max) max = num;
+      }
+    });
+    return prefix + String(max + 1).padStart(3, '0');
+  }, [tasks]);
+
+  const getTaskDisplayName = (task: Task) => {
+    if (['approval', 'production'].includes(task.columnId)) {
+      return task.ynmxId || `${task.customerName} - ${task.representative}`;
+    }
+    return `${task.customerName} - ${task.representative}`;
+  };
+
   const mergeWithSkeleton = (saved: Column[]): Column[] => {
     const savedColumnsMap = new Map(saved.map((c) => [c.id, c]));
     return baseColumns.map(
@@ -116,9 +136,14 @@ export default function KanbanBoard() {
     setDragOverColumn(null);
     if (!draggedTask || draggedTask.columnId === targetColumnId) return;
 
+    let updatedTask: Task = { ...draggedTask, columnId: targetColumnId };
+    if (['approval', 'production'].includes(targetColumnId) && !draggedTask.ynmxId) {
+      updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() };
+    }
+
     const nextTasks = {
       ...tasks,
-      [draggedTask.id]: { ...draggedTask, columnId: targetColumnId },
+      [draggedTask.id]: updatedTask,
     };
 
     const nextColumns = columns.map((col) => {
@@ -269,7 +294,7 @@ export default function KanbanBoard() {
                                 }
                               >
                                 <h3 className="text-sm font-medium text-gray-700 mb-1.5 leading-tight group-hover:text-gray-900 transition-colors">
-                                  {`${task.customerName} - ${task.representative}`}
+                                  {getTaskDisplayName(task)}
                                 </h3>
                                 <p className="text-xs text-gray-500 leading-relaxed">{task.orderDate}</p>
                               </div>
@@ -320,7 +345,7 @@ export default function KanbanBoard() {
                         }
                       >
                         <h3 className="text-sm font-medium text-gray-900 mb-1.5 leading-tight group-hover:text-blue-700 transition-colors">
-                          {`${task.customerName} - ${task.representative}`}
+                          {getTaskDisplayName(task)}
                         </h3>
                         <p className="text-xs text-gray-600 leading-relaxed">{task.orderDate}</p>
                       </div>
