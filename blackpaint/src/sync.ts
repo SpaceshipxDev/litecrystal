@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
-import { watch, FSWatcher } from 'fs';
 import path from 'path';
 import axios from 'axios';
+import chokidar, { FSWatcher } from 'chokidar';
 
 interface RemoteFile {
   filename: string;
@@ -66,29 +66,26 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
   // initial pull
   pullFromServer(taskId, localRoot);
 
-  const watcher = watch(localRoot, { recursive: true }, async (eventType, filename) => {
-    if (!filename) return;
-    const relPath = filename.replace(/\\/g, '/');
-    const fullPath = path.join(localRoot, relPath);
-    if (eventType === 'rename') {
-      try {
-        const stat = await fs.stat(fullPath);
-        if (stat.isFile()) {
-          await uploadFile(taskId, localRoot, relPath);
-        }
-      } catch {
-        await deleteFile(taskId, relPath);
-      }
-    } else if (eventType === 'change') {
-      try {
-        const stat = await fs.stat(fullPath);
-        if (!stat.isFile()) return;
-      } catch {
-        return;
-      }
-      await uploadFile(taskId, localRoot, relPath);
-    }
+  const watcher = chokidar.watch(localRoot, {
+    persistent: true,
+    ignoreInitial: true,
   });
+
+  const toRel = (full: string) => full.replace(localRoot + path.sep, '').replace(/\\/g, '/');
+
+  watcher
+    .on('add', async (filePath) => {
+      const relPath = toRel(filePath);
+      await uploadFile(taskId, localRoot, relPath);
+    })
+    .on('change', async (filePath) => {
+      const relPath = toRel(filePath);
+      await uploadFile(taskId, localRoot, relPath);
+    })
+    .on('unlink', async (filePath) => {
+      const relPath = toRel(filePath);
+      await deleteFile(taskId, relPath);
+    });
 
   const interval = setInterval(() => pullFromServer(taskId, localRoot), 10000);
   activeSyncs.set(taskId, { watcher, interval });
