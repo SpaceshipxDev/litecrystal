@@ -9,6 +9,7 @@ export interface Task {
   notes: string;
   taskFolderPath: string;
   files: string[];
+  ynmxId?: string; // ID assigned when moving to approval
 }
 
 export interface Column {

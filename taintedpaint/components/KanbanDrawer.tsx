@@ -144,7 +144,7 @@ export default function KanbanDrawer({
       }
       
       // Step 2: Pass the list to the Electron main process to handle the download and open.
-      const folderName = `${task.customerName} - ${task.representative}`;
+      const folderName = task.ynmxId || `${task.customerName} - ${task.representative}`;
       await window.electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesToDownload);
 
     } catch (error) {
@@ -194,12 +194,14 @@ export default function KanbanDrawer({
     >
       <div className="flex-shrink-0 px-6 pt-6 pb-0 flex items-start justify-between">
         <div className="flex-1 min-w-0 pr-4">
-          <h1 className="text-xl font-semibold text-black tracking-tight truncate -mb-0.5">{task.customerName}</h1>
+          <h1 className="text-xl font-semibold text-black tracking-tight truncate -mb-0.5">{task.ynmxId || task.customerName}</h1>
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-[15px] text-black/60 truncate">{task.representative}</p>
+            {!task.ynmxId && (
+              <p className="text-[15px] text-black/60 truncate">{task.representative}</p>
+            )}
             {columnTitle && (
               <>
-                <span className="text-black/30 text-sm">·</span>
+                {!task.ynmxId && <span className="text-black/30 text-sm">·</span>}
                 <span className="text-[13px] font-medium text-black/50 bg-black/5 px-2 py-0.5 rounded-full">{columnTitle}</span>
               </>
             )}

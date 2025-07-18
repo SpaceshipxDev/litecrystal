@@ -152,7 +152,9 @@ export default function SearchDialog({ isOpen, onClose, onTaskSelect }: SearchDi
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-gray-800 truncate">
-                      {`${task.customerName} - ${task.representative}`}
+                      {['approval', 'production'].includes(task.columnId)
+                        ? task.ynmxId || `${task.customerName} - ${task.representative}`
+                        : `${task.customerName} - ${task.representative}`}
                     </h3>
                     <p className="text-xs text-gray-600">{task.orderDate}</p>
                   </div>
