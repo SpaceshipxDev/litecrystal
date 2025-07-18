@@ -13,6 +13,7 @@ import SearchDialog from "@/components/SearchDialog"
 export default function KanbanBoard() {
   const [tasks, setTasks] = useState<Record<string, Task>>({})
   const [columns, setColumns] = useState<Column[]>(baseColumns)
+  const [viewMode, setViewMode] = useState<'business' | 'production'>('business')
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
@@ -197,6 +198,12 @@ export default function KanbanBoard() {
   };
 
   const allTasksForSearch = useMemo(() => Object.values(tasks), [tasks]);
+  const visibleColumns = useMemo(() => {
+    if (viewMode === 'production') {
+      return columns.filter(c => ['approval', 'production'].includes(c.id))
+    }
+    return columns
+  }, [viewMode, columns])
 
   return (
     <div className="h-screen w-full flex flex-col bg-gray-50/50">
@@ -206,38 +213,57 @@ export default function KanbanBoard() {
             <h1 className="text-xl font-medium text-gray-900 tracking-tight">Eldaline</h1>
             <span className="text-sm text-gray-500 font-normal">项目看板</span>
           </div>
-          
-          <button
-            onClick={() => setIsSearchOpen(true)}
-            className="group relative flex items-center justify-center gap-2.5 px-4 py-2.5 
-                        bg-gray-100/60 backdrop-blur-sm 
+
+          <div className="flex items-center gap-4">
+            <div className="flex bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 rounded-full p-0.5">
+              <button
+                onClick={() => setViewMode('business')}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${viewMode === 'business' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                商务
+              </button>
+              <button
+                onClick={() => setViewMode('production')}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${viewMode === 'production' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                生产
+              </button>
+            </div>
+
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="group relative flex items-center justify-center gap-2.5 px-4 py-2.5
+                        bg-gray-100/60 backdrop-blur-sm
                         border border-gray-200/60 hover:border-gray-300/80
                         rounded-full shadow-sm hover:shadow-md
                         transform-gpu transition-all duration-200 ease-out
                         hover:bg-white/80 active:scale-[0.96]"
-          >
-            <Search className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors duration-200" strokeWidth={2} />
-            <span className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-200">
-              搜索
-            </span>
-            <div className="hidden sm:flex items-center gap-1 ml-2 pl-2 border-l border-gray-300/60">
-              <kbd className="px-1.5 py-0.5 text-xs font-medium text-gray-400 bg-gray-200/60 rounded border border-gray-300/40">⌘</kbd>
-              <kbd className="px-1.5 py-0.5 text-xs font-medium text-gray-400 bg-gray-200/60 rounded border border-gray-300/40">K</kbd>
-            </div>
-          </button>
+            >
+              <Search className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors duration-200" strokeWidth={2} />
+              <span className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-200">
+                搜索
+              </span>
+              <div className="hidden sm:flex items-center gap-1 ml-2 pl-2 border-l border-gray-300/60">
+                <kbd className="px-1.5 py-0.5 text-xs font-medium text-gray-400 bg-gray-200/60 rounded border border-gray-300/40">⌘</kbd>
+                <kbd className="px-1.5 py-0.5 text-xs font-medium text-gray-400 bg-gray-200/60 rounded border border-gray-300/40">K</kbd>
+              </div>
+            </button>
+          </div>
         </div>
       </header>
       
       <div className="relative flex-1 flex min-h-0">
         {isDrawerOpen && <div className="fixed inset-0 backdrop-blur-[2px] z-40" onClick={closeDrawer} />}
 
-        <div 
+        <div
           ref={scrollContainerRef}
           className="flex-1 flex gap-4 overflow-x-auto p-4 transition-all duration-300 z-10"
         >
-          <CreateJobForm onJobCreated={handleJobCreated} />
+          {viewMode === 'business' && (
+            <CreateJobForm onJobCreated={handleJobCreated} />
+          )}
 
-          {columns.map((column) => {
+          {visibleColumns.map((column) => {
             const columnTasks = column.taskIds.map(id => tasks[id]).filter(Boolean);
 
             return column.id === "archive" ? (
