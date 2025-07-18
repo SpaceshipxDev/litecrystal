@@ -10,7 +10,7 @@ interface RemoteFile {
   mtimeMs: number;
 }
 
-const activeSyncs = new Map<string, { watcher: FSWatcher; interval: NodeJS.Timeout }>();
+const activeSyncs = new Map<string, { watcher: FSWatcher; interval: ReturnType<typeof setInterval> }>();
 
 // Simple helper to upload or update a file
 async function uploadFile(taskId: string, localRoot: string, relPath: string) {
