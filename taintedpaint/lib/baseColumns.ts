@@ -14,5 +14,5 @@ export const baseColumns: Column[] = [
   { id: "approval",    title: "审批",   taskIds: [] },
   { id: "program",     title: "编程",   taskIds: [] },
   { id: "ship",        title: "出货",   taskIds: [] },
-  { id: "archive2",    title: "存档2",  taskIds: [] }
+  { id: "archive2",    title: "存档",   taskIds: [] }
 ];

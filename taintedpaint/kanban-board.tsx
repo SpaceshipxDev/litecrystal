@@ -173,7 +173,7 @@ export default function KanbanBoard() {
   const handleTaskClick = (task: Task, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (task.columnId === "archive") return;
+    if (task.columnId === "archive" || task.columnId === "archive2") return;
 
     const column = columns.find((c) => c.id === task.columnId);
     setSelectedTaskColumnTitle(column ? column.title : null);
@@ -259,7 +259,7 @@ export default function KanbanBoard() {
           {visibleColumns.map((column) => {
             const columnTasks = column.taskIds.map(id => tasks[id]).filter(Boolean);
 
-            return column.id === "archive" ? (
+            return ['archive', 'archive2'].includes(column.id) ? (
               <div
                 key={column.id}
                 onDragOver={handleDragOver}
