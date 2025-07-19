@@ -23,18 +23,26 @@ async function uploadFile(taskId: string, localRoot: string, relPath: string) {
   form.append('files', new Blob([file]));
   form.append('paths', relPath);
 
-  await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/jobs/${taskId}/upload`, {
-    method: 'POST',
-    body: form,
-  });
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/jobs/${taskId}/upload`, {
+      method: 'POST',
+      body: form,
+    });
+  } catch (err) {
+    console.error('Failed to upload file', err);
+  }
 }
 
 async function deleteFile(taskId: string, relPath: string) {
-  await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/jobs/${taskId}/delete-file`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filename: relPath }),
-  });
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/jobs/${taskId}/delete-file`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: relPath }),
+    });
+  } catch (err) {
+    console.error('Failed to delete file', err);
+  }
 }
 
 async function pullFromServer(taskId: string, localRoot: string) {
