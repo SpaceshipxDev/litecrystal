@@ -25,7 +25,7 @@ const createWindow = (): void => {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL('http://localhost:3000');
+  mainWindow.loadURL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
