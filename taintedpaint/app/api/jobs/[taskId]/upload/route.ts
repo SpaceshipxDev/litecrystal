@@ -38,6 +38,11 @@ export async function POST(
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const relPath = paths[i] || file.name;
+
+      if (path.isAbsolute(relPath)) {
+        return NextResponse.json({ error: "Paths must be relative" }, { status: 400 });
+      }
+
       const safeRelPath = path.normalize(relPath).replace(/^(\.\.[\/\\])+/, '');
       const filePath = path.join(taskDirectoryPath, safeRelPath);
       await fs.mkdir(path.dirname(filePath), { recursive: true });
