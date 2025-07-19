@@ -12,7 +12,7 @@ const ignoredFiles = ['.DS_Store', 'Thumbs.db'];
 // This is our recursive helper function
 type FileInfo = { filename: string; relativePath: string; url: string; mtimeMs: number };
 
-async function getFilesRecursively(directory: string, basePath: string): Promise<FileInfo[]> {
+async function getFilesRecursively(directory: string, basePath: string, baseUrl: string): Promise<FileInfo[]> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   let fileList: FileInfo[] = [];
 
@@ -26,7 +26,7 @@ async function getFilesRecursively(directory: string, basePath: string): Promise
     const fullPath = path.join(directory, entry.name);
     
     if (entry.isDirectory()) {
-      const subFiles = await getFilesRecursively(fullPath, basePath);
+      const subFiles = await getFilesRecursively(fullPath, basePath, baseUrl);
       fileList = fileList.concat(subFiles);
     } else if (entry.isFile()) {
       const relativePath = path.relative(basePath, fullPath);
@@ -38,7 +38,7 @@ async function getFilesRecursively(directory: string, basePath: string): Promise
       const urlPathParts = relativePath.split(path.sep).map(part => encodeURIComponent(part));
       const encodedRelativePath = urlPathParts.join('/');
       
-      const url = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/storage/tasks/${path.basename(basePath)}/${encodedRelativePath}`;
+      const url = `${baseUrl}/storage/tasks/${path.basename(basePath)}/${encodedRelativePath}`;
 
       fileList.push({
         filename: entry.name,
@@ -63,7 +63,19 @@ export async function GET(
 
   try {
     const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
-    const files = await getFilesRecursively(taskDirectoryPath, taskDirectoryPath);
+
+    const urlFromRequest = new URL(req.url);
+    const host = req.headers.get('host');
+    const baseUrl = host
+      ? `${urlFromRequest.protocol}//${host}`
+      : process.env.NEXT_PUBLIC_APP_URL || urlFromRequest.origin;
+
+    const files = await getFilesRecursively(
+      taskDirectoryPath,
+      taskDirectoryPath,
+      baseUrl
+    );
+
     return NextResponse.json(files);
   } catch (err: any) {
     if (err.code === 'ENOENT') {
