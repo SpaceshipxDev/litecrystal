@@ -40,46 +40,45 @@ app.on('ready', () => {
   // This is our new "backend" logic
   ipcMain.handle(
     'download-and-open-task-folder',
-    async (_,
+    async (
+      _,
       taskId: string,
       folderName: string,
-      filesToDownload: { filename: string, relativePath: string, url: string }[]
+      filesToDownload: { filename: string; relativePath: string; url: string }[],
     ) => {
-      const safeFolderName = folderName.replace(/[\\/:*?"<>|]/g, '').trim();
-      const destinationFolder = path.join(app.getPath('downloads'), safeFolderName);
-      await fs.mkdir(destinationFolder, { recursive: true });
+      try {
+        const safeFolderName = folderName.replace(/[\\/:*?"<>|]/g, '').trim();
+        const destinationFolder = path.join(app.getPath('downloads'), safeFolderName);
+        await fs.mkdir(destinationFolder, { recursive: true });
 
-      const downloadPromises = filesToDownload.map(async (file) => {
-        // Construct the full local path, including subdirectories
-        const localFilePath = path.join(destinationFolder, file.relativePath);
+        const downloadPromises = filesToDownload.map(async (file) => {
+          const localFilePath = path.join(destinationFolder, file.relativePath);
+          await fs.mkdir(path.dirname(localFilePath), { recursive: true });
 
-        // ** THIS IS THE KEY NEW STEP **
-        // Ensure the sub-folder structure exists before trying to write the file
-        await fs.mkdir(path.dirname(localFilePath), { recursive: true });
+          const response = await axios({
+            url: file.url,
+            method: 'GET',
+            responseType: 'stream',
+          });
 
-        // The rest of the download logic is the same
-        const response = await axios({
-          url: file.url,
-          method: 'GET',
-          responseType: 'stream',
+          const writer = require('fs').createWriteStream(localFilePath);
+          response.data.pipe(writer);
+
+          return new Promise<void>((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+          });
         });
-        
-        const writer = require('fs').createWriteStream(localFilePath);
-        response.data.pipe(writer);
 
-        return new Promise((resolve, reject) => {
-          writer.on('finish', resolve);
-          writer.on('error', reject);
-        });
-      });
+        await Promise.all(downloadPromises);
+        await shell.openPath(destinationFolder);
 
-      // This part remains unchanged
-      await Promise.all(downloadPromises);
-      await shell.openPath(destinationFolder);
-
-      // start watching for changes
-      startBidirectionalSync(taskId, destinationFolder);
-    }
+        startBidirectionalSync(taskId, destinationFolder);
+      } catch (err) {
+        console.error('download-and-open-task-folder failed:', err);
+        throw err;
+      }
+    },
   );
 
   createWindow();
