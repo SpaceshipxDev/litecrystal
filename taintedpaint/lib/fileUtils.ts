@@ -9,5 +9,20 @@ export async function writeJsonAtomic(filePath: string, data: any) {
   await fs.writeFile(tempPath, JSON.stringify(data, null, 2))
 
   // Atomically replace the target file
-  await fs.rename(tempPath, filePath)
+  try {
+    await fs.rename(tempPath, filePath)
+  } catch (err: any) {
+    if (err?.code === 'EEXIST') {
+      try {
+        await fs.unlink(filePath)
+        await fs.rename(tempPath, filePath)
+        return
+      } catch (innerErr) {
+        await fs.unlink(tempPath).catch(() => {})
+        throw innerErr
+      }
+    }
+    await fs.unlink(tempPath).catch(() => {})
+    throw err
+  }
 }
