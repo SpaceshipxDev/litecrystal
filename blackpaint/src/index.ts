@@ -55,23 +55,20 @@ app.on('ready', () => {
           const localFilePath = path.join(destinationFolder, file.relativePath);
           await fs.mkdir(path.dirname(localFilePath), { recursive: true });
 
-          const response = await axios({
-            url: file.url,
-            method: 'GET',
-            responseType: 'stream',
+          const response = await axios.get<ArrayBuffer>(file.url, {
+            responseType: 'arraybuffer',
+            timeout: 30000,
           });
 
-          const writer = require('fs').createWriteStream(localFilePath);
-          response.data.pipe(writer);
-
-          return new Promise<void>((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-          });
+          await fs.writeFile(localFilePath, Buffer.from(response.data));
         });
 
         await Promise.all(downloadPromises);
-        await shell.openPath(destinationFolder);
+
+        const openError = await shell.openPath(destinationFolder);
+        if (openError) {
+          throw new Error(openError);
+        }
 
         startBidirectionalSync(taskId, destinationFolder);
       } catch (err) {
