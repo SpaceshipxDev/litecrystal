@@ -71,7 +71,8 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
     ignoreInitial: true,
   });
 
-  const toRel = (full: string) => full.replace(localRoot + path.sep, '').replace(/\\/g, '/');
+  const toRel = (fullPath: string) =>
+    path.relative(localRoot, fullPath).replace(/\\/g, '/');
 
   watcher
     .on('add', async (filePath) => {
