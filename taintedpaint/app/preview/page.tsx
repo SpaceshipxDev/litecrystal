@@ -6,7 +6,10 @@
  * – Metrics: 进行中｜已报价｜已完成｜成单率
  */
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import type { Task, Column, BoardData } from '@/types';
+import { baseColumns } from '@/lib/baseColumns';
+import KanbanDrawer from '@/components/KanbanDrawer';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 // 超轻量 mock 版 dayjs，只实现本例需要的 format / valueOf
@@ -25,28 +28,22 @@ const dayjs = (date: string) => ({
 // Tailwind clsx‑like小助手，把真值 class 拼起来
 const clsx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(' ');
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Job {
-  id: string;
-  customer: string;
-  engineer: string;
-  qty: number;
-  axis: string;
-  value: number;      // CNY ¥
-  date: string;       // ISO yyyy‑mm‑dd
-  status: 'Working' | 'Quoted' | 'Finished';
+type Status = 'Working' | 'Quoted' | 'Finished'
+
+interface Job extends Task {
+  status: Status;
+  qty?: number;
+  axis?: string;
+  value?: number;
 }
 
-// ─── Mock data (后端接口替换这里即可) ──────────────────────────────────────────
-const jobs: Job[] = [
-  { id: 'J1', customer: '海康威视', engineer: '李伟', qty: 3, axis: '5轴', value: 34000, date: '2025-07-19', status: 'Working' },
-  { id: 'J2', customer: '海康威视', engineer: '张倩', qty: 1, axis: '3轴', value: 12000, date: '2025-07-15', status: 'Quoted' },
-  { id: 'J3', customer: '大华股份', engineer: '陈宇', qty: 8, axis: '4轴', value: 78000, date: '2025-06-23', status: 'Finished' },
-  { id: 'J4', customer: '富士康',   engineer: '王楠', qty: 2, axis: '5轴', value: 41000, date: '2025-07-03', status: 'Finished' },
-  { id: 'J5', customer: '大华股份', engineer: '孙飞', qty: 5, axis: '3轴', value: 26000, date: '2025-06-18', status: 'Working' },
-  { id: 'J6', customer: '比亚迪',   engineer: '刘明', qty: 4, axis: '4轴', value: 52000, date: '2025-07-12', status: 'Working' },
-  { id: 'J7', customer: '宁德时代', engineer: '周华', qty: 6, axis: '5轴', value: 68000, date: '2025-07-08', status: 'Quoted' }
-];
+const getStatus = (t: Task): Status => {
+  if (["archive", "archive2", "ship"].includes(t.columnId)) return "Finished"
+  if (["quote", "send"].includes(t.columnId)) return "Quoted"
+  return "Working"
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 // Status → 颜色 / 中文标签（淡色、Apple 风）----------------------------------
 const statusInfo = {
@@ -57,24 +54,48 @@ const statusInfo = {
 
 // ─── 主页面组件 ───────────────────────────────────────────────────────────────
 export default function ArchivePage() {
-  // ① 缓存下拉选项 ----------------------------------------------------------------
-  const customers = useMemo(() => Array.from(new Set(jobs.map(j => j.customer))), []);
-  const months    = useMemo(() => Array.from(new Set(jobs.map(j => dayjs(j.date).format('YYYY-MM')))), []);
+  const [tasks, setTasks] = useState<Record<string, Task>>({});
+  const [columns, setColumns] = useState<Column[]>(baseColumns);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/jobs");
+        if (res.ok) {
+          const data: BoardData = await res.json();
+          setTasks(data.tasks || {});
+          const map = new Map((data.columns || []).map(c => [c.id, c]));
+          setColumns(baseColumns.map(b => map.get(b.id) || b));
+        }
+      } catch {}
+    })();
+  }, []);
+
+  const jobs = useMemo<Job[]>(() =>
+    Object.values(tasks).map(t => ({ ...t, status: getStatus(t) }))
+  , [tasks]);
+
+  const customers = useMemo(() => Array.from(new Set(jobs.map(j => j.customerName))), [jobs]);
+  const months    = useMemo(() => Array.from(new Set(jobs.map(j => dayjs(j.orderDate).format("YYYY-MM")))), [jobs]);
 
   // ② 组件状态 --------------------------------------------------------------------
   const [activeCustomer, setActiveCustomer] = useState<string>('All');
   const [activeMonth,    setActiveMonth]    = useState<string>('All');
   const [q,              setQ]              = useState('');
 
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskColumnTitle, setSelectedTaskColumnTitle] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   // ③ 过滤 + 排序 -----------------------------------------------------------------
   const filtered = jobs
     .filter(j => {
-      const okCustomer = activeCustomer === 'All' || j.customer === activeCustomer;
-      const okMonth    = activeMonth    === 'All' || dayjs(j.date).format('YYYY-MM') === activeMonth;
-      const okSearch   = q === '' || j.engineer.toLowerCase().includes(q.toLowerCase());
+      const okCustomer = activeCustomer === "All" || j.customerName === activeCustomer;
+      const okMonth = activeMonth === "All" || dayjs(j.orderDate).format("YYYY-MM") === activeMonth;
+      const okSearch = q === "" || j.representative.toLowerCase().includes(q.toLowerCase());
       return okCustomer && okMonth && okSearch;
     })
-    .sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
+    .sort((a, b) => dayjs(b.orderDate).valueOf() - dayjs(a.orderDate).valueOf());
 
   // ④ 指标计算 --------------------------------------------------------------------
   const working  = filtered.filter(j => j.status === 'Working').length;
@@ -82,13 +103,26 @@ export default function ArchivePage() {
   const finished = filtered.filter(j => j.status === 'Finished').length;
   const denom    = quoted + finished;                        // 已报价 + 已完成
   const hitRate  = denom === 0 ? 0 : Math.round((finished / denom) * 100);
-
-  // ⑤ 按天分组（页面时间线标题用） ---------------------------------------------------
   const byDay = filtered.reduce<Record<string, Job[]>>((acc, job) => {
-    const d = dayjs(job.date).format('MMM DD');
+    const d = dayjs(job.orderDate).format("MMM DD");
     (acc[d] = acc[d] || []).push(job);
     return acc;
   }, {});
+
+  const handleJobClick = (job: Job) => {
+    setSelectedTask(job);
+    const col = columns.find(c => c.id === job.columnId);
+    setSelectedTaskColumnTitle(col ? col.title : null);
+    setIsDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setIsDrawerOpen(false);
+    setTimeout(() => {
+      setSelectedTask(null);
+      setSelectedTaskColumnTitle(null);
+    }, 300);
+  };
 
   // ⑥ JSX 渲染 --------------------------------------------------------------------
   return (
@@ -146,7 +180,7 @@ export default function ArchivePage() {
             <div key={day}>
               <h2 className="text-sm font-medium text-gray-400 mb-6 uppercase tracking-wider">{day}</h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {jobs.map(job => <JobCard key={job.id} job={job} />)}
+                {jobs.map(job => <JobCard key={job.id} job={job} onClick={() => handleJobClick(job)} />)}
               </div>
             </div>
           ))}
@@ -156,6 +190,13 @@ export default function ArchivePage() {
             </div>
           )}
         </div>
+        {isDrawerOpen && <div className="fixed inset-0 backdrop-blur-[2px] z-40" onClick={closeDrawer} />}
+        <KanbanDrawer
+          isOpen={isDrawerOpen}
+          task={selectedTask}
+          columnTitle={selectedTaskColumnTitle}
+          onClose={closeDrawer}
+        />
       </div>
     </div>
   );
@@ -186,19 +227,27 @@ function Chip({
   );
 }
 
-function JobCard({ job }: { job: Job }) {
+function BlockedField() {
+  return (
+    <span className="relative inline-block w-6 h-3 rounded-sm bg-gray-200/70 overflow-hidden">
+      <span className="absolute inset-0 bg-white/40 backdrop-blur-sm" />
+    </span>
+  );
+}
+
+function JobCard({ job, onClick }: { job: Job; onClick: () => void }) {
   const colors = statusInfo[job.status];
 
   return (
-    <div className="relative bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-sm">
+    <div onClick={onClick} className="relative bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-sm cursor-pointer">
       {/* 左侧竖条表示状态颜色 */}
       <div className={clsx('absolute left-0 top-0 w-1 h-full', colors.stripe)} />
 
       <div className="pl-6 pr-4 py-4">
         <div className="flex items-start justify-between mb-3">
           <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-gray-900 leading-tight">{job.engineer}</h3>
-            <p className="text-sm text-gray-500 mt-0.5">{job.customer}</p>
+            <h3 className="font-medium text-gray-900 leading-tight">{job.representative}</h3>
+            <p className="text-sm text-gray-500 mt-0.5">{job.customerName}</p>
           </div>
           <span className={clsx(
             'text-xs font-medium px-2 py-1 rounded ml-3 whitespace-nowrap',
@@ -208,12 +257,16 @@ function JobCard({ job }: { job: Job }) {
           </span>
         </div>
 
-        <p className="text-xs text-gray-400 mb-3 font-mono tracking-wide">{dayjs(job.date).format('YYYY-MM-DD')}</p>
+        <p className="text-xs text-gray-400 mb-3 font-mono tracking-wide">{dayjs(job.orderDate).format('YYYY-MM-DD')}</p>
 
         <div className="flex items-center gap-3 text-xs text-gray-600">
-          <span className="font-medium">¥{(job.value / 1000).toFixed(0)}k</span>
-          <span>{job.qty}件</span>
-          <span>{job.axis}</span>
+          {job.value ? (
+            <span className="font-medium">¥{(job.value / 1000).toFixed(0)}k</span>
+          ) : (
+            <BlockedField />
+          )}
+          {job.qty ? <span>{job.qty}件</span> : <BlockedField />}
+          {job.axis ? <span>{job.axis}</span> : <BlockedField />}
         </div>
       </div>
     </div>
