@@ -63,7 +63,7 @@ export default function KanbanDrawer({
   return (
     <>
       <aside
-        className={`fixed inset-y-0 right-0 w-[400px] bg-white/95 backdrop-blur-xl border-l border-black/[0.08] transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 flex flex-col ${isOpen ? "translate-x-0 shadow-[0_8px_64px_0_rgba(0,0,0,0.25)]" : "translate-x-full"}`}
+        className={`fixed inset-y-0 right-0 w-[400px] bg-white/90 backdrop-blur-md border-l border-gray-200/80 transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 flex flex-col ${isOpen ? "translate-x-0 shadow-[0_8px_64px_0_rgba(0,0,0,0.25)]" : "translate-x-full"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-shrink-0 px-6 pt-6 pb-0 flex items-start justify-between">
@@ -87,7 +87,7 @@ export default function KanbanDrawer({
           </div>
           <button
             onClick={onClose}
-            className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 transition-colors duration-200"
+            className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-md bg-black/5 hover:bg-black/10 transition-colors duration-200"
           >
             <X className="h-4 w-4 text-black/60" />
           </button>
@@ -117,9 +117,9 @@ export default function KanbanDrawer({
             <button
               onClick={handleDownloadAndOpen}
               disabled={isDownloading}
-              className="w-full flex items-center gap-4 p-4 bg-green-500/8 hover:bg-green-500/12 rounded-2xl transition-all duration-200 group disabled:opacity-60 disabled:cursor-wait"
+              className="w-full flex items-center gap-4 p-4 bg-green-500/8 hover:bg-green-500/12 rounded-lg transition-all duration-200 group disabled:opacity-60 disabled:cursor-wait"
             >
-              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-green-500/15 group-hover:bg-green-500/20 transition-colors duration-200">
+              <div className="flex items-center justify-center h-10 w-10 rounded bg-green-500/15 group-hover:bg-green-500/20 transition-colors duration-200">
                 {isDownloading ? (
                   <svg className="h-5 w-5 text-green-600 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" opacity="0.25" />
@@ -141,9 +141,9 @@ export default function KanbanDrawer({
 
             <button
               onClick={() => setShowMetadata(true)}
-              className="w-full flex items-center gap-4 p-4 bg-black/5 hover:bg-black/10 rounded-2xl transition-all duration-200"
+              className="w-full flex items-center gap-4 p-4 bg-black/5 hover:bg-black/10 rounded-lg transition-all duration-200"
             >
-              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-black/10">
+              <div className="flex items-center justify-center h-10 w-10 rounded bg-black/10">
                 <FileCode className="h-5 w-5 text-black/70" />
               </div>
               <div className="flex-1 text-left">
