@@ -90,12 +90,12 @@ export default function SearchDialog({ isOpen, onClose, onTaskSelect }: SearchDi
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex justify-center items-start"
+      className="fixed inset-0 bg-black/10 backdrop-blur-sm z-50 flex justify-center items-start"
       onClick={onClose}
     >
       <div
-        className="w-[95vw] max-w-2xl mt-[20vh] bg-white/90 backdrop-blur-md border border-gray-200/70
-                   rounded-2xl shadow-xl flex flex-col overflow-hidden
+        className="w-[95vw] max-w-2xl mt-[20vh] bg-white/75 backdrop-blur-2xl border border-gray-200/80 
+                   rounded-2xl shadow-2xl flex flex-col overflow-hidden
                    animate-in fade-in-0 zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -113,7 +113,7 @@ export default function SearchDialog({ isOpen, onClose, onTaskSelect }: SearchDi
           {isLoading && <Loader2 className="h-5 w-5 text-gray-500 animate-spin" />}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-gray-500 hover:bg-black/20 transition-colors"
+            className="p-1.5 rounded-full text-gray-500 hover:bg-black/10 transition-colors"
             aria-label="关闭搜索"
           >
             <X className="h-4 w-4" />
@@ -141,13 +141,13 @@ export default function SearchDialog({ isOpen, onClose, onTaskSelect }: SearchDi
               {results.map(({ task, columnTitle }) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-4 p-3 rounded-lg cursor-pointer transition-colors hover:bg-black/10"
+                  className="flex items-center gap-4 p-3 rounded-lg cursor-pointer transition-colors hover:bg-black/5"
                   onClick={() => handleSelectTask(task)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => e.key === "Enter" && handleSelectTask(task)}
                 >
-                  <div className="flex-shrink-0 bg-gray-100 p-2 rounded-md">
+                  <div className="flex-shrink-0 bg-black/5 p-2 rounded-md">
                     <FileText className="h-5 w-5 text-gray-600" />
                   </div>
                   <div className="flex-1 min-w-0">

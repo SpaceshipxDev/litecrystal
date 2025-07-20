@@ -72,18 +72,6 @@ export default function KanbanBoard() {
     return `${task.customerName} - ${task.representative}`;
   };
 
-  const columnColors: Record<string, string> = {
-    create: 'bg-blue-500',
-    quote: 'bg-purple-500',
-    send: 'bg-teal-500',
-    sheet: 'bg-orange-500',
-    approval: 'bg-yellow-500',
-    program: 'bg-indigo-500',
-    ship: 'bg-green-500',
-    archive: 'bg-gray-400',
-    archive2: 'bg-gray-400',
-  };
-
   const mergeWithSkeleton = (saved: Column[]): Column[] => {
     const savedColumnsMap = new Map(saved.map((c) => [c.id, c]));
     return baseColumns.map(
@@ -211,8 +199,8 @@ export default function KanbanBoard() {
   }, [viewMode, columns])
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-white text-gray-900 font-sans">
-      <header className="px-6 py-4 bg-white/90 backdrop-blur-sm sticky top-0 z-30 border-b border-gray-200/80">
+    <div className="h-screen w-full flex flex-col bg-gray-50/50">
+      <header className="px-6 py-4 bg-white/80 backdrop-blur-xl sticky top-0 z-30 border-b-2 border-gray-200/60">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <h1 className="text-xl font-medium text-gray-900 tracking-tight">Eldaline</h1>
@@ -220,7 +208,7 @@ export default function KanbanBoard() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex bg-gray-100/50 backdrop-blur-sm border border-gray-200/60 rounded-full p-0.5">
+            <div className="flex bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 rounded-full p-0.5">
               <button
                 onClick={() => setViewMode('business')}
                 className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${viewMode === 'business' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-800'}`}
@@ -278,11 +266,11 @@ export default function KanbanBoard() {
                 onDragEnter={() => handleDragEnter(column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
-                className={`flex-shrink-0 w-72 flex flex-col rounded-xl transition-colors duration-200 border border-gray-200/80 bg-white/70 ${
-                  dragOverColumn === column.id ? 'bg-blue-50/50' : ''
+                className={`flex-shrink-0 w-72 flex flex-col rounded-xl transition-colors duration-200 ${
+                  dragOverColumn === column.id ? "bg-blue-100/50" : "bg-gray-100/80"
                 }`}
               >
-                <div className="p-4 border-b border-gray-200/80 sticky top-0 z-20 bg-white/80 backdrop-blur-sm rounded-t-xl">
+                <div className="p-4 border-b border-gray-200/80 sticky top-0 z-20 bg-gray-100/80 backdrop-blur-md rounded-t-xl">
                   <div className="flex items-center gap-2">
                     <Archive className="h-4 w-4 text-gray-600" strokeWidth={1.5} />
                     <h2 className="text-base font-semibold text-gray-800">{column.title}</h2>
@@ -315,16 +303,20 @@ export default function KanbanBoard() {
                           draggable
                           onDragStart={() => handleDragStart(task)}
                           onClick={(e) => handleTaskClick(task, e)}
-                          className="relative p-3 cursor-pointer hover:shadow-md hover:-translate-y-px transform transition-all duration-200 border border-gray-200 bg-white group rounded-xl shadow-sm"
+                          className="p-3 cursor-pointer hover:shadow-lg hover:-translate-y-px transform transition-all duration-200 border border-gray-200/60 bg-white/60 group rounded-xl shadow-sm opacity-75 hover:opacity-100"
                         >
-                          <div className={`absolute left-0 top-0 h-full w-1 rounded-l ${columnColors[task.columnId]}`} />
-                          <div className="pl-4 pr-2">
-                            <div className={`p-1 -m-1 rounded-md transition-colors duration-500 ${highlightedTaskId === task.id ? 'bg-yellow-200/70' : 'bg-transparent'}`}
-                            >
-                              <h3 className="text-sm font-medium text-gray-800 mb-1.5 leading-tight group-hover:text-gray-900 transition-colors">
-                                {getTaskDisplayName(task)}
-                              </h3>
-                              <p className="text-xs text-gray-500 leading-relaxed">{task.orderDate}</p>
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                               <div
+                                className={`p-1 -m-1 rounded-md transition-colors duration-500
+                                  ${highlightedTaskId === task.id ? 'bg-yellow-300/80' : 'bg-transparent'}`
+                                }
+                              >
+                                <h3 className="text-sm font-medium text-gray-700 mb-1.5 leading-tight group-hover:text-gray-900 transition-colors">
+                                  {getTaskDisplayName(task)}
+                                </h3>
+                                <p className="text-xs text-gray-500 leading-relaxed">{task.orderDate}</p>
+                              </div>
                             </div>
                           </div>
                         </Card>
@@ -340,11 +332,11 @@ export default function KanbanBoard() {
                 onDragEnter={() => handleDragEnter(column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
-                className={`flex-shrink-0 w-72 flex flex-col rounded-xl border border-gray-200/80 shadow-sm hover:shadow-md transform-gpu transition-all duration-300 bg-white/70 ${
-                  dragOverColumn === column.id ? 'bg-blue-50/50' : ''
+                className={`flex-shrink-0 w-72 flex flex-col rounded-xl border border-gray-200/75 shadow-sm hover:shadow-md transform-gpu transition-all duration-300 ${
+                  dragOverColumn === column.id ? "bg-blue-100/50" : "bg-gray-100/80"
                 }`}
               >
-                <div className="p-4 border-b border-gray-200/80 sticky top-0 z-20 bg-white/80 backdrop-blur-sm rounded-t-xl">
+                <div className="p-4 border-b border-gray-200/80 sticky top-0 z-20 bg-gray-100/80 backdrop-blur-md rounded-t-xl">
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-semibold text-gray-800">{column.title}</h2>
                     <span className="text-xs font-medium text-gray-500 bg-gray-200/80 px-2 py-0.5 rounded-full min-w-[20px] text-center">
@@ -364,17 +356,17 @@ export default function KanbanBoard() {
                       draggable
                       onDragStart={() => handleDragStart(task)}
                       onClick={(e) => handleTaskClick(task, e)}
-                      className="relative p-3 cursor-pointer hover:shadow-md hover:-translate-y-px transform transition-all duration-200 border border-gray-200 bg-white group rounded-xl shadow-sm"
+                      className="p-3 cursor-pointer hover:shadow-lg hover:-translate-y-px transform transition-all duration-200 border border-gray-200/60 bg-white group rounded-xl shadow-sm"
                     >
-                      <div className={`absolute left-0 top-0 h-full w-1 rounded-l ${columnColors[task.columnId]}`} />
-                      <div className="pl-4 pr-2">
-                        <div className={`p-1 -m-1 rounded-md transition-colors duration-500 ${highlightedTaskId === task.id ? 'bg-yellow-200/70' : 'bg-transparent'}`}
-                        >
-                          <h3 className="text-sm font-medium text-gray-800 mb-1.5 leading-tight group-hover:text-gray-900 transition-colors">
-                            {getTaskDisplayName(task)}
-                          </h3>
-                          <p className="text-xs text-gray-500 leading-relaxed">{task.orderDate}</p>
-                        </div>
+                      <div
+                        className={`p-1 -m-1 rounded-md transition-colors duration-500
+                          ${highlightedTaskId === task.id ? 'bg-yellow-300/80' : 'bg-transparent'}`
+                        }
+                      >
+                        <h3 className="text-sm font-medium text-gray-900 mb-1.5 leading-tight group-hover:text-blue-700 transition-colors">
+                          {getTaskDisplayName(task)}
+                        </h3>
+                        <p className="text-xs text-gray-600 leading-relaxed">{task.orderDate}</p>
                       </div>
                     </Card>
                   ))}

@@ -63,7 +63,7 @@ export default function KanbanDrawer({
   return (
     <>
       <aside
-        className={`fixed inset-y-0 right-0 w-[400px] bg-white/90 backdrop-blur-md border-l border-gray-200/80 transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 flex flex-col ${isOpen ? "translate-x-0 shadow-[0_8px_64px_0_rgba(0,0,0,0.25)]" : "translate-x-full"}`}
+        className={`fixed inset-y-0 right-0 w-[400px] bg-white/95 backdrop-blur-xl border-l border-black/[0.08] transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 flex flex-col ${isOpen ? "translate-x-0 shadow-[0_8px_64px_0_rgba(0,0,0,0.25)]" : "translate-x-full"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-shrink-0 px-6 pt-6 pb-0 flex items-start justify-between">
