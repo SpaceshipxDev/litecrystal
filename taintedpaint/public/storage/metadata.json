@@ -12,6 +12,19 @@
         "task-1752482910581"
       ],
       "ynmxId": "YNMX-2025-07-20-1223"
+    },
+    "1753026660078": {
+      "id": "1753026660078",
+      "columnId": "approval",
+      "customerName": "大华",
+      "representative": "我",
+      "orderDate": "2025-07-20",
+      "notes": "",
+      "taskFolderPath": "/storage/tasks/1753026660078",
+      "files": [
+        "task-1752482910581"
+      ],
+      "ynmxId": "YNMX-2025-07-20-3081"
     }
   },
   "columns": [
@@ -44,7 +57,8 @@
       "id": "approval",
       "title": "审批",
       "taskIds": [
-        "1753021763511"
+        "1753021763511",
+        "1753026660078"
       ]
     },
     {
