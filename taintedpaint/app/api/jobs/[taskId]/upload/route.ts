@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData } from "@/types";
-import { writeJsonAtomic } from "@/lib/fileUtils";
+import { updateBoardData } from "@/lib/boardDataStore";
 
 // --- Path Definitions ---
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
@@ -51,24 +51,19 @@ export async function POST(
       newlyAddedFiles.push(safeRelPath);
     }
 
-    const rawMeta = await fs.readFile(META_FILE, "utf-8");
-    const boardData: BoardData = JSON.parse(rawMeta);
+    let updatedTask: BoardData["tasks"][string] | undefined;
+    await updateBoardData(async (boardData) => {
+      const taskToUpdate = boardData.tasks[taskId];
+      if (!taskToUpdate) throw new Error("Task not found in metadata");
 
-    const taskToUpdate = boardData.tasks[taskId];
-    if (!taskToUpdate) {
-      throw new Error("Task not found in metadata");
-    }
+      if (!taskToUpdate.files) {
+        taskToUpdate.files = [];
+      }
+      taskToUpdate.files.push(...newlyAddedFiles);
+      updatedTask = taskToUpdate;
+    });
 
-    // --- IMPROVEMENT: Append new files instead of re-reading the directory ---
-    if (!taskToUpdate.files) {
-      taskToUpdate.files = [];
-    }
-    taskToUpdate.files.push(...newlyAddedFiles);
-    // ----------------------------------------------------------------------
-
-    await writeJsonAtomic(META_FILE, boardData);
-
-    return NextResponse.json(taskToUpdate);
+    return NextResponse.json(updatedTask);
   } catch (err) {
     console.error(`Failed to upload files for task ${taskId}:`, err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

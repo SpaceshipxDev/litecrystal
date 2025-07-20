@@ -10,7 +10,26 @@ interface RemoteFile {
   mtimeMs: number;
 }
 
+async function listLocalFiles(dir: string): Promise<string[]> {
+  let results: string[] = [];
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        results = results.concat(await listLocalFiles(full));
+      } else if (entry.isFile()) {
+        results.push(full);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return results;
+}
+
 const activeSyncs = new Map<string, { watcher: FSWatcher; interval: ReturnType<typeof setInterval> }>();
+const pendingWrites = new Set<string>();
 
 // Simple helper to upload or update a file
 async function uploadFile(taskId: string, localRoot: string, relPath: string) {
@@ -60,7 +79,18 @@ async function pullFromServer(taskId: string, localRoot: string) {
       if (!stat || stat.mtimeMs < file.mtimeMs) {
         await fs.mkdir(path.dirname(localPath), { recursive: true });
         const response = await axios.get(file.url, { responseType: 'arraybuffer' });
+        pendingWrites.add(localPath);
         await fs.writeFile(localPath, Buffer.from(response.data));
+        pendingWrites.delete(localPath);
+      }
+    }
+    const remoteSet = new Set(files.map(f => path.join(localRoot, f.relativePath)));
+    const localFiles = await listLocalFiles(localRoot);
+    for (const lp of localFiles) {
+      if (!remoteSet.has(lp)) {
+        pendingWrites.add(lp);
+        await fs.unlink(lp).catch(() => {});
+        pendingWrites.delete(lp);
       }
     }
   } catch (err) {
@@ -82,16 +112,27 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
   const toRel = (fullPath: string) =>
     path.relative(localRoot, fullPath).replace(/\\/g, '/');
 
+  const shouldSkip = (p: string) => {
+    if (pendingWrites.has(p)) {
+      pendingWrites.delete(p);
+      return true;
+    }
+    return false;
+  };
+
   watcher
     .on('add', async (filePath) => {
+      if (shouldSkip(filePath)) return;
       const relPath = toRel(filePath);
       await uploadFile(taskId, localRoot, relPath);
     })
     .on('change', async (filePath) => {
+      if (shouldSkip(filePath)) return;
       const relPath = toRel(filePath);
       await uploadFile(taskId, localRoot, relPath);
     })
     .on('unlink', async (filePath) => {
+      if (shouldSkip(filePath)) return;
       const relPath = toRel(filePath);
       await deleteFile(taskId, relPath);
     });

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData } from "@/types";
-import { writeJsonAtomic } from "@/lib/fileUtils";
+import { updateBoardData } from "@/lib/boardDataStore";
 import { sanitizeRelativePath } from "@/lib/pathUtils.mjs";
 
 // --- Path Definitions ---
@@ -48,25 +48,19 @@ export async function POST(
       console.warn(`File to be deleted not found on disk, proceeding to update metadata: ${filePath}`);
     }
 
-    // 2. Read metadata
-    const rawMeta = await fs.readFile(META_FILE, "utf-8");
-    const boardData: BoardData = JSON.parse(rawMeta);
+    let updatedTask: BoardData["tasks"][string] | undefined;
+    await updateBoardData(async (boardData) => {
+      const taskToUpdate = boardData.tasks[taskId];
+      if (!taskToUpdate) throw new Error("Task not found in metadata");
 
-    const taskToUpdate = boardData.tasks[taskId];
-    if (!taskToUpdate) {
-      return NextResponse.json({ error: "Task not found in metadata" }, { status: 404 });
-    }
+      if (taskToUpdate.files) {
+        taskToUpdate.files = taskToUpdate.files.filter((f) => f !== safeFilename);
+      }
 
-    // 3. IMPORTANT: Update metadata by filtering the existing array to preserve order
-    if (taskToUpdate.files) {
-      taskToUpdate.files = taskToUpdate.files.filter(f => f !== safeFilename);
-    }
+      updatedTask = taskToUpdate;
+    });
 
-    // 4. Write the updated metadata back
-    await writeJsonAtomic(META_FILE, boardData);
-
-    // 5. Return the fully updated task object to the client
-    return NextResponse.json(taskToUpdate);
+    return NextResponse.json(updatedTask);
 
   } catch (err) {
     console.error(`Failed to delete file for task ${taskId}:`, err);
