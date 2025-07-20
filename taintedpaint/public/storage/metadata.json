@@ -1,0 +1,66 @@
+{
+  "tasks": {
+    "1753021763511": {
+      "id": "1753021763511",
+      "columnId": "approval",
+      "customerName": "efw",
+      "representative": "fwe",
+      "orderDate": "wef",
+      "notes": "ewf",
+      "taskFolderPath": "/storage/tasks/1753021763511",
+      "files": [
+        "task-1752482910581"
+      ],
+      "ynmxId": "YNMX-2025-07-20-1223"
+    }
+  },
+  "columns": [
+    {
+      "id": "create",
+      "title": "建单",
+      "taskIds": []
+    },
+    {
+      "id": "quote",
+      "title": "报价",
+      "taskIds": []
+    },
+    {
+      "id": "send",
+      "title": "发出",
+      "taskIds": []
+    },
+    {
+      "id": "archive",
+      "title": "存档",
+      "taskIds": []
+    },
+    {
+      "id": "sheet",
+      "title": "制单",
+      "taskIds": []
+    },
+    {
+      "id": "approval",
+      "title": "审批",
+      "taskIds": [
+        "1753021763511"
+      ]
+    },
+    {
+      "id": "program",
+      "title": "编程",
+      "taskIds": []
+    },
+    {
+      "id": "ship",
+      "title": "出货",
+      "taskIds": []
+    },
+    {
+      "id": "archive2",
+      "title": "存档",
+      "taskIds": []
+    }
+  ]
+}

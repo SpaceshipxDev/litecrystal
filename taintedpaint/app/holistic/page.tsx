@@ -271,7 +271,7 @@ function JobCard({ job, onClick }: { job: Job; onClick: () => void }) {
             <span className="font-medium">¥{(job.value / 1000).toFixed(0)}k</span>
           ) : (
             <span className="inline-flex items-center gap-0.5 font-medium">
-              ¥<BlockedField />k
+              ¥<BlockedField />
             </span>
           )}
           {job.qty ? (
