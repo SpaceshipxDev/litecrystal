@@ -10,6 +10,8 @@ import { useState, useMemo, useEffect } from 'react';
 import type { Task, Column, BoardData } from '@/types';
 import { baseColumns } from '@/lib/baseColumns';
 import KanbanDrawer from '@/components/KanbanDrawer';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 // 超轻量 mock 版 dayjs，只实现本例需要的 format / valueOf
@@ -133,7 +135,12 @@ export default function ArchivePage() {
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* ── Header & Filters (吸顶) ───────────────────────────────── */}
         <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm pb-6 mb-8">
-          <h1 className="text-3xl font-light mb-2">档案库</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <Link href="/" aria-label="返回看板" className="text-gray-500 hover:text-gray-800">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-3xl font-light">档案库</h1>
+          </div>
 
           {/* ── Metrics 指标栏 ─────────────────────────────── */}
           <div className="text-sm text-gray-600 mb-6 space-x-8">
@@ -263,10 +270,24 @@ function JobCard({ job, onClick }: { job: Job; onClick: () => void }) {
           {job.value ? (
             <span className="font-medium">¥{(job.value / 1000).toFixed(0)}k</span>
           ) : (
-            <BlockedField />
+            <span className="inline-flex items-center gap-0.5 font-medium">
+              ¥<BlockedField />k
+            </span>
           )}
-          {job.qty ? <span>{job.qty}件</span> : <BlockedField />}
-          {job.axis ? <span>{job.axis}</span> : <BlockedField />}
+          {job.qty ? (
+            <span>{job.qty}件</span>
+          ) : (
+            <span className="inline-flex items-center">
+              <BlockedField />件
+            </span>
+          )}
+          {job.axis ? (
+            <span>{job.axis}</span>
+          ) : (
+            <span className="inline-flex items-center">
+              <BlockedField />轴
+            </span>
+          )}
         </div>
       </div>
     </div>
