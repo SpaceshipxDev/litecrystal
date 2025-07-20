@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData } from "@/types";
-import { writeJsonAtomic } from "@/lib/fileUtils";
+import { updateBoardData } from "@/lib/boardDataStore";
 
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
 const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
@@ -50,27 +50,24 @@ export async function POST(
     const buf = Buffer.from(await newFile.arrayBuffer());
     await fs.writeFile(newFilePath, buf);
 
-    // Update metadata
-    const rawMeta = await fs.readFile(META_FILE, "utf-8");
-    const boardData: BoardData = JSON.parse(rawMeta);
-    const taskToUpdate = boardData.tasks[taskId];
-    if (!taskToUpdate) {
-      return NextResponse.json({ error: "Task not found in metadata" }, { status: 404 });
-    }
+    let updatedTask: BoardData["tasks"][string] | undefined;
+    await updateBoardData(async (boardData) => {
+      const taskToUpdate = boardData.tasks[taskId];
+      if (!taskToUpdate) throw new Error("Task not found in metadata");
 
-    // Replace the item in the array to preserve order
-    const newPath = relativePath ? path.join(path.dirname(relativePath), sanitizedNewFilename) : sanitizedNewFilename;
-    const fileIndex = taskToUpdate.files?.indexOf(oldFilename);
-    if (taskToUpdate.files && fileIndex !== undefined && fileIndex > -1) {
-      taskToUpdate.files[fileIndex] = newPath;
-    } else {
-      // Fallback: if the old file wasn't in the list, add the new one
-      taskToUpdate.files = [...(taskToUpdate.files || []), newPath];
-    }
+      const newPath = relativePath
+        ? path.join(path.dirname(relativePath), sanitizedNewFilename)
+        : sanitizedNewFilename;
+      const fileIndex = taskToUpdate.files?.indexOf(oldFilename);
+      if (taskToUpdate.files && fileIndex !== undefined && fileIndex > -1) {
+        taskToUpdate.files[fileIndex] = newPath;
+      } else {
+        taskToUpdate.files = [...(taskToUpdate.files || []), newPath];
+      }
+      updatedTask = taskToUpdate;
+    });
 
-    await writeJsonAtomic(META_FILE, boardData);
-
-    return NextResponse.json(taskToUpdate);
+    return NextResponse.json(updatedTask);
   } catch (err) {
     console.error(`Failed to update file for task ${taskId}:`, err);
     const errorMessage = err instanceof Error ? err.message : "Internal Server Error";

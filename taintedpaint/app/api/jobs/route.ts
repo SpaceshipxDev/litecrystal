@@ -3,9 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
-import type { BoardData, Column, Task } from "@/types";
+import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
-import { writeJsonAtomic } from "@/lib/fileUtils";
+import { readBoardData, updateBoardData } from "@/lib/boardDataStore";
 
 // --- Path Definitions ---
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
@@ -13,21 +13,11 @@ const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
 const META_FILE = path.join(STORAGE_DIR, "metadata.json");
 // ------------------------
 
-// A helper to get the current board data or initialize it
-async function getBoardData(): Promise<BoardData> {
-  try {
-    const raw = await fs.readFile(META_FILE, "utf-8");
-    const data = JSON.parse(raw);
-    if (data.tasks && data.columns) return data;
-    throw new Error("Invalid metadata format");
-  } catch {
-    return { tasks: {}, columns: baseColumns };
-  }
-}
+// Legacy helper removed in favour of boardDataStore
 
 // GET: Returns the entire board data object (no changes)
 export async function GET() {
-  const boardData = await getBoardData();
+  const boardData = await readBoardData();
   return NextResponse.json(boardData);
 }
 
@@ -92,17 +82,15 @@ export async function POST(req: NextRequest) {
       // ------------------------
     };
 
-    const boardData = await getBoardData();
-
-    boardData.tasks[taskId] = newTask;
-    const startCol = boardData.columns.find((c) => c.id === START_COLUMN_ID);
-    if (startCol) {
-      startCol.taskIds.push(taskId);
-    } else {
-      boardData.columns[0].taskIds.push(taskId);
-    }
-
-    await writeJsonAtomic(META_FILE, boardData);
+    await updateBoardData(async (boardData) => {
+      boardData.tasks[taskId] = newTask;
+      const startCol = boardData.columns.find((c) => c.id === START_COLUMN_ID);
+      if (startCol) {
+        startCol.taskIds.push(taskId);
+      } else if (boardData.columns[0]) {
+        boardData.columns[0].taskIds.push(taskId);
+      }
+    });
 
     return NextResponse.json(newTask);
   } catch (err) {
@@ -118,7 +106,10 @@ export async function PUT(req: NextRequest) {
     if (!boardData.tasks || !boardData.columns) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
-    await writeJsonAtomic(META_FILE, boardData);
+    await updateBoardData(async (data) => {
+      data.tasks = boardData.tasks;
+      data.columns = boardData.columns;
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Failed to update board:", err);
