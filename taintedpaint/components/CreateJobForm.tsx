@@ -2,7 +2,7 @@
 "use client";
 
 import type { Task } from "@/types";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Folder, PlusCircle, Loader2 } from "lucide-react"; // Changed icon
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,26 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const [orderDate, setOrderDate] = useState("");
   const [notes, setNotes] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [customerOptions, setCustomerOptions] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 初始化日期为今天，并读取已有客户列表供输入时选择
+  useEffect(() => {
+    setOrderDate(new Date().toISOString().slice(0, 10));
+
+    (async () => {
+      try {
+        const res = await fetch('/api/jobs');
+        if (res.ok) {
+          const data = await res.json();
+          const names = Array.from(
+            new Set(Object.values(data.tasks || {}).map((t: Task) => t.customerName))
+          );
+          setCustomerOptions(names);
+        }
+      } catch {}
+    })();
+  }, []);
 
   // HELPER: To get the root folder name from the FileList
   const getFolderName = (): string => {
@@ -120,12 +139,20 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           />
         </label>
 
-        <Input
-          placeholder="客户"
-          value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
-          className="text-sm bg-gray-100 border-none rounded-md px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
-        />
+        <>
+          <Input
+            list="customer-list"
+            placeholder="客户"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            className="text-sm bg-gray-100 border-none rounded-md px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
+          />
+          <datalist id="customer-list">
+            {customerOptions.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </>
         <Input
           placeholder="负责人"
           value={representative}
@@ -133,7 +160,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           className="text-sm bg-gray-100 border-none rounded-md px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
         />
         <Input
-          type="text"
+          type="date"
           placeholder="日期"
           value={orderDate}
           onChange={(e) => setOrderDate(e.target.value)}
