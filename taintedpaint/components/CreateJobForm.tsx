@@ -87,7 +87,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   };
 
   return (
-    <div className="flex-shrink-0 w-72 bg-white flex flex-col p-4 gap-4 rounded-xl mx-2 my-4 shadow-sm border border-neutral-200/80">
+    <div className="flex-shrink-0 w-72 bg-white/90 backdrop-blur-sm flex flex-col p-4 gap-4 rounded-xl mx-2 my-4 shadow-sm border border-gray-200/80">
       <div className="flex items-center gap-2 px-1">
         <PlusCircle className="h-5 w-5 text-neutral-500" />
         <h2 className="text-base font-semibold text-neutral-800">新建任务</h2>
@@ -96,7 +96,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       <div className="w-full space-y-3">
         <label
           htmlFor="folderUpload"
-          className="flex items-center justify-between w-full rounded-lg bg-neutral-100 hover:bg-neutral-200/70 transition-colors cursor-pointer px-3 py-2.5"
+          className="flex items-center justify-between w-full rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer px-3 py-2.5"
         >
           <div className="flex items-center gap-2 truncate">
             <Folder className="h-4 w-4 text-neutral-400 flex-shrink-0" />
@@ -124,32 +124,32 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           placeholder="客户"
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
-          className="text-sm bg-neutral-100 border-none rounded-lg px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-neutral-500"
+          className="text-sm bg-gray-100 border-none rounded-lg px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
         />
         <Input
           placeholder="负责人"
           value={representative}
           onChange={(e) => setRepresentative(e.target.value)}
-          className="text-sm bg-neutral-100 border-none rounded-lg px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-neutral-500"
+          className="text-sm bg-gray-100 border-none rounded-lg px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
         />
         <Input
           type="text"
           placeholder="日期"
           value={orderDate}
           onChange={(e) => setOrderDate(e.target.value)}
-          className="text-sm bg-neutral-100 border-none rounded-lg px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-neutral-500"
+          className="text-sm bg-gray-100 border-none rounded-lg px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
         />
         <Input
           placeholder="备注"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="text-sm bg-neutral-100 border-none rounded-lg px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-neutral-500"
+          className="text-sm bg-gray-100 border-none rounded-lg px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
         />
       </div>
 
       <Button
         onClick={handleCreateJob}
-        className="w-full bg-neutral-800 hover:bg-neutral-900 text-white font-semibold py-2.5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:bg-neutral-800/40 disabled:shadow-none disabled:cursor-not-allowed"
+        className="w-full bg-gray-900 hover:bg-black text-white font-semibold py-2.5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:bg-gray-900/40 disabled:shadow-none disabled:cursor-not-allowed"
         disabled={
           !selectedFiles ||
           selectedFiles.length === 0 ||
