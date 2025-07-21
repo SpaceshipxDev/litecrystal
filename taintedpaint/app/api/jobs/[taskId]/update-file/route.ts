@@ -5,6 +5,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData } from "@/types";
 import { updateBoardData } from "@/lib/boardDataStore";
+import { sanitizeRelativePath } from "@/lib/pathUtils.mjs";
 
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
 const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
@@ -28,13 +29,26 @@ export async function POST(
       return NextResponse.json({ error: "Missing newFile or oldFilename" }, { status: 400 });
     }
 
+    let safeRelativePath: string | undefined;
+    if (relativePath) {
+      try {
+        safeRelativePath = sanitizeRelativePath(relativePath);
+      } catch {
+        return NextResponse.json({ error: "Invalid relativePath" }, { status: 400 });
+      }
+    }
+
     const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
-    const oldFilePath = path.join(taskDirectoryPath, relativePath || oldFilename);
+    const oldFilePath = path.join(taskDirectoryPath, safeRelativePath || oldFilename);
 
     // --- FIX: Use a less restrictive regex that allows Unicode characters ---
     const sanitizedNewFilename = newFile.name.replace(/[\\/:*?"<>|]/g, '_');
     // ----------------------------------------------------------------------
-    const newFilePath = path.join(taskDirectoryPath, relativePath ? path.dirname(relativePath) : '', sanitizedNewFilename);
+    const newFilePath = path.join(
+      taskDirectoryPath,
+      safeRelativePath ? path.dirname(safeRelativePath) : '',
+      sanitizedNewFilename
+    );
 
     await fs.mkdir(taskDirectoryPath, { recursive: true });
 
@@ -55,8 +69,8 @@ export async function POST(
       const taskToUpdate = boardData.tasks[taskId];
       if (!taskToUpdate) throw new Error("Task not found in metadata");
 
-      const newPath = relativePath
-        ? path.join(path.dirname(relativePath), sanitizedNewFilename)
+      const newPath = safeRelativePath
+        ? path.join(path.dirname(safeRelativePath), sanitizedNewFilename)
         : sanitizedNewFilename;
       const fileIndex = taskToUpdate.files?.indexOf(oldFilename);
       if (taskToUpdate.files && fileIndex !== undefined && fileIndex > -1) {
