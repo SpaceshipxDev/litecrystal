@@ -15,9 +15,9 @@ import { ArrowLeft } from 'lucide-react';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 // 超轻量 mock 版 dayjs，只实现本例需要的 format / valueOf。
-// 根据浏览器语言显示日期，默认为中文
+// 统一使用中文显示月份，避免受浏览器语言影响
 const dayjs = (date: string) => ({
-  format: (fmt: string, locale = (typeof navigator !== 'undefined' ? navigator.language : 'zh-CN')) => {
+  format: (fmt: string, locale = 'zh-CN') => {
     const d = new Date(date);
     if (fmt === 'MMM DD')   return d.toLocaleDateString(locale, { month: 'short', day: '2-digit' });
     if (fmt === 'YYYY-MM')  return date.slice(0, 7);
