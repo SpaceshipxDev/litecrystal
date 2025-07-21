@@ -15,7 +15,8 @@ import { rendererConfig } from './webpack.renderer.config';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: path.join(__dirname, 'assets', 'e-logo.png'),
+    icon: path.join(__dirname, 'assets', 'e-logo'),
+    extraResources: [{ from: path.resolve(__dirname, 'assets'), to: 'assets' }],
   },
   rebuildConfig: {},
   makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
