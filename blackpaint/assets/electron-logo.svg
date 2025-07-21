@@ -1,0 +1,78 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Elegant E gradient -->
+    <linearGradient id="eGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#407BFF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7877C6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF5E4D;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Subtle white background gradient for depth -->
+    <radialGradient id="bgGradient" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fafbfc;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- Soft inner shadow for the background -->
+    <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+      <feOffset dx="0" dy="1" result="offset"/>
+      <feFlood flood-color="#f0f4f8" flood-opacity="0.3"/>
+      <feComposite in2="offset" operator="in"/>
+      <feMerge>
+        <feMergeNode in="SourceGraphic"/>
+        <feMergeNode/>
+      </feMerge>
+    </filter>
+    
+    <!-- Elegant text shadow for E -->
+    <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5"/>
+      <feOffset dx="0" dy="1" result="offset"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2"/>
+      </feComponentTransfer>
+      <feMerge> 
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/> 
+      </feMerge>
+    </filter>
+    
+    <!-- Subtle outer shadow -->
+    <filter id="outerShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="4" result="offset"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.08"/>
+      </feComponentTransfer>
+      <feMerge> 
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/> 
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Main white square with subtle gradient -->
+  <rect x="5" y="5" width="190" height="190" rx="38" ry="38" 
+        fill="url(#bgGradient)" 
+        stroke="rgba(0, 0, 0, 0.04)" 
+        stroke-width="1"
+        filter="url(#outerShadow)"/>
+  
+  <!-- Very subtle inner border for refinement -->
+  <rect x="6" y="6" width="188" height="188" rx="37.6" ry="37.6" 
+        fill="none" 
+        stroke="rgba(0, 0, 0, 0.02)" 
+        stroke-width="0.5"/>
+  
+  <!-- Letter E with beautiful gradient -->
+  <text x="100" y="100" 
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif" 
+        font-size="105" 
+        font-weight="600" 
+        fill="url(#eGradient)" 
+        text-anchor="middle" 
+        dominant-baseline="central"
+        letter-spacing="-2px"
+        filter="url(#textShadow)">E</text>
+</svg>
