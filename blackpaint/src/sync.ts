@@ -3,6 +3,8 @@ import path from 'path';
 import axios from 'axios';
 import chokidar, { FSWatcher } from 'chokidar';
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://192.168.5.107:3000';
+
 interface RemoteFile {
   filename: string;
   relativePath: string;
@@ -43,7 +45,7 @@ async function uploadFile(taskId: string, localRoot: string, relPath: string) {
   form.append('paths', relPath);
 
   try {
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/jobs/${taskId}/upload`, {
+    await fetch(`${BASE_URL}/api/jobs/${taskId}/upload`, {
       method: 'POST',
       body: form,
     });
@@ -54,7 +56,7 @@ async function uploadFile(taskId: string, localRoot: string, relPath: string) {
 
 async function deleteFile(taskId: string, relPath: string) {
   try {
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/jobs/${taskId}/delete-file`, {
+    await fetch(`${BASE_URL}/api/jobs/${taskId}/delete-file`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename: relPath }),
@@ -66,7 +68,7 @@ async function deleteFile(taskId: string, relPath: string) {
 
 async function pullFromServer(taskId: string, localRoot: string) {
   try {
-    const res = await axios.get<RemoteFile[]>(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/jobs/${taskId}/files`);
+    const res = await axios.get<RemoteFile[]>(`${BASE_URL}/api/jobs/${taskId}/files`);
     const files = res.data;
     for (const file of files) {
       const localPath = path.join(localRoot, file.relativePath);

@@ -33,7 +33,8 @@ const createWindow = (): void => {
   }
 
   // and load the index.html of the app.
-  mainWindow.loadURL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://192.168.5.107:3000';
+  mainWindow.loadURL(appUrl);
 
   // Open the DevTools automatically when running in development.
   if (!app.isPackaged) {
