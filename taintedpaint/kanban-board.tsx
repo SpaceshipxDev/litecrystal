@@ -5,7 +5,7 @@ import type { Task, Column, BoardData } from "@/types"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid, RotateCcw } from "lucide-react"
+import { Archive, Search, LayoutGrid } from "lucide-react"
 import Link from "next/link"
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
@@ -220,16 +220,6 @@ export default function KanbanBoard() {
       <header className="px-6 py-4 bg-white/90 backdrop-blur-sm sticky top-0 z-30 border-b border-gray-200/80">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <button
-              aria-label="Refresh"
-              onClick={fetchBoard}
-              className="group p-2 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors"
-            >
-              <RotateCcw
-                className="h-5 w-5 text-gray-500 group-hover:text-gray-700"
-                strokeWidth={2}
-              />
-            </button>
             <h1 className="text-xl font-medium text-gray-900 tracking-tight">Eldaline</h1>
             <span className="text-sm text-gray-500 font-normal">项目看板</span>
           </div>
