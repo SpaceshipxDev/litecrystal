@@ -14,14 +14,15 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
-// 超轻量 mock 版 dayjs，只实现本例需要的 format / valueOf
+// 超轻量 mock 版 dayjs，只实现本例需要的 format / valueOf。
+// 根据浏览器语言显示日期，默认为中文
 const dayjs = (date: string) => ({
-  format: (fmt: string) => {
+  format: (fmt: string, locale = (typeof navigator !== 'undefined' ? navigator.language : 'zh-CN')) => {
     const d = new Date(date);
-    if (fmt === 'MMM DD')   return d.toLocaleDateString('en', { month: 'short', day: '2-digit' });
+    if (fmt === 'MMM DD')   return d.toLocaleDateString(locale, { month: 'short', day: '2-digit' });
     if (fmt === 'YYYY-MM')  return date.slice(0, 7);
     if (fmt === 'YYYY-MM-DD') return date;
-    if (fmt === 'MMM YYYY') return d.toLocaleDateString('en', { month: 'short', year: 'numeric' });
+    if (fmt === 'MMM YYYY') return d.toLocaleDateString(locale, { month: 'short', year: 'numeric' });
     return date;
   },
   valueOf: () => new Date(date).getTime()
