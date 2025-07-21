@@ -16,7 +16,7 @@ if (require('electron-squirrel-startup')) {
 
 const createWindow = (): void => {
   // Create the browser window.
-  const iconPath = path.join(__dirname, '../assets/e-logo.png');
+  const iconPath = path.join(app.getAppPath(), 'assets', 'e-logo.png');
   const icon = nativeImage.createFromPath(iconPath);
 
   const mainWindow = new BrowserWindow({
