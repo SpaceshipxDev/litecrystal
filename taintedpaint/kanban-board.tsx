@@ -5,7 +5,7 @@ import type { Task, Column, BoardData } from "@/types"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid } from "lucide-react"
+import { Archive, Search, LayoutGrid, RotateCcw } from "lucide-react"
 import Link from "next/link"
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
@@ -104,22 +104,26 @@ export default function KanbanBoard() {
     }
   };
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/jobs");
-        if (res.ok) {
-          const data: BoardData = await res.json();
-          setTasks(data.tasks || {});
-          setColumns(mergeWithSkeleton(data.columns || []));
-        }
-      } catch (e) {
-        console.warn("metadata.json 不存在或无效，已重置");
-        setTasks({});
-        setColumns(baseColumns);
+  const fetchBoard = useCallback(async () => {
+    try {
+      const res = await fetch("/api/jobs");
+      if (res.ok) {
+        const data: BoardData = await res.json();
+        setTasks(data.tasks || {});
+        setColumns(mergeWithSkeleton(data.columns || []));
       }
-    })();
+    } catch (e) {
+      console.warn("metadata.json 不存在或无效，已重置");
+      setTasks({});
+      setColumns(baseColumns);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchBoard();
+    const interval = setInterval(fetchBoard, 10000);
+    return () => clearInterval(interval);
+  }, [fetchBoard]);
 
   // This is the callback for the drawer. It updates the board's state.
   const handleTaskUpdated = useCallback((updatedTask: Task) => {
@@ -254,10 +258,17 @@ export default function KanbanBoard() {
                 <kbd className="px-1.5 py-0.5 text-xs font-medium text-gray-400 bg-gray-200/60 rounded border border-gray-300/40">K</kbd>
               </div>
             </button>
-              <Link href="/holistic" className="group relative flex items-center justify-center gap-2.5 px-4 py-2.5 bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 hover:border-gray-300/80 rounded-md shadow-sm hover:shadow-md transform-gpu transition-all duration-200 ease-out hover:bg-white/80 active:scale-[0.96]">
-                <LayoutGrid className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors duration-200" strokeWidth={2} />
-                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-200">总揽</span>
-              </Link>
+
+            <button
+              onClick={fetchBoard}
+              className="group relative flex items-center justify-center px-3 py-2.5 bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 hover:border-gray-300/80 rounded-md shadow-sm hover:shadow-md transform-gpu transition-all duration-200 ease-out hover:bg-white/80 active:scale-[0.96]"
+            >
+              <RotateCcw className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors duration-200" strokeWidth={2} />
+            </button>
+            <Link href="/holistic" className="group relative flex items-center justify-center gap-2.5 px-4 py-2.5 bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 hover:border-gray-300/80 rounded-md shadow-sm hover:shadow-md transform-gpu transition-all duration-200 ease-out hover:bg-white/80 active:scale-[0.96]">
+              <LayoutGrid className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors duration-200" strokeWidth={2} />
+              <span className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-200">总揽</span>
+            </Link>
           </div>
         </div>
       </header>
