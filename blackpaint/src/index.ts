@@ -35,8 +35,10 @@ const createWindow = (): void => {
   // and load the index.html of the app.
   mainWindow.loadURL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Open the DevTools automatically when running in development.
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
+  }
 };
 
 // This method will be called when Electron has finished
