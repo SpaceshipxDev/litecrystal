@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, nativeImage } from 'electron';
 import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
@@ -16,13 +16,21 @@ if (require('electron-squirrel-startup')) {
 
 const createWindow = (): void => {
   // Create the browser window.
+  const iconPath = path.join(__dirname, '../assets/electron-logo.svg');
+  const icon = nativeImage.createFromPath(iconPath);
+
   const mainWindow = new BrowserWindow({
     height: 600,
     width: 800,
+    icon,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
   });
+
+  if (process.platform === 'darwin') {
+    app.dock.setIcon(icon);
+  }
 
   // and load the index.html of the app.
   mainWindow.loadURL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
