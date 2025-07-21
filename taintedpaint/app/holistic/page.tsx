@@ -40,8 +40,8 @@ interface Job extends Task {
 }
 
 const getStatus = (t: Task): Status => {
-  if (["archive", "archive2", "ship"].includes(t.columnId)) return "Finished"
-  if (["quote", "send"].includes(t.columnId)) return "Quoted"
+  if (t.columnId === "archive2") return "Finished"
+  if (t.columnId === "archive") return "Quoted"
   return "Working"
 }
 
