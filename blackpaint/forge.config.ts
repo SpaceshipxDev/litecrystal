@@ -15,11 +15,21 @@ import { rendererConfig } from './webpack.renderer.config';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: path.join(__dirname, 'assets', 'e-logo'),
+    icon: path.join(__dirname, 'assets', 'e-logo.ico'),
     extraResources: [{ from: path.resolve(__dirname, 'assets'), to: 'assets' }],
   },
   rebuildConfig: {},
-  makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
+  makers: [
+    new MakerSquirrel({
+      name: 'eldaline',
+      setupIcon: path.join(__dirname, 'assets', 'e-logo.ico'),
+      setupExe: 'EldalineSetup.exe',
+      exe: 'Eldaline.exe',
+    }),
+    new MakerZIP({}, ['darwin']),
+    new MakerRpm({}),
+    new MakerDeb({}),
+  ],
   plugins: [
     new AutoUnpackNativesPlugin({}),
     new WebpackPlugin({
