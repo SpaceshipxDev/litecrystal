@@ -220,6 +220,16 @@ export default function KanbanBoard() {
       <header className="px-6 py-4 bg-white/90 backdrop-blur-sm sticky top-0 z-30 border-b border-gray-200/80">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
+            <button
+              aria-label="Refresh"
+              onClick={fetchBoard}
+              className="group p-2 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors"
+            >
+              <RotateCcw
+                className="h-5 w-5 text-gray-500 group-hover:text-gray-700"
+                strokeWidth={2}
+              />
+            </button>
             <h1 className="text-xl font-medium text-gray-900 tracking-tight">Eldaline</h1>
             <span className="text-sm text-gray-500 font-normal">项目看板</span>
           </div>
@@ -259,12 +269,6 @@ export default function KanbanBoard() {
               </div>
             </button>
 
-            <button
-              onClick={fetchBoard}
-              className="group relative flex items-center justify-center px-3 py-2.5 bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 hover:border-gray-300/80 rounded-md shadow-sm hover:shadow-md transform-gpu transition-all duration-200 ease-out hover:bg-white/80 active:scale-[0.96]"
-            >
-              <RotateCcw className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors duration-200" strokeWidth={2} />
-            </button>
             <Link href="/holistic" className="group relative flex items-center justify-center gap-2.5 px-4 py-2.5 bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 hover:border-gray-300/80 rounded-md shadow-sm hover:shadow-md transform-gpu transition-all duration-200 ease-out hover:bg-white/80 active:scale-[0.96]">
               <LayoutGrid className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors duration-200" strokeWidth={2} />
               <span className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-200">总揽</span>
