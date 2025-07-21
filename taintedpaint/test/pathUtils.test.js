@@ -18,4 +18,12 @@ test('rejects paths containing .. after normalization', () => {
   assert.throws(() => sanitizeRelativePath('foo/..mal/evil.txt'), /Invalid path/)
 })
 
+test('strips multiple leading parent directories', () => {
+  assert.strictEqual(sanitizeRelativePath('../../foo/bar.txt'), 'foo/bar.txt')
+})
+
+test('rejects paths with backslash traversals', () => {
+  assert.throws(() => sanitizeRelativePath('foo\\..\\evil.txt'), /Invalid path/)
+})
+
 
