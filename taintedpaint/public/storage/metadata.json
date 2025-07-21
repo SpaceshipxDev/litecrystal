@@ -45,7 +45,7 @@
     },
     {
       "id": "archive",
-      "title": "存档",
+      "title": "报价归档",
       "taskIds": []
     },
     {
@@ -73,7 +73,7 @@
     },
     {
       "id": "archive2",
-      "title": "存档",
+      "title": "完成归档",
       "taskIds": []
     }
   ]

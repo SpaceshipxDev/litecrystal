@@ -300,9 +300,9 @@ export default function KanbanBoard() {
                   {columnTasks.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center py-12">
                       <Archive className="h-12 w-12 text-gray-400 mb-4" strokeWidth={1.2} />
-                      <p className="text-sm font-medium text-gray-600 mb-1">归档区域</p>
+                      <p className="text-sm font-medium text-gray-600 mb-1">{column.title}区域</p>
                       <p className="text-xs text-gray-500 leading-relaxed">
-                        拖拽任务到此处归档
+                        拖拽任务到此处{column.title}
                         <br />
                         归档的任务将被保存
                       </p>

@@ -9,10 +9,10 @@ export const baseColumns: Column[] = [
   { id: "create",      title: "建单",   taskIds: [] },
   { id: "quote",       title: "报价",   taskIds: [] },
   { id: "send",        title: "发出",   taskIds: [] },
-  { id: "archive",     title: "存档",   taskIds: [] },
+  { id: "archive",     title: "报价归档",   taskIds: [] },
   { id: "sheet",       title: "制单",   taskIds: [] },
   { id: "approval",    title: "审批",   taskIds: [] },
   { id: "program",     title: "编程",   taskIds: [] },
   { id: "ship",        title: "出货",   taskIds: [] },
-  { id: "archive2",    title: "存档",   taskIds: [] }
+  { id: "archive2",    title: "完成归档",   taskIds: [] }
 ];
