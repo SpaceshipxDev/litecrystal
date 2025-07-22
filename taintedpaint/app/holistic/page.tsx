@@ -203,6 +203,7 @@ export default function ArchivePage() {
           isOpen={isDrawerOpen}
           task={selectedTask}
           columnTitle={selectedTaskColumnTitle}
+          viewMode="business"
           onClose={closeDrawer}
         />
       </div>

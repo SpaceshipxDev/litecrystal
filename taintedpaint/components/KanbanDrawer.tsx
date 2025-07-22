@@ -11,6 +11,12 @@ interface KanbanDrawerProps {
   task: Task | null;
   columnTitle: string | null;
   onClose: () => void;
+  /**
+   * Display mode of the board. When `business`, show full
+   * customer details even if the task has been serialized.
+   * Defaults to `business`.
+   */
+  viewMode?: 'business' | 'production';
 }
 
 export default function KanbanDrawer({
@@ -18,6 +24,7 @@ export default function KanbanDrawer({
   task,
   columnTitle,
   onClose,
+  viewMode = 'business',
 }: KanbanDrawerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -62,15 +69,24 @@ export default function KanbanDrawer({
         <div className="flex-shrink-0 px-6 pt-6 pb-0 flex items-start justify-between">
           <div className="flex-1 min-w-0 pr-4">
             <h1 className="text-xl font-semibold text-black tracking-tight truncate -mb-0.5">
-              {task.ynmxId || task.customerName}
+              {viewMode === 'business'
+                ? task.customerName
+                : task.ynmxId || task.customerName}
             </h1>
             <div className="flex items-center gap-2 mt-1">
-              {!task.ynmxId && (
+              {viewMode === 'business' && (
                 <p className="text-[15px] text-black/60 truncate">{task.representative}</p>
+              )}
+              {viewMode === 'business' && task.ynmxId && (
+                <span className="text-[13px] font-medium text-black/50 bg-black/5 px-2 py-0.5 rounded-full">
+                  {task.ynmxId}
+                </span>
               )}
               {columnTitle && (
                 <>
-                  {!task.ynmxId && <span className="text-black/30 text-sm">·</span>}
+                  {(viewMode === 'business' || !task.ynmxId) && (
+                    <span className="text-black/30 text-sm">·</span>
+                  )}
                   <span className="text-[13px] font-medium text-black/50 bg-black/5 px-2 py-0.5 rounded-full">
                     {columnTitle}
                   </span>
