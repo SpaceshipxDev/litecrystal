@@ -32,23 +32,17 @@ export default function KanbanDrawer({
   const [isDownloading, setIsDownloading] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState("");
   const dateInputRef = useRef<HTMLInputElement>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const toggleDatePicker = () => {
-    setShowDatePicker((v) => !v);
-  };
-
-  useEffect(() => {
-    if (showDatePicker) {
-      const input = dateInputRef.current;
-      if (input) {
-        if ((input as any).showPicker) {
-          (input as any).showPicker();
-        }
-        input.focus();
-      }
+  const openDatePicker = () => {
+    const input = dateInputRef.current;
+    if (!input) return;
+    if ((input as any).showPicker) {
+      (input as any).showPicker();
+    } else {
+      input.focus();
+      input.click();
     }
-  }, [showDatePicker]);
+  };
 
   useEffect(() => {
     setDeliveryDate(task?.deliveryDate || "");
@@ -168,7 +162,7 @@ export default function KanbanDrawer({
                   <span className="text-[15px] font-medium text-black">{deliveryDate}</span>
                 )}
                 <button
-                  onClick={toggleDatePicker}
+                  onClick={openDatePicker}
                   className="h-7 w-7 flex items-center justify-center rounded-md bg-black/5 hover:bg-black/10 transition-colors"
                   aria-label="设置交期"
                 >
@@ -182,7 +176,7 @@ export default function KanbanDrawer({
                     setDeliveryDate(e.target.value);
                     saveDeliveryDate(e.target.value);
                   }}
-                  className={`absolute right-0 top-full mt-1 w-40 bg-white border rounded-md p-1 text-sm shadow transition-all duration-300 origin-top ${showDatePicker ? '' : 'scale-90 opacity-0 pointer-events-none'}`}
+                  className="sr-only"
                   style={{ colorScheme: 'light' }}
                 />
               </div>
