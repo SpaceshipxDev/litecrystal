@@ -5,16 +5,22 @@ import type { Task, Column, BoardData } from "@/types"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid } from "lucide-react"
+import { Archive, Search, LayoutGrid, Lock } from "lucide-react"
 import Link from "next/link"
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
 import SearchDialog from "@/components/SearchDialog"
 
 export default function KanbanBoard() {
+  const restricted =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('restricted') === '1'
+
   const [tasks, setTasks] = useState<Record<string, Task>>({})
   const [columns, setColumns] = useState<Column[]>(baseColumns)
-  const [viewMode, setViewMode] = useState<'business' | 'production'>('business')
+  const [viewMode, setViewMode] = useState<'business' | 'production'>(
+    restricted ? 'production' : 'business',
+  )
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
 
@@ -231,9 +237,11 @@ export default function KanbanBoard() {
           <div className="flex items-center gap-4">
             <div className="flex bg-gray-100/50 backdrop-blur-sm border border-gray-200/60 rounded-md p-0.5">
               <button
-                onClick={() => setViewMode('business')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === 'business' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-800'}`}
+                onClick={() => !restricted && setViewMode('business')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === 'business' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-800'} ${restricted ? 'cursor-not-allowed opacity-50 flex items-center gap-1' : ''}`}
+                disabled={restricted}
               >
+                {restricted && <Lock className="h-3 w-3" strokeWidth={2} />}
                 商务
               </button>
               <button
@@ -263,10 +271,17 @@ export default function KanbanBoard() {
               </div>
             </button>
 
-            <Link href="/holistic" className="group relative flex items-center justify-center gap-2.5 px-4 py-2.5 bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 hover:border-gray-300/80 rounded-md shadow-sm hover:shadow-md transform-gpu transition-all duration-200 ease-out hover:bg-white/80 active:scale-[0.96]">
-              <LayoutGrid className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors duration-200" strokeWidth={2} />
-              <span className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-200">总揽</span>
-            </Link>
+            {restricted ? (
+              <div className="group relative flex items-center justify-center gap-2.5 px-4 py-2.5 bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 rounded-md shadow-sm cursor-not-allowed opacity-50">
+                <LayoutGrid className="h-4 w-4 text-gray-400" strokeWidth={2} />
+                <Lock className="h-4 w-4 text-gray-400" strokeWidth={2} />
+              </div>
+            ) : (
+              <Link href="/holistic" className="group relative flex items-center justify-center gap-2.5 px-4 py-2.5 bg-gray-100/60 backdrop-blur-sm border border-gray-200/60 hover:border-gray-300/80 rounded-md shadow-sm hover:shadow-md transform-gpu transition-all duration-200 ease-out hover:bg-white/80 active:scale-[0.96]">
+                <LayoutGrid className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors duration-200" strokeWidth={2} />
+                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-200">总揽</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>
