@@ -16,7 +16,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [representative, setRepresentative] = useState("");
-  const [orderDate, setOrderDate] = useState("");
+  const [inquiryDate, setInquiryDate] = useState("");
   const [notes, setNotes] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [customerOptions, setCustomerOptions] = useState<string[]>([]);
@@ -24,7 +24,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
 
   // 初始化日期为今天，并读取已有客户列表供输入时选择
   useEffect(() => {
-    setOrderDate(new Date().toISOString().slice(0, 10));
+    setInquiryDate(new Date().toISOString().slice(0, 10));
 
     (async () => {
       try {
@@ -57,7 +57,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       selectedFiles.length === 0 ||
       !customerName.trim() ||
       !representative.trim() ||
-      !orderDate.trim()
+      !inquiryDate.trim()
     )
       return;
 
@@ -74,7 +74,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       
       formData.append("customerName", customerName.trim());
       formData.append("representative", representative.trim());
-      formData.append("orderDate", orderDate.trim());
+      formData.append("inquiryDate", inquiryDate.trim());
       formData.append("notes", notes.trim());
       formData.append("folderName", getFolderName());
 
@@ -93,7 +93,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       setSelectedFiles(null);
       setCustomerName("");
       setRepresentative("");
-      setOrderDate("");
+      setInquiryDate("");
       setNotes("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -162,8 +162,8 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
         <Input
           type="date"
           placeholder="日期"
-          value={orderDate}
-          onChange={(e) => setOrderDate(e.target.value)}
+          value={inquiryDate}
+          onChange={(e) => setInquiryDate(e.target.value)}
           className="text-sm bg-gray-100 border-none rounded-md px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
         />
         <Input
@@ -182,7 +182,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           selectedFiles.length === 0 ||
           !customerName ||
           !representative ||
-          !orderDate ||
+          !inquiryDate ||
           isCreating
         }
       >

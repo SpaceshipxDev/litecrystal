@@ -5,7 +5,7 @@ export interface Task {
   columnId: string; // <-- NEW
   customerName: string;
   representative: string;
-  orderDate: string;
+  inquiryDate: string;
   /** Required delivery date, editable in the Kanban drawer */
   deliveryDate?: string;
   notes: string;

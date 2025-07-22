@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const filePaths = formData.getAll("filePaths") as string[];
     const customerName = formData.get("customerName") as string;
     const representative = formData.get("representative") as string;
-    const orderDate = formData.get("orderDate") as string;
+    const inquiryDate = formData.get("inquiryDate") as string;
     const notes = formData.get("notes") as string;
 
     // deliveryDate is optional on creation
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       files.length === 0 ||
       !customerName ||
       !representative ||
-      !orderDate ||
+      !inquiryDate ||
       !folderName // Add validation for the folder name
     ) {
       return NextResponse.json(
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       columnId: START_COLUMN_ID,
       customerName: customerName.trim(),
       representative: representative.trim(),
-      orderDate: orderDate.trim(),
+      inquiryDate: inquiryDate.trim(),
       deliveryDate,
       notes: notes.trim(),
       taskFolderPath: `/storage/tasks/${taskId}`,

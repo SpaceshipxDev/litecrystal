@@ -79,7 +79,7 @@ export default function ArchivePage() {
   , [tasks]);
 
   const customers = useMemo(() => Array.from(new Set(jobs.map(j => j.customerName))), [jobs]);
-  const months    = useMemo(() => Array.from(new Set(jobs.map(j => dayjs(j.orderDate).format("YYYY-MM")))), [jobs]);
+  const months    = useMemo(() => Array.from(new Set(jobs.map(j => dayjs(j.inquiryDate).format("YYYY-MM")))), [jobs]);
 
   // ② 组件状态 --------------------------------------------------------------------
   const [activeCustomer, setActiveCustomer] = useState<string>('All');
@@ -94,11 +94,11 @@ export default function ArchivePage() {
   const filtered = jobs
     .filter(j => {
       const okCustomer = activeCustomer === "All" || j.customerName === activeCustomer;
-      const okMonth = activeMonth === "All" || dayjs(j.orderDate).format("YYYY-MM") === activeMonth;
+      const okMonth = activeMonth === "All" || dayjs(j.inquiryDate).format("YYYY-MM") === activeMonth;
       const okSearch = q === "" || j.representative.toLowerCase().includes(q.toLowerCase());
       return okCustomer && okMonth && okSearch;
     })
-    .sort((a, b) => dayjs(b.orderDate).valueOf() - dayjs(a.orderDate).valueOf());
+    .sort((a, b) => dayjs(b.inquiryDate).valueOf() - dayjs(a.inquiryDate).valueOf());
 
   // ④ 指标计算 --------------------------------------------------------------------
   const working  = filtered.filter(j => j.status === 'Working').length;
@@ -107,7 +107,7 @@ export default function ArchivePage() {
   const denom    = quoted + finished;                        // 已报价 + 已完成
   const hitRate  = denom === 0 ? 0 : Math.round((finished / denom) * 100);
   const byDay = filtered.reduce<Record<string, Job[]>>((acc, job) => {
-    const d = dayjs(job.orderDate).format("MMM DD");
+    const d = dayjs(job.inquiryDate).format("MMM DD");
     (acc[d] = acc[d] || []).push(job);
     return acc;
   }, {});
@@ -266,7 +266,7 @@ function JobCard({ job, onClick }: { job: Job; onClick: () => void }) {
           </span>
         </div>
 
-        <p className="text-xs text-gray-400 mb-3 font-mono tracking-wide">{dayjs(job.orderDate).format('YYYY-MM-DD')}</p>
+        <p className="text-xs text-gray-400 mb-3 font-mono tracking-wide">{dayjs(job.inquiryDate).format('YYYY-MM-DD')}</p>
 
         <div className="flex items-center gap-3 text-xs text-gray-600">
           {job.value ? (

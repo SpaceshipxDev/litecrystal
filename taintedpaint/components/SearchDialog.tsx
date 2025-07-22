@@ -156,7 +156,7 @@ export default function SearchDialog({ isOpen, onClose, onTaskSelect }: SearchDi
                         ? task.ynmxId || `${task.customerName} - ${task.representative}`
                         : `${task.customerName} - ${task.representative}`}
                     </h3>
-                    <p className="text-xs text-gray-600">{task.deliveryDate || task.orderDate}</p>
+                    <p className="text-xs text-gray-600">{task.deliveryDate || task.inquiryDate}</p>
                   </div>
                   <span className="ml-auto flex-shrink-0 text-xs text-gray-700 bg-gray-200/80 px-2 py-1 rounded-full border border-gray-300/50">
                     {columnTitle}

@@ -13,7 +13,7 @@ function serialiseTasks(tasks: BoardData["tasks"]): string {
   return Object.values(tasks)
     .map(
       (t) =>
-        `ID:${t.id} COL:${t.columnId} CUSTOMER:${t.customerName} REPRESENTATIVE:${t.representative} DATE:${t.orderDate} NOTES:${t.notes}`
+        `ID:${t.id} COL:${t.columnId} CUSTOMER:${t.customerName} REPRESENTATIVE:${t.representative} DATE:${t.inquiryDate} NOTES:${t.notes}`
     )
     .join("\n");
 }
