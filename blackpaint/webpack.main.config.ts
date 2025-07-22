@@ -16,7 +16,7 @@ export const mainConfig: Configuration = {
   },
   plugins: [
     ...plugins,
-    new webpack.EnvironmentPlugin({ RESTRICTED: undefined }),
+    new webpack.EnvironmentPlugin({ RESTRICTED: '' }),
   ],
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
