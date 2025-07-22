@@ -83,7 +83,7 @@ export default function KanbanBoard() {
   }, []);
 
   const getTaskDisplayName = (task: Task) => {
-    if (['sheet', 'approval', 'program', 'operate', 'polish', 'spray', 'inspect', 'ship', 'archive2'].includes(task.columnId)) {
+    if (viewMode === 'production') {
       return task.ynmxId || `${task.customerName} - ${task.representative}`;
     }
     return `${task.customerName} - ${task.representative}`;
@@ -335,10 +335,22 @@ export default function KanbanBoard() {
                           <div className="pl-4 pr-2">
                             <div className={`p-1 -m-1 rounded-md transition-colors duration-500 ${highlightedTaskId === task.id ? 'bg-yellow-200/70' : 'bg-transparent'}`}
                             >
-                              <h3 className="text-sm font-medium text-gray-800 mb-1.5 leading-tight group-hover:text-gray-900 transition-colors">
-                                {getTaskDisplayName(task)}
-                              </h3>
-                              <p className="text-xs text-gray-500 leading-relaxed">{task.orderDate}</p>
+                              {viewMode === 'business' ? (
+                                <>
+                                  <h3 className="text-sm font-medium text-gray-800 leading-tight group-hover:text-gray-900 transition-colors">
+                                    {task.customerName}
+                                  </h3>
+                                  <p className="text-xs text-gray-500">{task.representative}</p>
+                                  {task.ynmxId && (
+                                    <p className="text-xs text-gray-400">{task.ynmxId}</p>
+                                  )}
+                                </>
+                              ) : (
+                                <h3 className="text-sm font-medium text-gray-800 leading-tight group-hover:text-gray-900 transition-colors">
+                                  {getTaskDisplayName(task)}
+                                </h3>
+                              )}
+                              <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{task.orderDate}</p>
                             </div>
                           </div>
                         </Card>
@@ -384,10 +396,22 @@ export default function KanbanBoard() {
                       <div className="pl-4 pr-2">
                         <div className={`p-1 -m-1 rounded-md transition-colors duration-500 ${highlightedTaskId === task.id ? 'bg-yellow-200/70' : 'bg-transparent'}`}
                         >
-                          <h3 className="text-sm font-medium text-gray-800 mb-1.5 leading-tight group-hover:text-gray-900 transition-colors">
-                            {getTaskDisplayName(task)}
-                          </h3>
-                          <p className="text-xs text-gray-500 leading-relaxed">{task.orderDate}</p>
+                          {viewMode === 'business' ? (
+                            <>
+                              <h3 className="text-sm font-medium text-gray-800 leading-tight group-hover:text-gray-900 transition-colors">
+                                {task.customerName}
+                              </h3>
+                              <p className="text-xs text-gray-500">{task.representative}</p>
+                              {task.ynmxId && (
+                                <p className="text-xs text-gray-400">{task.ynmxId}</p>
+                              )}
+                            </>
+                          ) : (
+                            <h3 className="text-sm font-medium text-gray-800 leading-tight group-hover:text-gray-900 transition-colors">
+                              {getTaskDisplayName(task)}
+                            </h3>
+                          )}
+                          <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{task.orderDate}</p>
                         </div>
                       </div>
                     </Card>
