@@ -15,7 +15,11 @@ import { rendererConfig } from './webpack.renderer.config';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: path.join(__dirname, 'assets', 'e-logo.ico'),
+    // Use the ICO without extension so Electron Packager picks
+    // the correct format per-platform. This ensures the Windows
+    // build embeds the bundled icon instead of the default square
+    // Electron icon.
+    icon: path.join(__dirname, 'assets', 'e-logo'),
     extraResources: [{ from: path.resolve(__dirname, 'assets'), to: 'assets' }],
   },
   rebuildConfig: {},
@@ -23,6 +27,9 @@ const config: ForgeConfig = {
     new MakerSquirrel({
       name: 'eldaline',
       setupIcon: path.join(__dirname, 'assets', 'e-logo.ico'),
+      // Provide the icon URL so Squirrel creates shortcuts with
+      // the custom icon instead of the default square icon.
+      iconUrl: `file://${path.resolve(__dirname, 'assets', 'e-logo.ico')}`,
       setupExe: 'EldalineSetup.exe',
       exe: 'Eldaline.exe',
     }),
