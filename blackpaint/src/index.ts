@@ -33,7 +33,8 @@ const createWindow = (): void => {
   }
 
   // and load the index.html of the app.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://192.168.5.107:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://192.168.5.107:3000';
+  const appUrl = process.env.RESTRICTED ? `${baseUrl}?restricted=1` : baseUrl;
   mainWindow.loadURL(appUrl);
 
   // Open the DevTools automatically when running in development.
