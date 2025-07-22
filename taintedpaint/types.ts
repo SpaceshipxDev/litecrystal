@@ -6,6 +6,8 @@ export interface Task {
   customerName: string;
   representative: string;
   orderDate: string;
+  /** Required delivery date, editable in the Kanban drawer */
+  deliveryDate?: string;
   notes: string;
   taskFolderPath: string;
   files: string[];

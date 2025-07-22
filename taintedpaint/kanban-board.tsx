@@ -365,7 +365,7 @@ export default function KanbanBoard() {
                                   {getTaskDisplayName(task)}
                                 </h3>
                               )}
-                              <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{task.orderDate}</p>
+                              <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{task.deliveryDate || task.orderDate}</p>
                             </div>
                           </div>
                         </Card>
@@ -426,7 +426,7 @@ export default function KanbanBoard() {
                               {getTaskDisplayName(task)}
                             </h3>
                           )}
-                          <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{task.orderDate}</p>
+                          <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{task.deliveryDate || task.orderDate}</p>
                         </div>
                       </div>
                     </Card>

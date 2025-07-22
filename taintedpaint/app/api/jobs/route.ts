@@ -33,6 +33,9 @@ export async function POST(req: NextRequest) {
     const representative = formData.get("representative") as string;
     const orderDate = formData.get("orderDate") as string;
     const notes = formData.get("notes") as string;
+
+    // deliveryDate is optional on creation
+    const deliveryDate = "";
     
     // --- ADD THIS LINE ---
     // Get the folder name sent from the frontend.
@@ -74,6 +77,7 @@ export async function POST(req: NextRequest) {
       customerName: customerName.trim(),
       representative: representative.trim(),
       orderDate: orderDate.trim(),
+      deliveryDate,
       notes: notes.trim(),
       taskFolderPath: `/storage/tasks/${taskId}`,
       // --- CHANGE THIS LINE ---

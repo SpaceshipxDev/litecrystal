@@ -46,3 +46,30 @@ The production build adds `?restricted=1` to the web URL so the web interface au
 Initially the `make:restricted` script set the `RESTRICTED` environment variable only while running the build. Because the packaged application started without that variable present, `process.env.RESTRICTED` evaluated to `undefined`, so the restricted mode was never enabled. Webpack now copies the value of `RESTRICTED` into the bundled code at build time, ensuring the production package always loads with the proper query parameter.
 
 The packaged apps can be found in `blackpaint/out` after running the commands.
+
+## Architecture & Workflow
+
+The project is split into two directories:
+
+- **taintedpaint** – a Next.js application that renders the Kanban board and REST
+  API endpoints.
+- **blackpaint** – an Electron shell (called *Eldaline*) which loads the web app
+  and packages it as a desktop application.
+
+### Data flow
+
+1. **Metadata store** – All tasks and column data are persisted to
+   `taintedpaint/public/storage/metadata.json` on the server.
+2. **Board loading** – The `KanbanBoard` component fetches this file through
+   `/api/jobs` and keeps the board state in React.
+3. **Creating jobs** – `CreateJobForm` uploads a folder of files and creates a
+   new task entry via `POST /api/jobs`.
+4. **Drag & drop** – Moving cards between columns updates the board state and
+   saves it with `PUT /api/jobs`.
+5. **Task details** – Clicking a card opens `KanbanDrawer` where users can view
+   metadata, download files, and (with the changes below) update the delivery
+   date.
+
+The web UI is intentionally clean and minimal, inspired by Apple's design
+language. The Electron wrapper simply points to the same UI and enables access
+to local file operations.
