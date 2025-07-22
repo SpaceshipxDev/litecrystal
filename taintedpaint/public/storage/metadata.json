@@ -5,7 +5,7 @@
       "columnId": "approval",
       "customerName": "efw",
       "representative": "fwe",
-      "orderDate": "wef",
+      "inquiryDate": "wef",
       "notes": "ewf",
       "taskFolderPath": "/storage/tasks/1753021763511",
       "files": [
@@ -18,7 +18,7 @@
       "columnId": "approval",
       "customerName": "大华",
       "representative": "我",
-      "orderDate": "2025-07-20",
+      "inquiryDate": "2025-07-20",
       "notes": "",
       "taskFolderPath": "/storage/tasks/1753026660078",
       "files": [

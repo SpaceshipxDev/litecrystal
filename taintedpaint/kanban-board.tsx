@@ -365,7 +365,11 @@ export default function KanbanBoard() {
                                   {getTaskDisplayName(task)}
                                 </h3>
                               )}
-                              <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{task.deliveryDate || task.orderDate}</p>
+                              <p className="text-xs text-gray-500 leading-relaxed mt-0.5">
+                                {task.deliveryDate
+                                  ? `交期: ${task.deliveryDate}`
+                                  : `询价日期: ${task.inquiryDate}`}
+                              </p>
                             </div>
                           </div>
                         </Card>
@@ -426,7 +430,11 @@ export default function KanbanBoard() {
                               {getTaskDisplayName(task)}
                             </h3>
                           )}
-                          <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{task.deliveryDate || task.orderDate}</p>
+                          <p className="text-xs text-gray-500 leading-relaxed mt-0.5">
+                            {task.deliveryDate
+                              ? `交期: ${task.deliveryDate}`
+                              : `询价日期: ${task.inquiryDate}`}
+                          </p>
                         </div>
                       </div>
                     </Card>

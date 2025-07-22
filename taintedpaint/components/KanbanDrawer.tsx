@@ -133,9 +133,9 @@ export default function KanbanDrawer({
             <div className="flex items-center justify-between py-3 border-b border-black/[0.08]">
               <div className="flex items-center gap-3">
                 <CalendarDays className="h-4 w-4 text-black/40" />
-                <span className="text-[15px] text-black/60">订单日期</span>
+                <span className="text-[15px] text-black/60">询价日期</span>
               </div>
-              <span className="text-[15px] font-medium text-black">{task.orderDate}</span>
+              <span className="text-[15px] font-medium text-black">{task.inquiryDate}</span>
             </div>
             <div className="flex items-center justify-between py-3 border-b border-black/[0.08]">
               <div className="flex items-center gap-3">
