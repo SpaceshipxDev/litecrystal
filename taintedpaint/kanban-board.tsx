@@ -25,6 +25,10 @@ export default function KanbanBoard() {
     sheet: 'bg-orange-500',
     approval: 'bg-yellow-500',
     program: 'bg-indigo-500',
+    operate: 'bg-cyan-500',
+    polish: 'bg-pink-500',
+    spray: 'bg-rose-500',
+    inspect: 'bg-lime-500',
     ship: 'bg-green-500',
     archive: 'bg-gray-400',
     archive2: 'bg-gray-400',
@@ -79,7 +83,7 @@ export default function KanbanBoard() {
   }, []);
 
   const getTaskDisplayName = (task: Task) => {
-    if (['sheet', 'approval', 'program', 'ship', 'archive2'].includes(task.columnId)) {
+    if (['sheet', 'approval', 'program', 'operate', 'polish', 'spray', 'inspect', 'ship', 'archive2'].includes(task.columnId)) {
       return task.ynmxId || `${task.customerName} - ${task.representative}`;
     }
     return `${task.customerName} - ${task.representative}`;
@@ -210,7 +214,7 @@ export default function KanbanBoard() {
   const allTasksForSearch = useMemo(() => Object.values(tasks), [tasks]);
   const visibleColumns = useMemo(() => {
     if (viewMode === 'production') {
-      return columns.filter(c => ['approval', 'program', 'ship', 'archive2'].includes(c.id))
+      return columns.filter(c => ['approval', 'program', 'operate', 'polish', 'spray', 'inspect', 'ship', 'archive2'].includes(c.id))
     }
     return columns
   }, [viewMode, columns])
