@@ -3,8 +3,8 @@
 
 import type { Task } from "@/types";
 import type { ElectronAPI } from "@/types/electron";
-import { useState, useCallback, useEffect } from "react";
-import { X, CalendarDays, MessageSquare, Folder } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { X, CalendarDays, MessageSquare, Folder, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface KanbanDrawerProps {
@@ -31,6 +31,17 @@ export default function KanbanDrawer({
 }: KanbanDrawerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState("");
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const openDatePicker = () => {
+    const input = dateInputRef.current;
+    if (!input) return;
+    if ((input as any).showPicker) {
+      (input as any).showPicker();
+    } else {
+      input.click();
+    }
+  };
 
   useEffect(() => {
     setDeliveryDate(task?.deliveryDate || "");
@@ -62,23 +73,26 @@ export default function KanbanDrawer({
     }
   }, [task]);
 
-  const saveDeliveryDate = useCallback(async () => {
-    if (!task) return;
-    try {
-      const res = await fetch(`/api/jobs/${task.id}/update`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deliveryDate }),
-      });
-      if (res.ok) {
-        const updated: Task = await res.json();
-        setDeliveryDate(updated.deliveryDate || "");
-        onTaskUpdated?.(updated);
+  const saveDeliveryDate = useCallback(
+    async (date: string = deliveryDate) => {
+      if (!task) return;
+      try {
+        const res = await fetch(`/api/jobs/${task.id}/update`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deliveryDate: date }),
+        });
+        if (res.ok) {
+          const updated: Task = await res.json();
+          setDeliveryDate(updated.deliveryDate || "");
+          onTaskUpdated?.(updated);
+        }
+      } catch (err) {
+        console.error('Failed to update delivery date', err);
       }
-    } catch (err) {
-      console.error('Failed to update delivery date', err);
-    }
-  }, [task, deliveryDate]);
+    },
+    [task, deliveryDate, onTaskUpdated],
+  );
 
   if (!task) {
     return (
@@ -142,13 +156,28 @@ export default function KanbanDrawer({
                 <CalendarDays className="h-4 w-4 text-black/40" />
                 <span className="text-[15px] text-black/60">交期</span>
               </div>
-              <Input
-                type="datetime-local"
-                value={deliveryDate}
-                onChange={(e) => setDeliveryDate(e.target.value)}
-                onBlur={saveDeliveryDate}
-                className="max-w-[200px] text-[15px] font-medium text-black bg-transparent p-0"
-              />
+              <div className="flex items-center gap-2">
+                {deliveryDate && (
+                  <span className="text-[15px] font-medium text-black">{deliveryDate}</span>
+                )}
+                <button
+                  onClick={openDatePicker}
+                  className="h-7 w-7 flex items-center justify-center rounded-md bg-black/5 hover:bg-black/10 transition-colors"
+                  aria-label="设置交期"
+                >
+                  <Pencil className="h-4 w-4 text-black/60" />
+                </button>
+                <Input
+                  ref={dateInputRef}
+                  type="date"
+                  value={deliveryDate}
+                  onChange={(e) => {
+                    setDeliveryDate(e.target.value);
+                    saveDeliveryDate(e.target.value);
+                  }}
+                  className="hidden"
+                />
+              </div>
             </div>
             {task.notes && (
               <div className="py-3 border-b border-black/[0.08]">

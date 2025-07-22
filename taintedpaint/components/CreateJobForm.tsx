@@ -3,7 +3,7 @@
 
 import type { Task } from "@/types";
 import { useState, useRef, useEffect } from "react";
-import { Folder, PlusCircle, Loader2 } from "lucide-react"; // Changed icon
+import { Folder, PlusCircle, Loader2, Pencil } from "lucide-react"; // Changed icon
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -21,11 +21,20 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [customerOptions, setCustomerOptions] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inquiryDateInputRef = useRef<HTMLInputElement>(null);
 
-  // 初始化日期为今天，并读取已有客户列表供输入时选择
+  const openInquiryDatePicker = () => {
+    const input = inquiryDateInputRef.current;
+    if (!input) return;
+    if ((input as any).showPicker) {
+      (input as any).showPicker();
+    } else {
+      input.click();
+    }
+  };
+
+  // 读取已有客户列表供输入时选择
   useEffect(() => {
-    setInquiryDate(new Date().toISOString().slice(0, 10));
-
     (async () => {
       try {
         const res = await fetch('/api/jobs');
@@ -159,13 +168,29 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           onChange={(e) => setRepresentative(e.target.value)}
           className="text-sm bg-gray-100 border-none rounded-md px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
         />
-        <Input
-          type="date"
-          placeholder="日期"
-          value={inquiryDate}
-          onChange={(e) => setInquiryDate(e.target.value)}
-          className="text-sm bg-gray-100 border-none rounded-md px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500"
-        />
+        <div className="relative">
+          <Input
+            readOnly
+            placeholder="询价日期"
+            value={inquiryDate}
+            className="text-sm bg-gray-100 border-none rounded-md px-3 py-2.5 h-auto focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-500 pr-9"
+          />
+          <button
+            type="button"
+            onClick={openInquiryDatePicker}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
+            aria-label="选择询价日期"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <input
+            ref={inquiryDateInputRef}
+            type="date"
+            value={inquiryDate}
+            onChange={(e) => setInquiryDate(e.target.value)}
+            className="hidden"
+          />
+        </div>
         <Input
           placeholder="备注"
           value={notes}
