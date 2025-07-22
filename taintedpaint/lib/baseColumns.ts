@@ -13,6 +13,10 @@ export const baseColumns: Column[] = [
   { id: "sheet",       title: "制单",   taskIds: [] },
   { id: "approval",    title: "审批",   taskIds: [] },
   { id: "program",     title: "编程",   taskIds: [] },
+  { id: "operate",     title: "操机",   taskIds: [] },
+  { id: "polish",      title: "打磨",   taskIds: [] },
+  { id: "spray",       title: "喷涂",   taskIds: [] },
+  { id: "inspect",     title: "检验",   taskIds: [] },
   { id: "ship",        title: "出货",   taskIds: [] },
   { id: "archive2",    title: "完成归档",   taskIds: [] }
 ];
