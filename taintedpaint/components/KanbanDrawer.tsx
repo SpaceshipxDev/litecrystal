@@ -165,16 +165,16 @@ export default function KanbanDrawer({
             <button
               onClick={handleDownloadAndOpen}
               disabled={isDownloading}
-              className="w-full flex items-center gap-4 p-4 bg-green-500/8 hover:bg-green-500/12 rounded-lg transition-all duration-200 group disabled:opacity-60 disabled:cursor-wait"
+              className="w-full flex items-center gap-4 p-4 bg-blue-500/8 hover:bg-blue-500/12 rounded-lg transition-all duration-200 group disabled:opacity-60 disabled:cursor-wait"
             >
-              <div className="flex items-center justify-center h-10 w-10 rounded bg-green-500/15 group-hover:bg-green-500/20 transition-colors duration-200">
+              <div className="flex items-center justify-center h-10 w-10 rounded bg-blue-500/15 group-hover:bg-blue-500/20 transition-colors duration-200">
                 {isDownloading ? (
-                  <svg className="h-5 w-5 text-green-600 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="h-5 w-5 text-blue-600 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" opacity="0.25" />
                     <path d="M22 12a10 10 0 0 1-10 10" />
                   </svg>
                 ) : (
-                  <Folder className="h-5 w-5 text-green-600" />
+                  <Folder className="h-5 w-5 text-blue-600" />
                 )}
               </div>
               <div className="flex-1 text-left">
