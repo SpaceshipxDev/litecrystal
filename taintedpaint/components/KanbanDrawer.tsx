@@ -32,16 +32,23 @@ export default function KanbanDrawer({
   const [isDownloading, setIsDownloading] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState("");
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const openDatePicker = () => {
-    const input = dateInputRef.current;
-    if (!input) return;
-    if ((input as any).showPicker) {
-      (input as any).showPicker();
-    } else {
-      input.click();
-    }
+  const toggleDatePicker = () => {
+    setShowDatePicker((v) => !v);
   };
+
+  useEffect(() => {
+    if (showDatePicker) {
+      const input = dateInputRef.current;
+      if (input) {
+        if ((input as any).showPicker) {
+          (input as any).showPicker();
+        }
+        input.focus();
+      }
+    }
+  }, [showDatePicker]);
 
   useEffect(() => {
     setDeliveryDate(task?.deliveryDate || "");
@@ -156,12 +163,12 @@ export default function KanbanDrawer({
                 <CalendarDays className="h-4 w-4 text-black/40" />
                 <span className="text-[15px] text-black/60">交期</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="relative flex items-center gap-2">
                 {deliveryDate && (
                   <span className="text-[15px] font-medium text-black">{deliveryDate}</span>
                 )}
                 <button
-                  onClick={openDatePicker}
+                  onClick={toggleDatePicker}
                   className="h-7 w-7 flex items-center justify-center rounded-md bg-black/5 hover:bg-black/10 transition-colors"
                   aria-label="设置交期"
                 >
@@ -175,7 +182,8 @@ export default function KanbanDrawer({
                     setDeliveryDate(e.target.value);
                     saveDeliveryDate(e.target.value);
                   }}
-                  className="hidden"
+                  className={`absolute right-0 top-full mt-1 w-40 bg-white border rounded-md p-1 text-sm shadow transition-all duration-300 origin-top ${showDatePicker ? '' : 'scale-90 opacity-0 pointer-events-none'}`}
+                  style={{ colorScheme: 'light' }}
                 />
               </div>
             </div>

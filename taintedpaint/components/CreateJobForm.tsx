@@ -22,16 +22,23 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const [customerOptions, setCustomerOptions] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inquiryDateInputRef = useRef<HTMLInputElement>(null);
+  const [showInquiryPicker, setShowInquiryPicker] = useState(false);
 
-  const openInquiryDatePicker = () => {
-    const input = inquiryDateInputRef.current;
-    if (!input) return;
-    if ((input as any).showPicker) {
-      (input as any).showPicker();
-    } else {
-      input.click();
-    }
+  const toggleInquiryDatePicker = () => {
+    setShowInquiryPicker((v) => !v);
   };
+
+  useEffect(() => {
+    if (showInquiryPicker) {
+      const input = inquiryDateInputRef.current;
+      if (input) {
+        if ((input as any).showPicker) {
+          (input as any).showPicker();
+        }
+        input.focus();
+      }
+    }
+  }, [showInquiryPicker]);
 
   // 读取已有客户列表供输入时选择
   useEffect(() => {
@@ -177,7 +184,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           />
           <button
             type="button"
-            onClick={openInquiryDatePicker}
+            onClick={toggleInquiryDatePicker}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
             aria-label="选择询价日期"
           >
@@ -188,7 +195,8 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
             type="date"
             value={inquiryDate}
             onChange={(e) => setInquiryDate(e.target.value)}
-            className="hidden"
+            className={`absolute right-0 top-full mt-1 w-40 bg-white border rounded-md p-1 text-sm shadow transition-all duration-300 origin-top ${showInquiryPicker ? '' : 'scale-90 opacity-0 pointer-events-none'}`}
+            style={{ colorScheme: 'light' }}
           />
         </div>
         <Input
