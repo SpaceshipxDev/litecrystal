@@ -15,7 +15,7 @@
     },
     "1753026660078": {
       "id": "1753026660078",
-      "columnId": "approval",
+      "columnId": "program",
       "customerName": "大华",
       "representative": "我",
       "inquiryDate": "2025-07-20",
@@ -24,7 +24,8 @@
       "files": [
         "task-1752482910581"
       ],
-      "ynmxId": "YNMX-2025-07-20-3081"
+      "ynmxId": "YNMX-2025-07-20-3081",
+      "deliveryDate": ""
     }
   },
   "columns": [
@@ -57,14 +58,15 @@
       "id": "approval",
       "title": "审批",
       "taskIds": [
-        "1753021763511",
-        "1753026660078"
+        "1753021763511"
       ]
     },
     {
       "id": "program",
       "title": "编程",
-      "taskIds": []
+      "taskIds": [
+        "1753026660078"
+      ]
     },
     {
       "id": "operate",
