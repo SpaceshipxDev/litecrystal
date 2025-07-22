@@ -4,13 +4,7 @@
 import type { Task } from "@/types";
 import type { ElectronAPI } from "@/types/electron";
 import { useState, useCallback } from "react";
-import { X, CalendarDays, MessageSquare, Folder, FileCode } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { X, CalendarDays, MessageSquare, Folder } from "lucide-react";
 
 interface KanbanDrawerProps {
   isOpen: boolean;
@@ -26,7 +20,6 @@ export default function KanbanDrawer({
   onClose,
 }: KanbanDrawerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const [showMetadata, setShowMetadata] = useState(false);
 
   const handleDownloadAndOpen = useCallback(async () => {
     if (!task) return;
@@ -139,32 +132,9 @@ export default function KanbanDrawer({
               </div>
             </button>
 
-            <button
-              onClick={() => setShowMetadata(true)}
-              className="w-full flex items-center gap-4 p-4 bg-black/5 hover:bg-black/10 rounded-lg transition-all duration-200"
-            >
-              <div className="flex items-center justify-center h-10 w-10 rounded bg-black/10">
-                <FileCode className="h-5 w-5 text-black/70" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-[15px] font-medium text-black">查看元数据</p>
-                <p className="text-[13px] text-black/50">显示此任务的原始记录</p>
-              </div>
-            </button>
           </div>
         </div>
       </aside>
-
-      <Dialog open={showMetadata} onOpenChange={setShowMetadata}>
-        <DialogContent className="max-w-xl" showCloseButton>
-          <DialogHeader>
-            <DialogTitle>任务元数据</DialogTitle>
-          </DialogHeader>
-          <pre className="mt-4 text-sm bg-black/5 rounded-md p-4 whitespace-pre-wrap overflow-x-auto">
-{JSON.stringify(task, null, 2)}
-          </pre>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
