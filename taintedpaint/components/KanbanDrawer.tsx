@@ -3,14 +3,16 @@
 
 import type { Task } from "@/types";
 import type { ElectronAPI } from "@/types/electron";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { X, CalendarDays, MessageSquare, Folder } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface KanbanDrawerProps {
   isOpen: boolean;
   task: Task | null;
   columnTitle: string | null;
   onClose: () => void;
+  onTaskUpdated?: (task: Task) => void;
   /**
    * Display mode of the board. When `business`, show full
    * customer details even if the task has been serialized.
@@ -24,9 +26,15 @@ export default function KanbanDrawer({
   task,
   columnTitle,
   onClose,
+  onTaskUpdated,
   viewMode = 'business',
 }: KanbanDrawerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [deliveryDate, setDeliveryDate] = useState("");
+
+  useEffect(() => {
+    setDeliveryDate(task?.deliveryDate || "");
+  }, [task]);
 
   const handleDownloadAndOpen = useCallback(async () => {
     if (!task) return;
@@ -53,6 +61,24 @@ export default function KanbanDrawer({
       setIsDownloading(false);
     }
   }, [task]);
+
+  const saveDeliveryDate = useCallback(async () => {
+    if (!task) return;
+    try {
+      const res = await fetch(`/api/jobs/${task.id}/update`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveryDate }),
+      });
+      if (res.ok) {
+        const updated: Task = await res.json();
+        setDeliveryDate(updated.deliveryDate || "");
+        onTaskUpdated?.(updated);
+      }
+    } catch (err) {
+      console.error('Failed to update delivery date', err);
+    }
+  }, [task, deliveryDate]);
 
   if (!task) {
     return (
@@ -110,6 +136,19 @@ export default function KanbanDrawer({
                 <span className="text-[15px] text-black/60">订单日期</span>
               </div>
               <span className="text-[15px] font-medium text-black">{task.orderDate}</span>
+            </div>
+            <div className="flex items-center justify-between py-3 border-b border-black/[0.08]">
+              <div className="flex items-center gap-3">
+                <CalendarDays className="h-4 w-4 text-black/40" />
+                <span className="text-[15px] text-black/60">交期</span>
+              </div>
+              <Input
+                type="datetime-local"
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+                onBlur={saveDeliveryDate}
+                className="max-w-[200px] text-[15px] font-medium text-black bg-transparent p-0"
+              />
             </div>
             {task.notes && (
               <div className="py-3 border-b border-black/[0.08]">
