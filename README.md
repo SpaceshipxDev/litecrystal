@@ -41,4 +41,8 @@ npm run make:restricted
 
 The production build adds `?restricted=1` to the web URL so the web interface automatically hides the Business switcher and Holistic view.
 
+### Why it mattered
+
+Initially the `make:restricted` script set the `RESTRICTED` environment variable only while running the build. Because the packaged application started without that variable present, `process.env.RESTRICTED` evaluated to `undefined`, so the restricted mode was never enabled. Webpack now copies the value of `RESTRICTED` into the bundled code at build time, ensuring the production package always loads with the proper query parameter.
+
 The packaged apps can be found in `blackpaint/out` after running the commands.
