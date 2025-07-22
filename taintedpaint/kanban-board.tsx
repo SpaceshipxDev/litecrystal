@@ -434,6 +434,7 @@ export default function KanbanBoard() {
           isOpen={isDrawerOpen}
           task={selectedTask}
           columnTitle={selectedTaskColumnTitle}
+          viewMode={viewMode}
           onClose={closeDrawer}
           onTaskUpdated={handleTaskUpdated}
         />
