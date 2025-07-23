@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Search, Loader2, FileText, X } from "lucide-react";
 import type { Task } from "@/types";
+import { getDisplayName, getShortId } from "@/lib/taskUtils";
 
 interface SearchDialogProps {
   isOpen: boolean;
@@ -154,8 +155,8 @@ export default function SearchDialog({ isOpen, onClose, onTaskSelect }: SearchDi
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-gray-800 truncate">
                       {['sheet', 'approval', 'outsourcing', 'program', 'operate', 'polish', 'spray', 'inspect', 'ship', 'archive2'].includes(task.columnId)
-                        ? task.ynmxId || `${task.customerName} - ${task.representative}`
-                        : `${task.customerName} - ${task.representative}`}
+                        ? getDisplayName(task)
+                        : `${task.customerName} - ${task.representative} #${getShortId(task)}`}
                     </h3>
                     <p className="text-xs text-gray-600">{task.deliveryDate || task.inquiryDate}</p>
                   </div>
