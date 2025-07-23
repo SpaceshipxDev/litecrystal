@@ -6,7 +6,6 @@ import path from "path";
 import type { BoardData } from "@/types";
 import { updateBoardData } from "@/lib/boardDataStore";
 import { sanitizeRelativePath } from "@/lib/pathUtils.mjs";
-import { decodeUnderscoreHex } from "@/lib/underscoreHex";
 
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
 const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
@@ -26,8 +25,8 @@ export async function POST(
     const newFile = formData.get("newFile") as File | null;
     const oldFilenameRaw = formData.get("oldFilename") as string | null;
     const relativePathRaw = formData.get("relativePath") as string | null;
-    const oldFilename = oldFilenameRaw ? decodeUnderscoreHex(oldFilenameRaw) : null;
-    const relativePath = relativePathRaw ? decodeUnderscoreHex(relativePathRaw) : null;
+    const oldFilename = oldFilenameRaw || null;
+    const relativePath = relativePathRaw || null;
     if (!newFile || !oldFilename) {
       return NextResponse.json({ error: "Missing newFile or oldFilename" }, { status: 400 });
     }
@@ -45,8 +44,7 @@ export async function POST(
     const oldFilePath = path.join(taskDirectoryPath, safeRelativePath || oldFilename);
 
     // --- FIX: Use a less restrictive regex that allows Unicode characters ---
-    const decodedName = decodeUnderscoreHex(newFile.name);
-    const sanitizedNewFilename = decodedName.replace(/[\\/:*?"<>|]/g, '_');
+    const sanitizedNewFilename = newFile.name.replace(/[\\/:*?"<>|]/g, '_');
     // ----------------------------------------------------------------------
     const newFilePath = path.join(
       taskDirectoryPath,

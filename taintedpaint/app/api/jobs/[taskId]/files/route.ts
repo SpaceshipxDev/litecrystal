@@ -3,7 +3,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
-import { decodeUnderscoreHex } from "@/lib/underscoreHex";
 
 const TASKS_STORAGE_DIR = path.join(process.cwd(), "public", "storage", "tasks");
 
@@ -31,8 +30,6 @@ async function getFilesRecursively(directory: string, basePath: string, baseUrl:
       fileList = fileList.concat(subFiles);
     } else if (entry.isFile()) {
       const relativePath = path.relative(basePath, fullPath);
-      const decodedRelPath = decodeUnderscoreHex(relativePath);
-      const decodedName = decodeUnderscoreHex(entry.name);
       const stats = await fs.stat(fullPath);
 
       // --- PROACTIVE IMPROVEMENT ---
@@ -44,9 +41,9 @@ async function getFilesRecursively(directory: string, basePath: string, baseUrl:
       const url = `${baseUrl}/storage/tasks/${path.basename(basePath)}/${encodedRelativePath}`;
 
       fileList.push({
-        filename: decodedName,
-        relativePath: decodedRelPath,
-        url: url,
+        filename: entry.name,
+        relativePath,
+        url,
         mtimeMs: stats.mtimeMs,
       });
     }
