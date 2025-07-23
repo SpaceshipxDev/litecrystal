@@ -6,7 +6,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
-  const { taskId } = params;
+  const { taskId } = await params;
   try {
     const { deliveryDate, notes } = await req.json();
     if (deliveryDate !== undefined && typeof deliveryDate !== 'string') {
