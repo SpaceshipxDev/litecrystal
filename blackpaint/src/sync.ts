@@ -32,25 +32,40 @@ async function listLocalFiles(dir: string): Promise<string[]> {
 
 const activeSyncs = new Map<string, { watcher: FSWatcher; interval: ReturnType<typeof setInterval> }>();
 const pendingWrites = new Set<string>();
+const pendingUploads = new Set<string>();
 
 // Simple helper to upload or update a file
 async function uploadFile(taskId: string, localRoot: string, relPath: string) {
   const fullPath = path.join(localRoot, relPath);
-  const stat = await fs.stat(fullPath);
+  let stat;
+  try {
+    stat = await fs.stat(fullPath);
+  } catch {
+    return;
+  }
   if (!stat.isFile()) return;
+
   const file = await fs.readFile(fullPath);
 
   const form = new FormData();
   form.append('files', new Blob([file]));
   form.append('paths', relPath);
 
+  pendingUploads.add(fullPath);
+
   try {
-    await fetch(`${BASE_URL}/api/jobs/${taskId}/upload`, {
+    const res = await fetch(`${BASE_URL}/api/jobs/${taskId}/upload`, {
       method: 'POST',
       body: form,
     });
+    if (res.ok) {
+      pendingUploads.delete(fullPath);
+    } else {
+      console.error('Failed to upload file', res.statusText);
+    }
   } catch (err) {
     console.error('Failed to upload file', err);
+    // keep in pendingUploads for retry
   }
 }
 
@@ -89,11 +104,17 @@ async function pullFromServer(taskId: string, localRoot: string) {
     const remoteSet = new Set(files.map(f => path.join(localRoot, f.relativePath)));
     const localFiles = await listLocalFiles(localRoot);
     for (const lp of localFiles) {
-      if (!remoteSet.has(lp)) {
+      if (!remoteSet.has(lp) && !pendingUploads.has(lp)) {
         pendingWrites.add(lp);
         await fs.unlink(lp).catch(() => {});
         pendingWrites.delete(lp);
       }
+    }
+
+    // retry any pending uploads
+    for (const lp of Array.from(pendingUploads)) {
+      const relPath = path.relative(localRoot, lp).replace(/\\/g, '/');
+      await uploadFile(taskId, localRoot, relPath);
     }
   } catch (err) {
     console.error('sync pull error', err);
