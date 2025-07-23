@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import { createWriteStream } from 'fs';
 import path from 'path';
 import axios from 'axios';
 import chokidar, { FSWatcher } from 'chokidar';
@@ -125,10 +126,16 @@ async function pullFromServer(
       }
       if (!stat || stat.mtimeMs < file.mtimeMs) {
         await fs.mkdir(path.dirname(localPath), { recursive: true });
-        const response = await axios.get(file.url, { responseType: 'arraybuffer' });
+        const response = await axios.get(file.url, { responseType: 'stream', timeout: 0 });
         pendingWrites.add(localPath);
         try {
-          await fs.writeFile(localPath, Buffer.from(response.data));
+          await new Promise<void>((resolve, reject) => {
+            const writer = createWriteStream(localPath);
+            response.data.pipe(writer);
+            response.data.on('error', reject);
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+          });
         } catch (err) {
           console.error('Failed to write file', err);
         }
