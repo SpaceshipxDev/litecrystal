@@ -67,7 +67,7 @@ app.on('ready', () => {
     ) => {
       try {
         const safeFolderName = folderName.replace(/[\\/:*?"<>|]/g, '').trim();
-        const rootDir = path.join(app.getPath('desktop'), 'Estera 数据库');
+        const rootDir = path.join(app.getPath('desktop'), 'Estara 数据');
         await fs.mkdir(rootDir, { recursive: true });
         const destinationFolder = path.join(rootDir, safeFolderName);
         await fs.mkdir(destinationFolder, { recursive: true });
