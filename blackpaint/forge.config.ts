@@ -25,13 +25,13 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
-      name: 'eldaline',
+      name: 'estara',
       setupIcon: path.join(__dirname, 'assets', 'e-logo.ico'),
       // Provide the icon URL so Squirrel creates shortcuts with
       // the custom icon instead of the default square icon.
       iconUrl: `file://${path.resolve(__dirname, 'assets', 'e-logo.ico')}`,
-      setupExe: 'EldalineSetup.exe',
-      exe: 'Eldaline.exe',
+      setupExe: 'EstaraSetup.exe',
+      exe: 'Estara.exe',
     }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({}),

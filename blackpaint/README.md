@@ -1,4 +1,4 @@
-# Eldaline (Blackpaint)
+# Estara (Blackpaint)
 
 This folder contains the Electron wrapper for the `taintedpaint` web
 application. Two distributable versions exist:

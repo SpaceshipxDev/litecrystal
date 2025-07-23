@@ -3,7 +3,7 @@
 This repository contains two parts:
 
 - `taintedpaint` – the Next.js web app.
-- `blackpaint` – the Electron wrapper named **Eldaline**.
+- `blackpaint` – the Electron wrapper named **Estara**.
 
 Two Electron builds can be produced:
 
@@ -53,7 +53,7 @@ The project is split into two directories:
 
 - **taintedpaint** – a Next.js application that renders the Kanban board and REST
   API endpoints.
-- **blackpaint** – an Electron shell (called *Eldaline*) which loads the web app
+- **blackpaint** – an Electron shell (called *Estara*) which loads the web app
   and packages it as a desktop application.
 
 ### Data flow

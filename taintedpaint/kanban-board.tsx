@@ -231,7 +231,7 @@ export default function KanbanBoard() {
       <header className="px-6 py-4 bg-white/90 backdrop-blur-sm sticky top-0 z-30 border-b border-gray-200/80">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <h1 className="text-xl font-medium text-gray-900 tracking-tight">Eldaline</h1>
+            <h1 className="text-xl font-medium text-gray-900 tracking-tight">Estara</h1>
             <span className="text-sm text-gray-500 font-normal">项目看板</span>
           </div>
 
