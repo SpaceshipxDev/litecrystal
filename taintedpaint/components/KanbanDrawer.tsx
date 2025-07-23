@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { X, CalendarDays, MessageSquare, Folder, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 interface KanbanDrawerProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export default function KanbanDrawer({
   const [isDownloading, setIsDownloading] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [editNotesValue, setEditNotesValue] = useState("");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +53,7 @@ export default function KanbanDrawer({
   useEffect(() => {
     setDeliveryDate(task?.deliveryDate || "");
     setNotes(task?.notes || "");
+    setEditNotesValue(task?.notes || "");
     setIsEditingNotes(false);
   }, [task]);
 
@@ -113,6 +116,7 @@ export default function KanbanDrawer({
         if (res.ok) {
           const updated: Task = await res.json();
           setNotes(updated.notes || "");
+          setEditNotesValue(updated.notes || "");
           onTaskUpdated?.(updated);
         }
       } catch (err) {
@@ -216,6 +220,7 @@ export default function KanbanDrawer({
                 </div>
                 <button
                   onClick={() => {
+                    setEditNotesValue(notes);
                     setIsEditingNotes(true);
                     setTimeout(() => notesRef.current?.focus(), 50);
                   }}
@@ -226,19 +231,38 @@ export default function KanbanDrawer({
                 </button>
               </div>
               {isEditingNotes ? (
-                <Textarea
-                  ref={notesRef}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  onBlur={() => {
-                    setIsEditingNotes(false);
-                    saveNotes(notes);
-                  }}
-                  className="text-[15px] text-black bg-white/60 focus:bg-white transition-all duration-200"
-                />
+                <div>
+                  <Textarea
+                    ref={notesRef}
+                    value={editNotesValue}
+                    onChange={(e) => setEditNotesValue(e.target.value)}
+                    className="text-[15px] text-black bg-white/60 focus:bg-white transition-all duration-200"
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingNotes(false);
+                        setEditNotesValue(notes);
+                      }}
+                    >
+                      取消
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingNotes(false);
+                        saveNotes(editNotesValue);
+                      }}
+                    >
+                      确认
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <p className="text-[15px] text-black leading-relaxed ml-7 whitespace-pre-wrap">
-                  {notes || '无备注'}
+                  {notes}
                 </p>
               )}
             </div>
