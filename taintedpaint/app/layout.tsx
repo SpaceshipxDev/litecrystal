@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Eldaline",
-  description: "Eldaline Kanban board",
+  title: "Estara",
+  description: "Estara Kanban board",
 };
 
 export default function RootLayout({
