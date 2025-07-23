@@ -12,11 +12,22 @@ interface RemoteFile {
   mtimeMs: number;
 }
 
+const IGNORED_NAMES = ['.DS_Store', 'Thumbs.db'];
+
+function isIgnored(name: string): boolean {
+  return (
+    IGNORED_NAMES.includes(name) ||
+    name.startsWith('~$') ||
+    name.startsWith('$')
+  );
+}
+
 async function listLocalFiles(dir: string): Promise<string[]> {
   let results: string[] = [];
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
+      if (isIgnored(entry.name)) continue;
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         results = results.concat(await listLocalFiles(full));
@@ -44,14 +55,19 @@ async function uploadFile(taskId: string, localRoot: string, relPath: string) {
     return;
   }
   if (!stat.isFile()) return;
+  pendingUploads.add(fullPath);
 
-  const file = await fs.readFile(fullPath);
+  let file: Buffer;
+  try {
+    file = await fs.readFile(fullPath);
+  } catch (err) {
+    console.error('Failed to read file', err);
+    return; // keep in pendingUploads for retry
+  }
 
   const form = new FormData();
   form.append('files', new Blob([file]));
   form.append('paths', relPath);
-
-  pendingUploads.add(fullPath);
 
   try {
     const res = await fetch(`${BASE_URL}/api/jobs/${taskId}/upload`, {
@@ -97,7 +113,11 @@ async function pullFromServer(taskId: string, localRoot: string) {
         await fs.mkdir(path.dirname(localPath), { recursive: true });
         const response = await axios.get(file.url, { responseType: 'arraybuffer' });
         pendingWrites.add(localPath);
-        await fs.writeFile(localPath, Buffer.from(response.data));
+        try {
+          await fs.writeFile(localPath, Buffer.from(response.data));
+        } catch (err) {
+          console.error('Failed to write file', err);
+        }
         pendingWrites.delete(localPath);
       }
     }
@@ -130,12 +150,15 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
   const watcher = chokidar.watch(localRoot, {
     persistent: true,
     ignoreInitial: true,
+    ignored: (p) => isIgnored(path.basename(p)),
   });
 
   const toRel = (fullPath: string) =>
     path.relative(localRoot, fullPath).replace(/\\/g, '/');
 
   const shouldSkip = (p: string) => {
+    const name = path.basename(p);
+    if (isIgnored(name)) return true;
     if (pendingWrites.has(p)) {
       pendingWrites.delete(p);
       return true;
