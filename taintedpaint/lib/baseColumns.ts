@@ -12,6 +12,7 @@ export const baseColumns: Column[] = [
   { id: "archive",     title: "报价归档",   taskIds: [] },
   { id: "sheet",       title: "制单",   taskIds: [] },
   { id: "approval",    title: "审批",   taskIds: [] },
+  { id: "outsourcing", title: "外协",   taskIds: [] },
   { id: "program",     title: "编程",   taskIds: [] },
   { id: "operate",     title: "操机",   taskIds: [] },
   { id: "polish",      title: "打磨",   taskIds: [] },

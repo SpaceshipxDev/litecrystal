@@ -30,6 +30,7 @@ export default function KanbanBoard() {
     send: 'bg-teal-500',
     sheet: 'bg-orange-500',
     approval: 'bg-yellow-500',
+    outsourcing: 'bg-sky-500',
     program: 'bg-indigo-500',
     operate: 'bg-cyan-500',
     polish: 'bg-pink-500',
@@ -220,7 +221,7 @@ export default function KanbanBoard() {
   const allTasksForSearch = useMemo(() => Object.values(tasks), [tasks]);
   const visibleColumns = useMemo(() => {
     if (viewMode === 'production') {
-      return columns.filter(c => ['approval', 'program', 'operate', 'polish', 'spray', 'inspect', 'ship', 'archive2'].includes(c.id))
+      return columns.filter(c => ['approval', 'outsourcing', 'program', 'operate', 'polish', 'spray', 'inspect', 'ship', 'archive2'].includes(c.id))
     }
     return columns
   }, [viewMode, columns])

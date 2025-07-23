@@ -62,6 +62,11 @@
       ]
     },
     {
+      "id": "outsourcing",
+      "title": "外协",
+      "taskIds": []
+    },
+    {
       "id": "program",
       "title": "编程",
       "taskIds": [
