@@ -41,12 +41,22 @@ async function listLocalFiles(dir: string): Promise<string[]> {
   return results;
 }
 
-const activeSyncs = new Map<string, { watcher: FSWatcher; interval: ReturnType<typeof setInterval> }>();
+// Each active sync keeps its own pending upload list so files don't leak
+// between tasks when retries occur.
+const activeSyncs = new Map<string, {
+  watcher: FSWatcher;
+  interval: ReturnType<typeof setInterval>;
+  pendingUploads: Set<string>;
+}>();
 const pendingWrites = new Set<string>();
-const pendingUploads = new Set<string>();
 
 // Simple helper to upload or update a file
-async function uploadFile(taskId: string, localRoot: string, relPath: string) {
+async function uploadFile(
+  taskId: string,
+  localRoot: string,
+  relPath: string,
+  pendingUploads: Set<string>,
+) {
   const fullPath = path.join(localRoot, relPath);
   let stat;
   try {
@@ -97,7 +107,11 @@ async function deleteFile(taskId: string, relPath: string) {
   }
 }
 
-async function pullFromServer(taskId: string, localRoot: string) {
+async function pullFromServer(
+  taskId: string,
+  localRoot: string,
+  pendingUploads: Set<string>,
+) {
   try {
     const res = await axios.get<RemoteFile[]>(`${BASE_URL}/api/jobs/${taskId}/files`);
     const files = res.data;
@@ -134,7 +148,7 @@ async function pullFromServer(taskId: string, localRoot: string) {
     // retry any pending uploads
     for (const lp of Array.from(pendingUploads)) {
       const relPath = path.relative(localRoot, lp).replace(/\\/g, '/');
-      await uploadFile(taskId, localRoot, relPath);
+      await uploadFile(taskId, localRoot, relPath, pendingUploads);
     }
   } catch (err) {
     console.error('sync pull error', err);
@@ -144,8 +158,10 @@ async function pullFromServer(taskId: string, localRoot: string) {
 export function startBidirectionalSync(taskId: string, localRoot: string) {
   if (activeSyncs.has(taskId)) return;
 
+  const pendingUploads = new Set<string>();
+
   // initial pull
-  pullFromServer(taskId, localRoot);
+  pullFromServer(taskId, localRoot, pendingUploads);
 
   const watcher = chokidar.watch(localRoot, {
     persistent: true,
@@ -170,12 +186,12 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
     .on('add', async (filePath) => {
       if (shouldSkip(filePath)) return;
       const relPath = toRel(filePath);
-      await uploadFile(taskId, localRoot, relPath);
+      await uploadFile(taskId, localRoot, relPath, pendingUploads);
     })
     .on('change', async (filePath) => {
       if (shouldSkip(filePath)) return;
       const relPath = toRel(filePath);
-      await uploadFile(taskId, localRoot, relPath);
+      await uploadFile(taskId, localRoot, relPath, pendingUploads);
     })
     .on('unlink', async (filePath) => {
       if (shouldSkip(filePath)) return;
@@ -183,8 +199,11 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
       await deleteFile(taskId, relPath);
     });
 
-  const interval = setInterval(() => pullFromServer(taskId, localRoot), 10000);
-  activeSyncs.set(taskId, { watcher, interval });
+  const interval = setInterval(
+    () => pullFromServer(taskId, localRoot, pendingUploads),
+    10000,
+  );
+  activeSyncs.set(taskId, { watcher, interval, pendingUploads });
 }
 
 export function stopAllSyncs() {
