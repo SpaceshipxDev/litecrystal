@@ -14,7 +14,7 @@ The project consists of two parts:
 1. In the web UI, the Kanban drawer calls `window.electronAPI.downloadAndOpenTaskFolder()` with the task ID, a folder name and a list of files to download.
 2. `blackpaint/src/index.ts` registers an IPC handler for `download-and-open-task-folder`. The handler:
    - Sanitises the folder name.
-   - Creates a root directory on the user's desktop named **`Estera 数据库`**.
+   - Creates a root directory on the user's desktop named **`Estara 数据`**.
    - Creates a subfolder for the selected task beneath this root.
    - Downloads each file from the provided URLs into the task folder.
    - Opens the folder using the OS file manager.
@@ -36,10 +36,10 @@ Each active sync keeps its own pending upload queue to retry failed uploads with
 
 ## Storage Location
 
-Originally task folders were downloaded under the user's **Downloads** directory. The Electron client now uses the Desktop instead, placing all task folders inside a single directory named **`Estera 数据库`**. For example:
+Originally task folders were downloaded under the user's **Downloads** directory. The Electron client now uses the Desktop instead, placing all task folders inside a single directory named **`Estara 数据`**. For example:
 
 ```
-~/Desktop/Estera 数据库/<Task Folder>
+~/Desktop/Estara 数据/<Task Folder>
 ```
 
 This path is created automatically if it does not exist. All synchronization still works the same—files within each task folder are kept up to date with the server in both directions.
