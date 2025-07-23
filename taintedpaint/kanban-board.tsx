@@ -371,6 +371,9 @@ export default function KanbanBoard() {
                                   ? `交期: ${task.deliveryDate}`
                                   : `询价日期: ${task.inquiryDate}`}
                               </p>
+                              <p className="text-xs text-gray-400 mt-0.5 truncate">
+                                {task.notes || '无备注'}
+                              </p>
                             </div>
                           </div>
                         </Card>
@@ -435,6 +438,9 @@ export default function KanbanBoard() {
                             {task.deliveryDate
                               ? `交期: ${task.deliveryDate}`
                               : `询价日期: ${task.inquiryDate}`}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">
+                            {task.notes || '无备注'}
                           </p>
                         </div>
                       </div>

@@ -8,8 +8,11 @@ export async function PATCH(
 ) {
   const { taskId } = params;
   try {
-    const { deliveryDate } = await req.json();
-    if (typeof deliveryDate !== 'string') {
+    const { deliveryDate, notes } = await req.json();
+    if (deliveryDate !== undefined && typeof deliveryDate !== 'string') {
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+    if (notes !== undefined && typeof notes !== 'string') {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
@@ -17,7 +20,8 @@ export async function PATCH(
     await updateBoardData(async data => {
       const t = data.tasks[taskId];
       if (!t) throw new Error('Task not found');
-      t.deliveryDate = deliveryDate;
+      if (typeof deliveryDate === 'string') t.deliveryDate = deliveryDate;
+      if (typeof notes === 'string') t.notes = notes;
       updatedTask = t;
     });
 
