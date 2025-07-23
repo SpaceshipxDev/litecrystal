@@ -4,7 +4,6 @@ import path from "path";
 import type { BoardData } from "@/types";
 import { updateBoardData } from "@/lib/boardDataStore";
 import { sanitizeRelativePath } from "@/lib/pathUtils.mjs";
-import { decodeUnderscoreHex } from "@/lib/underscoreHex";
 
 // --- Path Definitions ---
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
@@ -24,7 +23,7 @@ export async function POST(
   try {
     const body = await req.json();
     const rawFilename = body.filename; // treat as relative path
-    const filename = rawFilename ? decodeUnderscoreHex(rawFilename) : rawFilename;
+    const filename = rawFilename;
 
     if (!filename) {
       return NextResponse.json({ error: "Filename is required" }, { status: 400 });
