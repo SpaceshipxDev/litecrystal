@@ -10,7 +10,6 @@ import Link from "next/link"
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
 import SearchDialog from "@/components/SearchDialog"
-import { getDisplayName, getShortId } from "@/lib/taskUtils"
 
 export default function KanbanBoard() {
   const restricted =
@@ -92,9 +91,9 @@ export default function KanbanBoard() {
 
   const getTaskDisplayName = (task: Task) => {
     if (viewMode === 'production') {
-      return getDisplayName(task);
+      return task.ynmxId || `${task.customerName} - ${task.representative}`;
     }
-    return `${task.customerName} - ${task.representative} #${getShortId(task)}`;
+    return `${task.customerName} - ${task.representative}`;
   };
 
   const mergeWithSkeleton = (saved: Column[]): Column[] => {
@@ -358,7 +357,9 @@ export default function KanbanBoard() {
                                     {task.customerName}
                                   </h3>
                                   <p className="text-xs text-gray-500">{task.representative}</p>
-                                  <p className="text-xs text-gray-400">{task.ynmxId || `#${getShortId(task)}`}</p>
+                                  {task.ynmxId && (
+                                    <p className="text-xs text-gray-400">{task.ynmxId}</p>
+                                  )}
                                 </>
                               ) : (
                                 <h3 className="text-sm font-medium text-gray-800 leading-tight group-hover:text-gray-900 transition-colors">
@@ -426,7 +427,9 @@ export default function KanbanBoard() {
                                 {task.customerName}
                               </h3>
                               <p className="text-xs text-gray-500">{task.representative}</p>
-                              <p className="text-xs text-gray-400">{task.ynmxId || `#${getShortId(task)}`}</p>
+                              {task.ynmxId && (
+                                <p className="text-xs text-gray-400">{task.ynmxId}</p>
+                              )}
                             </>
                           ) : (
                             <h3 className="text-sm font-medium text-gray-800 leading-tight group-hover:text-gray-900 transition-colors">
