@@ -8,6 +8,7 @@ import { X, CalendarDays, MessageSquare, Folder, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { getFolderName, getShortId } from "@/lib/taskUtils";
 
 interface KanbanDrawerProps {
   isOpen: boolean;
@@ -73,7 +74,7 @@ export default function KanbanDrawer({
         alert("此任务没有可下载的文件。");
         return;
       }
-      const folderName = task.ynmxId || `${task.customerName} - ${task.representative}`;
+      const folderName = getFolderName(task);
       await electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesToDownload);
     } catch (err: any) {
       console.error("Download and open failed:", err);
@@ -149,9 +150,9 @@ export default function KanbanDrawer({
               {viewMode === 'business' && (
                 <p className="text-[15px] text-black/60 truncate">{task.representative}</p>
               )}
-              {viewMode === 'business' && task.ynmxId && (
+              {viewMode === 'business' && (
                 <span className="text-[13px] font-medium text-black/50 bg-black/5 px-2 py-0.5 rounded-full">
-                  {task.ynmxId}
+                  {task.ynmxId || `#${getShortId(task)}`}
                 </span>
               )}
               {columnTitle && (
