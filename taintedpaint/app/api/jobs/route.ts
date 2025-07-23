@@ -60,11 +60,20 @@ export async function POST(req: NextRequest) {
     await fs.mkdir(taskDirectoryPath, { recursive: true });
 
     // This file saving logic is still correct and necessary to build the directory
+    // strip the uploaded root folder name from each path
+    const rootPrefix = folderName.replace(/[/\\]+$/, '') + '/';
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const relativePath = filePaths[i];
-      const safeRelativePath = path.normalize(relativePath).replace(/^(\.\.[\/\\])+/, '');
-      if (safeRelativePath.includes('..')) continue; 
+      const rawPath = filePaths[i];
+      // remove the leading folderName/ if present
+      const relativePath = rawPath.startsWith(rootPrefix)
+        ? rawPath.slice(rootPrefix.length)
+        : rawPath;
+      const safeRelativePath = path
+        .normalize(relativePath)
+        .replace(/^(\.\.[\/\\])+/, '');
+      if (safeRelativePath.includes('..')) continue;
       const destinationPath = path.join(taskDirectoryPath, safeRelativePath);
       await fs.mkdir(path.dirname(destinationPath), { recursive: true });
       const buf = Buffer.from(await file.arrayBuffer());
