@@ -70,8 +70,20 @@ app.on('ready', () => {
         const destinationFolder = path.join(app.getPath('downloads'), safeFolderName);
         await fs.mkdir(destinationFolder, { recursive: true });
 
+        const sanitizePart = (p: string) =>
+          process.platform === 'win32'
+            ? p.replace(/[\\/:*?"<>|]/g, '_').replace(/[. ]+$/, '')
+            : p;
+
+        const sanitizeRelPath = (relPath: string) =>
+          relPath
+            .split(/[/\\]/)
+            .map((part) => sanitizePart(part))
+            .join(path.sep);
+
         const downloadPromises = filesToDownload.map(async (file) => {
-          const localFilePath = path.join(destinationFolder, file.relativePath);
+          const sanitizedPath = sanitizeRelPath(file.relativePath);
+          const localFilePath = path.join(destinationFolder, sanitizedPath);
           await fs.mkdir(path.dirname(localFilePath), { recursive: true });
 
           const response = await axios.get<ArrayBuffer>(file.url, {
