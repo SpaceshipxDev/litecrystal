@@ -106,6 +106,7 @@ export default function SearchDialog({ isOpen, onClose, onTaskSelect }: SearchDi
           <input
             ref={inputRef}
             placeholder="按任意信息搜索任务..."
+            aria-label="搜索任务"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-transparent text-lg text-gray-800 placeholder:text-gray-500 focus:outline-none"
