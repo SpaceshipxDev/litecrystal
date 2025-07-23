@@ -67,7 +67,9 @@ app.on('ready', () => {
     ) => {
       try {
         const safeFolderName = folderName.replace(/[\\/:*?"<>|]/g, '').trim();
-        const destinationFolder = path.join(app.getPath('downloads'), safeFolderName);
+        const rootDir = path.join(app.getPath('desktop'), 'Estera 数据库');
+        await fs.mkdir(rootDir, { recursive: true });
+        const destinationFolder = path.join(rootDir, safeFolderName);
         await fs.mkdir(destinationFolder, { recursive: true });
 
         const sanitizePart = (p: string) =>
