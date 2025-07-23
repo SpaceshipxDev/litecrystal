@@ -6,6 +6,7 @@ import type { ElectronAPI } from "@/types/electron";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { X, CalendarDays, MessageSquare, Folder, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface KanbanDrawerProps {
   isOpen: boolean;
@@ -31,6 +32,9 @@ export default function KanbanDrawer({
 }: KanbanDrawerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   const openDatePicker = () => {
@@ -46,6 +50,8 @@ export default function KanbanDrawer({
 
   useEffect(() => {
     setDeliveryDate(task?.deliveryDate || "");
+    setNotes(task?.notes || "");
+    setIsEditingNotes(false);
   }, [task]);
 
   const handleDownloadAndOpen = useCallback(async () => {
@@ -93,6 +99,27 @@ export default function KanbanDrawer({
       }
     },
     [task, deliveryDate, onTaskUpdated],
+  );
+
+  const saveNotes = useCallback(
+    async (text: string = notes) => {
+      if (!task) return;
+      try {
+        const res = await fetch(`/api/jobs/${task.id}/update`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: text }),
+        });
+        if (res.ok) {
+          const updated: Task = await res.json();
+          setNotes(updated.notes || "");
+          onTaskUpdated?.(updated);
+        }
+      } catch (err) {
+        console.error('Failed to update notes', err);
+      }
+    },
+    [task, notes, onTaskUpdated],
   );
 
   if (!task) {
@@ -181,15 +208,40 @@ export default function KanbanDrawer({
                 />
               </div>
             </div>
-            {task.notes && (
-              <div className="py-3 border-b border-black/[0.08]">
-                <div className="flex items-center gap-3 mb-2">
+            <div className="py-3 border-b border-black/[0.08]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
                   <MessageSquare className="h-4 w-4 text-black/40" />
                   <span className="text-[15px] text-black/60">备注</span>
                 </div>
-                <p className="text-[15px] text-black leading-relaxed ml-7">{task.notes}</p>
+                <button
+                  onClick={() => {
+                    setIsEditingNotes(true);
+                    setTimeout(() => notesRef.current?.focus(), 50);
+                  }}
+                  className="h-7 w-7 flex items-center justify-center rounded-md bg-black/5 hover:bg-black/10 transition-colors"
+                  aria-label="编辑备注"
+                >
+                  <Pencil className="h-4 w-4 text-black/60" />
+                </button>
               </div>
-            )}
+              {isEditingNotes ? (
+                <Textarea
+                  ref={notesRef}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  onBlur={() => {
+                    setIsEditingNotes(false);
+                    saveNotes(notes);
+                  }}
+                  className="text-[15px] text-black bg-white/60 focus:bg-white transition-all duration-200"
+                />
+              ) : (
+                <p className="text-[15px] text-black leading-relaxed ml-7 whitespace-pre-wrap">
+                  {notes || '无备注'}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">
