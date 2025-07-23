@@ -5,6 +5,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData } from "@/types";
 import { updateBoardData } from "@/lib/boardDataStore";
+import { decodeUnderscoreHex } from "@/lib/underscoreHex";
 
 // --- Path Definitions ---
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
@@ -37,7 +38,8 @@ export async function POST(
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const relPath = paths[i] || file.name;
+      const relPathRaw = paths[i] || file.name;
+      const relPath = decodeUnderscoreHex(relPathRaw);
 
       if (path.isAbsolute(relPath)) {
         return NextResponse.json({ error: "Paths must be relative" }, { status: 400 });
