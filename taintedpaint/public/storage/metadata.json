@@ -79,13 +79,13 @@
       "taskIds": []
     },
     {
-      "id": "polish",
-      "title": "打磨",
+      "id": "manual",
+      "title": "手工",
       "taskIds": []
     },
     {
-      "id": "spray",
-      "title": "喷涂",
+      "id": "surface",
+      "title": "表面处理",
       "taskIds": []
     },
     {
