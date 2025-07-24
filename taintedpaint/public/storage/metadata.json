@@ -75,17 +75,17 @@
     },
     {
       "id": "operate",
-      "title": "操机 - 手工",
+      "title": "操机",
       "taskIds": []
     },
     {
-      "id": "assembly",
-      "title": "装配",
+      "id": "polish",
+      "title": "打磨",
       "taskIds": []
     },
     {
-      "id": "surface",
-      "title": "表面处理",
+      "id": "spray",
+      "title": "喷涂",
       "taskIds": []
     },
     {
