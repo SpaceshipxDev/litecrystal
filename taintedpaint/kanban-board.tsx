@@ -232,7 +232,7 @@ export default function KanbanBoard() {
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <h1 className="text-xl font-medium text-gray-900 tracking-tight">Estara</h1>
-            <span className="text-sm text-gray-500 font-normal">项目看板</span>
+            <span className="text-sm text-gray-500 font-normal">项目管理</span>
           </div>
 
           <div className="flex items-center gap-4">
