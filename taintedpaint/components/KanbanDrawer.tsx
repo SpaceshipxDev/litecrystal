@@ -73,7 +73,8 @@ export default function KanbanDrawer({
         alert("此任务没有可下载的文件。");
         return;
       }
-      const folderName = task.ynmxId || `${task.customerName} - ${task.representative}`;
+      const folderName =
+        task.ynmxId || `${task.customerName} - ${task.representative} - ${task.id}`;
       await electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesToDownload);
     } catch (err: any) {
       console.error("Download and open failed:", err);
