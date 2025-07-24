@@ -153,7 +153,7 @@ export default function SearchDialog({ isOpen, onClose, onTaskSelect }: SearchDi
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-gray-800 truncate">
-                      {['sheet', 'approval', 'outsourcing', 'program', 'operate', 'polish', 'spray', 'inspect', 'ship', 'archive2'].includes(task.columnId)
+                      {['sheet', 'approval', 'outsourcing', 'program', 'operate', 'assembly', 'surface', 'inspect', 'ship', 'archive2'].includes(task.columnId)
                         ? task.ynmxId || `${task.customerName} - ${task.representative}`
                         : `${task.customerName} - ${task.representative}`}
                     </h3>
