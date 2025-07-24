@@ -75,7 +75,13 @@ app.on('ready', () => {
         }
 
         const safeFolderName = folderName.replace(/[\\/:*?"<>|]/g, '').trim();
-        const rootDir = path.join(app.getPath('desktop'), 'Estara 数据');
+        let rootDir: string;
+        if (process.platform === 'win32') {
+          const driveRoot = path.parse(app.getPath('desktop')).root;
+          rootDir = path.join(driveRoot, 'EstaraSync');
+        } else {
+          rootDir = path.join(app.getPath('desktop'), 'Estara 数据');
+        }
         await fs.mkdir(rootDir, { recursive: true });
         const destinationFolder = path.join(rootDir, safeFolderName);
         await fs.mkdir(destinationFolder, { recursive: true });
