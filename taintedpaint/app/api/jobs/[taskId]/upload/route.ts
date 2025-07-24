@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData } from "@/types";
-import { updateBoardData } from "@/lib/boardDataStore";
+import { updateBoardData, readBoardData } from "@/lib/boardDataStore";
 
 // --- Path Definitions ---
 const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
@@ -25,6 +25,11 @@ export async function POST(
     const formData = await req.formData();
     const files = formData.getAll("files") as File[];
     const paths = formData.getAll("paths") as string[];
+
+    const boardData = await readBoardData();
+    if (!boardData.tasks[taskId]) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
