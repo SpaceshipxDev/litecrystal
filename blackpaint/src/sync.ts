@@ -48,6 +48,7 @@ const activeSyncs = new Map<string, {
   watcher: FSWatcher;
   interval: ReturnType<typeof setInterval>;
   pendingUploads: Set<string>;
+  localRoot: string;
 }>();
 const pendingWrites = new Set<string>();
 
@@ -210,7 +211,7 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
     () => pullFromServer(taskId, localRoot, pendingUploads),
     10000,
   );
-  activeSyncs.set(taskId, { watcher, interval, pendingUploads });
+  activeSyncs.set(taskId, { watcher, interval, pendingUploads, localRoot });
 }
 
 export function stopAllSyncs() {
@@ -219,4 +220,8 @@ export function stopAllSyncs() {
     clearInterval(interval);
   }
   activeSyncs.clear();
+}
+
+export function getSyncPath(taskId: string): string | undefined {
+  return activeSyncs.get(taskId)?.localRoot;
 }
