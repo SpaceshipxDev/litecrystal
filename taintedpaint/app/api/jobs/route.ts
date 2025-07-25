@@ -1,9 +1,10 @@
 // file: api/jobs/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
+import { promises as fs, createWriteStream } from "fs";
 import { Readable } from "stream";
 import Busboy from "busboy";
+import os from "os";
 import path from "path";
 import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
@@ -34,16 +35,26 @@ export async function POST(req: NextRequest) {
 
     const busboy = Busboy({ headers });
 
-    const files: { data: Buffer; }[] = [];
+    const tempFiles: string[] = [];
+    const pendingWrites: Promise<void>[] = [];
     const filePaths: string[] = [];
     const fields: Record<string, string> = {};
 
     busboy.on('file', (_name, file) => {
-      const chunks: Buffer[] = [];
-      file.on('data', (d: Buffer) => chunks.push(d));
-      file.on('end', () => {
-        files.push({ data: Buffer.concat(chunks) });
-      });
+      const tempPath = path.join(
+        os.tmpdir(),
+        `upload-${Date.now()}-${tempFiles.length}`
+      );
+      const writer = createWriteStream(tempPath);
+      tempFiles.push(tempPath);
+      pendingWrites.push(
+        new Promise<void>((resolve, reject) => {
+          file.pipe(writer);
+          file.on('error', reject);
+          writer.on('finish', resolve);
+          writer.on('error', reject);
+        })
+      );
     });
 
     busboy.on('field', (name, val) => {
@@ -59,12 +70,13 @@ export async function POST(req: NextRequest) {
       busboy.on('error', reject);
       Readable.fromWeb(req.body as any).pipe(busboy);
     });
+    await Promise.all(pendingWrites);
 
     const { customerName = '', representative = '', inquiryDate = '', notes = '', folderName = '' } = fields;
     const deliveryDate = '';
 
     if (
-      files.length === 0 ||
+      tempFiles.length === 0 ||
       !customerName ||
       !representative ||
       !inquiryDate ||
@@ -82,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     const rootPrefix = folderName.replace(/[/\\]+$/, '') + '/';
 
-    for (let i = 0; i < files.length; i++) {
+    for (let i = 0; i < tempFiles.length; i++) {
       const rawPath = filePaths[i];
       if (!rawPath) continue;
       const relativePath = rawPath.startsWith(rootPrefix)
@@ -94,7 +106,7 @@ export async function POST(req: NextRequest) {
       if (safeRelativePath.includes('..')) continue;
       const destinationPath = path.join(taskDirectoryPath, safeRelativePath);
       await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-      await fs.writeFile(destinationPath, files[i].data);
+      await fs.rename(tempFiles[i], destinationPath);
     }
 
     const newTask: Task = {
