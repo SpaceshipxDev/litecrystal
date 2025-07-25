@@ -55,19 +55,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
     if (!selectedFiles || selectedFiles.length === 0) {
       return "上传文件夹";
     }
-    // webkitRelativePath is like "FolderName/file.txt". We look for the first
-    // entry that includes a slash to reliably obtain the root folder. If the
-    // first file is in the root (e.g. an Excel sheet) it won't contain a slash
-    // so fallback to the directory name of the file path.
-    for (const file of Array.from(selectedFiles)) {
-      const relPath = (file as any).webkitRelativePath || "";
-      const parts = relPath.split("/");
-      if (parts.length > 1 && parts[0]) {
-        return parts[0];
-      }
-    }
-    // All files are in the root without subdirectories. Use the folder name
-    // from the first file path without its trailing filename.
+    // webkitRelativePath is like "FolderName/file.txt". We extract "FolderName".
     const firstPath = (selectedFiles[0] as any).webkitRelativePath || "";
     return firstPath.split("/")[0] || "已选文件夹";
   };

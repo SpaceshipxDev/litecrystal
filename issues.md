@@ -179,31 +179,3 @@ the network request aborts.
 `formData()`. Files are written directly to disk as they arrive, bypassing the
 size restriction. Large folders upload successfully and new tasks are created
 as expected.
-
-# Folder Name Detected as File Name
-
-## Architecture Overview
-- **taintedpaint** provides the Create Job form which uploads an entire folder
-  using `<input type="file" webkitdirectory>`.
-- `app/api/jobs/route.ts` receives each file along with its relative path and
-  strips the root folder name before saving.
-
-## What Happened
-Uploading the folder `YNMX-25-7-14-192` consistently failed. The browser
-console showed `Failed to fetch` from `handleCreateJob` and no task was created.
-Renaming the folder or uploading the same contents under a different name
-worked normally.
-
-## Root Cause
-`CreateJobForm` derived the folder name from the first file in the `FileList`.
-If that first entry was a file located at the folder root (such as
-`YNMX-25-7-14-192.xlsx`) the code treated the file name as the folder name.
-The server therefore attempted to strip a prefix like
-`YNMX-25-7-14-192.xlsx/` from all uploaded paths, which never matched. The
-handler terminated early and the browser reported a network error.
-
-## Resolution
-`getFolderName()` now scans the selected files for the first path that contains
-a `/` to correctly obtain the root directory. If none is found it falls back to
-the directory portion of the first entry. Uploading `YNMX-25-7-14-192` now
-completes successfully.
