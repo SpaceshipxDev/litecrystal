@@ -27,16 +27,6 @@ async function getFilesRecursively(directory: string, basePath: string, baseUrl:
     if (ignoredFiles.includes(entry.name)) continue;
     const fullPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      const relativePath = path.relative(basePath, fullPath);
-      const stats = await fs.stat(fullPath);
-
-      fileList.push({
-        filename: entry.name,
-        relativePath,
-        url: '',
-        mtimeMs: stats.mtimeMs,
-        isDir: true,
-      });
       const subFiles = await getFilesRecursively(fullPath, basePath, baseUrl);
       fileList = fileList.concat(subFiles);
     } else if (entry.isFile()) {
