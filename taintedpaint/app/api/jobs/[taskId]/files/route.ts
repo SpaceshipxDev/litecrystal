@@ -6,29 +6,42 @@ import path from "path";
 
 const TASKS_STORAGE_DIR = path.join(process.cwd(), "public", "storage", "tasks");
 
-// A list of common system files to ignore. You can add more if you find them.
+// A list of common system and temporary files to ignore
 const ignoredFiles = ['.DS_Store', 'Thumbs.db'];
+const ignoredExtensions = ['.lck', '.bak'];
 
 // This is our recursive helper function
-type FileInfo = { filename: string; relativePath: string; url: string; mtimeMs: number };
+type FileInfo = {
+  filename: string;
+  relativePath: string;
+  url: string;
+  mtimeMs: number;
+  isDir?: boolean;
+};
 
 async function getFilesRecursively(directory: string, basePath: string, baseUrl: string): Promise<FileInfo[]> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   let fileList: FileInfo[] = [];
 
   for (const entry of entries) {
-    // ** THIS IS THE FIX **
-    // If the filename is in our ignore list, skip it and continue to the next one.
-    if (ignoredFiles.includes(entry.name)) {
-      continue;
-    }
-
+    if (ignoredFiles.includes(entry.name)) continue;
     const fullPath = path.join(directory, entry.name);
-    
     if (entry.isDirectory()) {
+      const relativePath = path.relative(basePath, fullPath);
+      const stats = await fs.stat(fullPath);
+
+      fileList.push({
+        filename: entry.name,
+        relativePath,
+        url: '',
+        mtimeMs: stats.mtimeMs,
+        isDir: true,
+      });
       const subFiles = await getFilesRecursively(fullPath, basePath, baseUrl);
       fileList = fileList.concat(subFiles);
     } else if (entry.isFile()) {
+      const ext = path.extname(entry.name).toLowerCase();
+      if (ignoredExtensions.includes(ext)) continue;
       const relativePath = path.relative(basePath, fullPath);
       const stats = await fs.stat(fullPath);
 
