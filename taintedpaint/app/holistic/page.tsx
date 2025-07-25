@@ -6,7 +6,7 @@
  * – Metrics: 进行中｜已报价｜已完成｜成单率
  */
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Task, Column, BoardData } from '@/types';
 import { baseColumns } from '@/lib/baseColumns';
 import KanbanDrawer from '@/components/KanbanDrawer';
@@ -89,6 +89,11 @@ export default function ArchivePage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTaskColumnTitle, setSelectedTaskColumnTitle] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleTaskUpdated = useCallback((updated: Task) => {
+    setTasks(prev => ({ ...prev, [updated.id]: updated }));
+    setSelectedTask(updated);
+  }, []);
 
   // ③ 过滤 + 排序 -----------------------------------------------------------------
   const filtered = jobs
@@ -205,6 +210,7 @@ export default function ArchivePage() {
           columnTitle={selectedTaskColumnTitle}
           viewMode="business"
           onClose={closeDrawer}
+          onTaskUpdated={handleTaskUpdated}
         />
       </div>
     </div>
