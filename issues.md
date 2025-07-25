@@ -156,3 +156,26 @@ Users tried to create a job by uploading an entire folder containing many CAD fi
 
 ## Solution
 Increase the allowed body size for file uploads. All API routes that accept file data now export a `config` object with `bodyParser.sizeLimit` set to `500mb`. This allows large folders to be submitted without triggering Next.js' body size restriction.
+=======
+# Large Folder Upload Fails at Job Creation
+
+## Architecture
+- **taintedpaint** runs the Next.js server and exposes REST routes under `/api/jobs`.
+- **blackpaint** is the Electron client used to download and sync job folders.
+The Create Job form in the web UI uploads an entire folder using `fetch('/api/jobs')` with `FormData`.
+
+## What Happened
+Uploading a job folder containing several CAD files failed. The browser showed
+`Next.js 1` error "Failed to fetch" originating from `handleCreateJob` in
+`CreateJobForm.tsx`. The job never appeared in **建单**.
+
+## Root Cause
+`/api/jobs` parsed `req.formData()` to read the multipart body. Next.js limits
+`formData()` to about 4&nbsp;MB, so requests larger than this throw an error and
+the network request aborts.
+
+## Resolution
+`api/jobs/route.ts` now streams uploads using **Busboy** instead of
+`formData()`. Files are written directly to disk as they arrive, bypassing the
+size restriction. Large folders upload successfully and new tasks are created
+as expected.

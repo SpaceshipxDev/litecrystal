@@ -2,6 +2,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
+import { Readable } from "stream";
+import Busboy from "busboy";
 import path from "path";
 import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
@@ -25,32 +27,51 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    
-    const files = formData.getAll("files") as File[];
-    const filePaths = formData.getAll("filePaths") as string[];
-    const customerName = formData.get("customerName") as string;
-    const representative = formData.get("representative") as string;
-    const inquiryDate = formData.get("inquiryDate") as string;
-    const notes = formData.get("notes") as string;
+    const headers: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      headers[key.toLowerCase()] = value;
+    });
 
-    // deliveryDate is optional on creation
-    const deliveryDate = "";
-    
-    // --- ADD THIS LINE ---
-    // Get the folder name sent from the frontend.
-    const folderName = formData.get("folderName") as string;
-    // ---------------------
+    const busboy = Busboy({ headers });
+
+    const files: { data: Buffer; }[] = [];
+    const filePaths: string[] = [];
+    const fields: Record<string, string> = {};
+
+    busboy.on('file', (_name, file) => {
+      const chunks: Buffer[] = [];
+      file.on('data', (d: Buffer) => chunks.push(d));
+      file.on('end', () => {
+        files.push({ data: Buffer.concat(chunks) });
+      });
+    });
+
+    busboy.on('field', (name, val) => {
+      if (name === 'filePaths') {
+        filePaths.push(val);
+      } else {
+        fields[name] = val;
+      }
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      busboy.on('finish', resolve);
+      busboy.on('error', reject);
+      Readable.fromWeb(req.body as any).pipe(busboy);
+    });
+
+    const { customerName = '', representative = '', inquiryDate = '', notes = '', folderName = '' } = fields;
+    const deliveryDate = '';
 
     if (
       files.length === 0 ||
       !customerName ||
       !representative ||
       !inquiryDate ||
-      !folderName // Add validation for the folder name
+      !folderName
     ) {
       return NextResponse.json(
-        { error: "Missing required fields or folder" },
+        { error: 'Missing required fields or folder' },
         { status: 400 }
       );
     }
@@ -59,14 +80,11 @@ export async function POST(req: NextRequest) {
     const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
     await fs.mkdir(taskDirectoryPath, { recursive: true });
 
-    // This file saving logic is still correct and necessary to build the directory
-    // strip the uploaded root folder name from each path
     const rootPrefix = folderName.replace(/[/\\]+$/, '') + '/';
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
       const rawPath = filePaths[i];
-      // remove the leading folderName/ if present
+      if (!rawPath) continue;
       const relativePath = rawPath.startsWith(rootPrefix)
         ? rawPath.slice(rootPrefix.length)
         : rawPath;
@@ -76,8 +94,7 @@ export async function POST(req: NextRequest) {
       if (safeRelativePath.includes('..')) continue;
       const destinationPath = path.join(taskDirectoryPath, safeRelativePath);
       await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-      const buf = Buffer.from(await file.arrayBuffer());
-      await fs.writeFile(destinationPath, buf);
+      await fs.writeFile(destinationPath, files[i].data);
     }
 
     const newTask: Task = {
@@ -89,10 +106,7 @@ export async function POST(req: NextRequest) {
       deliveryDate,
       notes: notes.trim(),
       taskFolderPath: `/storage/tasks/${taskId}`,
-      // --- CHANGE THIS LINE ---
-      // Instead of the detailed list, just store the root folder name.
-      files: [folderName], 
-      // ------------------------
+      files: [folderName],
     };
 
     await updateBoardData(async (boardData) => {
@@ -107,8 +121,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(newTask);
   } catch (err) {
-    console.error("Failed to create job:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error('Failed to create job:', err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
