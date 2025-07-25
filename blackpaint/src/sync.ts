@@ -22,13 +22,16 @@ interface RemoteFile {
   relativePath: string;
   url: string;
   mtimeMs: number;
+  isDir?: boolean;
 }
 
 const IGNORED_NAMES = ['.DS_Store', 'Thumbs.db'];
+const IGNORED_EXTS = ['.lck', '.bak'];
 
 function isIgnored(name: string): boolean {
   return (
     IGNORED_NAMES.includes(name) ||
+    IGNORED_EXTS.includes(path.extname(name).toLowerCase()) ||
     name.startsWith('~$') ||
     name.startsWith('$')
   );
@@ -120,6 +123,30 @@ async function deleteFile(taskId: string, relPath: string) {
   }
 }
 
+async function createDir(taskId: string, relPath: string) {
+  try {
+    await fetch(`${BASE_URL}/api/jobs/${taskId}/create-dir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ relativePath: relPath }),
+    });
+  } catch (err) {
+    console.error('Failed to create dir', err);
+  }
+}
+
+async function deleteDir(taskId: string, relPath: string) {
+  try {
+    await fetch(`${BASE_URL}/api/jobs/${taskId}/delete-dir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ relativePath: relPath }),
+    });
+  } catch (err) {
+    console.error('Failed to delete dir', err);
+  }
+}
+
 async function pullFromServer(
   taskId: string,
   localRoot: string,
@@ -131,6 +158,10 @@ async function pullFromServer(
     for (const file of files) {
       const sanitizedRel = sanitizeRelPath(file.relativePath);
       const localPath = path.join(localRoot, sanitizedRel);
+      if (file.isDir) {
+        await fs.mkdir(localPath, { recursive: true });
+        continue;
+      }
       let stat;
       try {
         stat = await fs.stat(localPath);
@@ -219,6 +250,16 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
       if (shouldSkip(filePath)) return;
       const relPath = toRel(filePath);
       await deleteFile(taskId, relPath);
+    })
+    .on('addDir', async (dirPath) => {
+      if (shouldSkip(dirPath)) return;
+      const relPath = toRel(dirPath);
+      await createDir(taskId, relPath);
+    })
+    .on('unlinkDir', async (dirPath) => {
+      if (shouldSkip(dirPath)) return;
+      const relPath = toRel(dirPath);
+      await deleteDir(taskId, relPath);
     });
 
   const interval = setInterval(
