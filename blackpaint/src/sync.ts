@@ -4,6 +4,17 @@ import path from 'path';
 import axios from 'axios';
 import chokidar, { FSWatcher } from 'chokidar';
 
+const sanitizePart = (p: string) =>
+  process.platform === 'win32'
+    ? p.replace(/[\\/:*?"<>|]/g, '_').replace(/[. ]+$/, '')
+    : p;
+
+const sanitizeRelPath = (relPath: string) =>
+  relPath
+    .split(/[/\\]/)
+    .map((part) => sanitizePart(part))
+    .join(path.sep);
+
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://192.168.5.107:3000';
 
 interface RemoteFile {
@@ -118,7 +129,8 @@ async function pullFromServer(
     const res = await axios.get<RemoteFile[]>(`${BASE_URL}/api/jobs/${taskId}/files`);
     const files = res.data;
     for (const file of files) {
-      const localPath = path.join(localRoot, file.relativePath);
+      const sanitizedRel = sanitizeRelPath(file.relativePath);
+      const localPath = path.join(localRoot, sanitizedRel);
       let stat;
       try {
         stat = await fs.stat(localPath);
@@ -143,7 +155,9 @@ async function pullFromServer(
         pendingWrites.delete(localPath);
       }
     }
-    const remoteSet = new Set(files.map(f => path.join(localRoot, f.relativePath)));
+    const remoteSet = new Set(
+      files.map(f => path.join(localRoot, sanitizeRelPath(f.relativePath)))
+    );
     const localFiles = await listLocalFiles(localRoot);
     for (const lp of localFiles) {
       if (!remoteSet.has(lp) && !pendingUploads.has(lp)) {
