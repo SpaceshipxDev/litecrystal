@@ -227,12 +227,12 @@ export default function KanbanBoard() {
   }, [viewMode, columns])
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-white text-gray-900 font-sans">
-      <header className="px-6 py-4 bg-white/90 backdrop-blur-sm sticky top-0 z-30 border-b border-gray-200/80">
+    <div className="h-screen w-full flex flex-col bg-white text-gray-900 font-sans overflow-hidden">
+      <header className="flex-shrink-0 px-6 py-4 bg-white/90 backdrop-blur-sm sticky top-0 z-30 border-b border-gray-200/80">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <h1 className="text-xl font-medium text-gray-900 tracking-tight">Estara</h1>
-            <span className="text-sm text-gray-500 font-normal">项目管理</span>
+            <span className="text-sm text-gray-500 font-normal">项目看板</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -287,7 +287,7 @@ export default function KanbanBoard() {
         </div>
       </header>
       
-      <div className="relative flex-1 flex min-h-0">
+      <div className="relative flex-1 flex overflow-hidden">
         {isDrawerOpen && <div className="fixed inset-0 backdrop-blur-[2px] z-40" onClick={closeDrawer} />}
 
         <div
@@ -308,11 +308,11 @@ export default function KanbanBoard() {
                 onDragEnter={() => handleDragEnter(column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
-                className={`flex-shrink-0 w-72 flex flex-col rounded-lg transition-colors duration-200 ${
+                className={`flex-shrink-0 w-72 h-full flex flex-col rounded-lg transition-colors duration-200 ${
                   dragOverColumn === column.id ? 'bg-blue-50/50' : 'bg-white/70'
                 }`}
               >
-                <div className="p-4 border-b border-gray-200/80 sticky top-0 z-20 bg-white/80 backdrop-blur-sm rounded-t-lg">
+                <div className="flex-shrink-0 p-4 border-b border-gray-200/80 sticky top-0 z-20 bg-white/80 backdrop-blur-sm rounded-t-lg">
                   <div className="flex items-center gap-2">
                     <Archive className="h-4 w-4 text-gray-600" strokeWidth={1.5} />
                     <h2 className="text-base font-semibold text-gray-800">{column.title}</h2>
@@ -321,7 +321,7 @@ export default function KanbanBoard() {
                     </span>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 pb-20">
+                <div className="flex-1 overflow-y-auto p-3 min-h-0">
                   {columnTasks.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center py-12">
                       <Archive className="h-12 w-12 text-gray-400 mb-4" strokeWidth={1.2} />
@@ -391,11 +391,11 @@ export default function KanbanBoard() {
                 onDragEnter={() => handleDragEnter(column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
-                className={`flex-shrink-0 w-72 flex flex-col rounded-lg border border-gray-200/80 shadow-sm hover:shadow-md transform-gpu transition-all duration-300 bg-white/70 ${
+                className={`flex-shrink-0 w-72 h-full flex flex-col rounded-lg border border-gray-200/80 shadow-sm hover:shadow-md transform-gpu transition-all duration-300 bg-white/70 ${
                   dragOverColumn === column.id ? 'bg-blue-50/50' : ''
                 }`}
               >
-                <div className="p-4 border-b border-gray-200/80 sticky top-0 z-20 bg-white/80 backdrop-blur-sm rounded-t-lg">
+                <div className="flex-shrink-0 p-4 border-b border-gray-200/80 sticky top-0 z-20 bg-white/80 backdrop-blur-sm rounded-t-lg">
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-semibold text-gray-800">{column.title}</h2>
                     <span className="text-xs font-medium text-gray-500 bg-gray-200/80 px-2 py-0.5 rounded-full min-w-[20px] text-center">
@@ -403,7 +403,7 @@ export default function KanbanBoard() {
                     </span>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-3 pb-20">
+                <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
                   {columnTasks.map((task) => (
                     <Card
                       key={task.id}
