@@ -144,3 +144,15 @@ resulted in paths that some programs could not access.
 Windows. This shorter base path keeps most file names well under the legacy
 limit, allowing WPS and other applications to open them normally. macOS and
 Linux continue to use `~/Desktop/Estara 数据`.
+
+# Failed Job Creation When Uploading Large Folder
+
+## Architecture Overview
+- **taintedpaint** is the Next.js web app. Job creation posts a `FormData` payload to `/api/jobs` where uploaded files are saved to `public/storage/tasks/{taskId}` and metadata is written to `public/storage/metadata.json`.
+- **blackpaint** is the Electron client used later for syncing but was not involved in this failure.
+
+## Why It Happened
+Users tried to create a job by uploading an entire folder containing many CAD files. The request payload exceeded Next.js' default 4&nbsp;MB body limit for API routes. Because `app/api/jobs/route.ts` did not override this limit, Next.js rejected the request before the handler ran, causing `fetch()` in `CreateJobForm` to throw `Failed to fetch` and the job was never created.
+
+## Solution
+Increase the allowed body size for file uploads. All API routes that accept file data now export a `config` object with `bodyParser.sizeLimit` set to `500mb`. This allows large folders to be submitted without triggering Next.js' body size restriction.
