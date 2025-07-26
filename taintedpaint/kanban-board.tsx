@@ -49,6 +49,7 @@ export default function KanbanBoard() {
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const isSavingRef = useRef(false)
 
   // Search functionality
   const searchResults = useMemo(() => {
@@ -133,6 +134,7 @@ export default function KanbanBoard() {
   }
 
   const saveBoard = async (nextBoard: BoardData) => {
+    isSavingRef.current = true
     try {
       await fetch("/api/jobs", {
         method: "PUT",
@@ -141,10 +143,13 @@ export default function KanbanBoard() {
       })
     } catch (err) {
       console.error("保存看板失败", err)
+    } finally {
+      isSavingRef.current = false
     }
   }
 
   const fetchBoard = useCallback(async () => {
+    if (isSavingRef.current) return
     try {
       const res = await fetch("/api/jobs")
       if (res.ok) {
@@ -181,7 +186,7 @@ export default function KanbanBoard() {
   const handleDragEnter = (columnId: string) => setDragOverColumn(columnId)
   const handleDragLeave = () => setDragOverColumn(null)
 
-  const handleDrop = (e: React.DragEvent, targetColumnId: string) => {
+  const handleDrop = async (e: React.DragEvent, targetColumnId: string) => {
     e.preventDefault()
     setDragOverColumn(null)
     if (!draggedTask || draggedTask.columnId === targetColumnId) return
@@ -211,7 +216,8 @@ export default function KanbanBoard() {
 
     setTasks(nextTasks)
     setColumns(nextColumns)
-    saveBoard({ tasks: nextTasks, columns: nextColumns })
+    await saveBoard({ tasks: nextTasks, columns: nextColumns })
+    fetchBoard()
     setDraggedTask(null)
   }
 
