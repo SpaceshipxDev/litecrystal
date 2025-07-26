@@ -4,9 +4,9 @@ import type { BoardData } from '@/types';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
-  const { taskId } = params;
+  const { taskId } = await params;
   try {
     const {
       customerName,

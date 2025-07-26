@@ -38,9 +38,8 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
         const res = await fetch('/api/jobs')
         if (res.ok) {
           const data = await res.json()
-          const names = Array.from(
-            new Set(Object.values(data.tasks || {}).map((t: Task) => t.customerName))
-          )
+          const taskValues = Object.values(data.tasks || {}) as Task[]
+          const names = Array.from(new Set(taskValues.map((t) => t.customerName)))
           setCustomerOptions(names)
         }
       } catch {}
@@ -125,7 +124,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           }`}>
             {getFolderName()}
           </span>
-          <input
+          <Input
             id="folderUpload"
             ref={fileInputRef}
             type="file"
