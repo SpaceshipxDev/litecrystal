@@ -26,3 +26,16 @@ export async function writeJsonAtomic(filePath: string, data: any) {
     throw err
   }
 }
+
+export async function renameWithFallback(oldPath: string, newPath: string) {
+  try {
+    await fs.rename(oldPath, newPath)
+  } catch (err: any) {
+    if (err?.code === 'EXDEV') {
+      await fs.copyFile(oldPath, newPath)
+      await fs.unlink(oldPath)
+    } else {
+      throw err
+    }
+  }
+}

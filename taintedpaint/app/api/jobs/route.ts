@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs, createWriteStream } from "fs";
 import { Readable } from "stream";
 import Busboy from "busboy";
+import { renameWithFallback } from "@/lib/fileUtils";
 import os from "os";
 import path from "path";
 import type { BoardData, Task } from "@/types";
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
       if (safeRelativePath.includes('..')) continue;
       const destinationPath = path.join(taskDirectoryPath, safeRelativePath);
       await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-      await fs.rename(tempFiles[i], destinationPath);
+      await renameWithFallback(tempFiles[i], destinationPath);
     }
 
     const newTask: Task = {
