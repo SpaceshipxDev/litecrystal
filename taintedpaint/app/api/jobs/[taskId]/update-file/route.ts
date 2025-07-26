@@ -15,7 +15,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
-  const { taskId } = await params;
+  const { taskId } = params;
   if (!taskId) {
     return NextResponse.json({ error: "Task ID is required" }, { status: 400 });
   }

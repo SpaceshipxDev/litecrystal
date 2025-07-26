@@ -6,7 +6,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
-  const { taskId } = await params;
+  const { taskId } = params;
   try {
     const {
       customerName,
