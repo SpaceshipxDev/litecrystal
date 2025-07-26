@@ -7,9 +7,9 @@ const STORAGE_DIR = path.join(process.cwd(), '..', 'storage')
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const parts = params.path || []
+  const { path: parts = [] } = await params
   const filePath = path.join(STORAGE_DIR, ...parts)
   const normalised = path.normalize(filePath)
   if (!normalised.startsWith(STORAGE_DIR)) {
