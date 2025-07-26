@@ -82,7 +82,7 @@ export async function GET(
     return NextResponse.json(files);
   } catch (err: any) {
     if (err.code === 'ENOENT') {
-      return NextResponse.json([]);
+      return NextResponse.json({ error: 'Task files missing' }, { status: 404 });
     }
     console.error(`Failed to list files for task ${taskId}:`, err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
