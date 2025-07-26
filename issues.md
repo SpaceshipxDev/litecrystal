@@ -3,7 +3,7 @@
 # File Sync Error When Downloading Job Folder
 
 ## Architecture Overview
-- **taintedpaint** provides the Next.js web interface and REST API. Job files are saved under `public/storage/tasks`. Metadata is tracked in `public/storage/metadata.json`.
+- **taintedpaint** provides the Next.js web interface and REST API. Job files are saved under `storage/tasks`. Metadata is tracked in `storage/metadata.json`.
 - **blackpaint** is the Electron wrapper (Estara). When the Kanban drawer's "Open" button is used, the Electron main process downloads the job's files to the user's `Downloads` directory and starts a bidirectional sync (`startBidirectionalSync` in `blackpaint/src/sync.ts`).
 
 ## Problem Description
@@ -33,7 +33,7 @@ The fix removes `decodeUnderscoreHex` from all API routes. Filenames are now sto
 # EBUSY Error When Reopening Downloaded Job
 
 ## Architecture Overview
-- **taintedpaint** is the Next.js server and web UI. Task files live under `public/storage/tasks/{taskId}`.
+- **taintedpaint** is the Next.js server and web UI. Task files live under `storage/tasks/{taskId}`.
 - **blackpaint (Estara)** downloads a task's files to `C:\EstaraSync/<Folder>` on Windows (or `~/Desktop/Estara 数据/<Folder>` on other platforms) and starts `startBidirectionalSync` from `blackpaint/src/sync.ts`.
 
 ## What Happened
@@ -56,21 +56,21 @@ This avoids writing over open files and prevents `EBUSY` errors when reopening a
 # Nested Folders Reappear in Downloads
 
 ## Architecture and Workflow Overview
-- **taintedpaint** serves as the Next.js web interface and provides REST API routes for file management. Uploaded jobs are stored under `public/storage/tasks/{taskId}`.
+- **taintedpaint** serves as the Next.js web interface and provides REST API routes for file management. Uploaded jobs are stored under `storage/tasks/{taskId}`.
 - **blackpaint (Estara)** is the Electron shell. When the user clicks *Open* in the Kanban drawer it downloads all job files to `~/Downloads/{folderName}` and starts a bidirectional sync via `startBidirectionalSync`.
 
 ## Problem
 When uploading a folder through the web interface each file is sent with its `webkitRelativePath`. This path includes the root folder name. The server stored the files exactly as received (e.g. `task-123/partA.pdf`). When Estara later downloaded the job it also created a folder named after the job (e.g. `YNMX-001`). Because the stored paths already contained the top level directory, the downloaded folder ended up containing another copy of the root (e.g. `YNMX-001/task-123/partA.pdf`). If the user deleted the extra subfolder locally it was recreated on the next sync because the server kept that prefix.
 
 ## Fix
-Strip the uploaded root folder name from each file path on the server. The `POST /api/jobs` route now removes the `folderName` prefix from every `filePaths` entry before saving. Newly created tasks therefore store files directly under `public/storage/tasks/{taskId}` without the extra subdirectory.
+Strip the uploaded root folder name from each file path on the server. The `POST /api/jobs` route now removes the `folderName` prefix from every `filePaths` entry before saving. Newly created tasks therefore store files directly under `storage/tasks/{taskId}` without the extra subdirectory.
 
 ## Result
 Opening a job in Estara now downloads files directly into the job folder without nesting. Deleting local folders no longer results in them reappearing from the server.
 # Folder from Another Job Appears Inside a Task
 
 ## Architecture Recap
-- **taintedpaint** (Next.js web UI & API) stores uploaded job files under `public/storage/tasks/{taskId}`. Metadata about tasks lives in `public/storage/metadata.json`.
+- **taintedpaint** (Next.js web UI & API) stores uploaded job files under `storage/tasks/{taskId}`. Metadata about tasks lives in `storage/metadata.json`.
 - **blackpaint** (Electron client "Estara") downloads a job's files to the user's `Downloads/{folderName}` and runs `startBidirectionalSync` from `blackpaint/src/sync.ts` to keep local and remote files in sync.
 
 ## Problem
@@ -103,11 +103,11 @@ Each job therefore downloads to a distinct path even when customer and represent
 # Storage Folder Reappears After Deletion
 
 ## Architecture Overview
-- **taintedpaint** hosts the Next.js web app and REST API. Uploaded tasks are saved under `public/storage/tasks/<taskId>` and metadata lives in `public/storage/metadata.json`.
+- **taintedpaint** hosts the Next.js web app and REST API. Uploaded tasks are saved under `storage/tasks/<taskId>` and metadata lives in `storage/metadata.json`.
 - **blackpaint** is the Electron client (*Estara*). When a task is opened it downloads files locally and starts a bidirectional sync via `startBidirectionalSync` in `blackpaint/src/sync.ts`.
 
 ## Why deleted server files return
-When the server's `/public/storage` directory is removed, any running Estara clients still think their tasks exist. The sync process lists files locally and uploads missing ones to the server every 10 seconds. The upload route (`app/api/jobs/[taskId]/upload/route.ts`) previously wrote files to disk before checking that the task was still present in `metadata.json`. As a result, clients recreated `/storage/tasks/<taskId>` even though the metadata file was gone.
+When the server's `/storage` directory is removed, any running Estara clients still think their tasks exist. The sync process lists files locally and uploads missing ones to the server every 10 seconds. The upload route (`app/api/jobs/[taskId]/upload/route.ts`) previously wrote files to disk before checking that the task was still present in `metadata.json`. As a result, clients recreated `/storage/tasks/<taskId>` even though the metadata file was gone.
 
 ## Temporary metadata files
 `lib/boardDataStore.ts` writes updates using a lock file and a temporary path like `metadata.json.<uuid>.tmp` before renaming it to `metadata.json`.
@@ -120,7 +120,7 @@ These temp files normally disappear instantly, but if the process crashes mid-wr
 # Cannot Open Synced Files on Windows
 
 ## Architecture Context
-- **taintedpaint** stores uploaded files under `public/storage/tasks/{taskId}`.
+- **taintedpaint** stores uploaded files under `storage/tasks/{taskId}`.
 - **blackpaint** syncs each task to a local folder via `startBidirectionalSync`.
 
 ## Problem
@@ -148,7 +148,7 @@ Linux continue to use `~/Desktop/Estara 数据`.
 # Failed Job Creation When Uploading Large Folder
 
 ## Architecture Overview
-- **taintedpaint** is the Next.js web app. Job creation posts a `FormData` payload to `/api/jobs` where uploaded files are saved to `public/storage/tasks/{taskId}` and metadata is written to `public/storage/metadata.json`.
+- **taintedpaint** is the Next.js web app. Job creation posts a `FormData` payload to `/api/jobs` where uploaded files are saved to `storage/tasks/{taskId}` and metadata is written to `storage/metadata.json`.
 - **blackpaint** is the Electron client used later for syncing but was not involved in this failure.
 
 ## Why It Happened

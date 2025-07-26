@@ -7,7 +7,8 @@ import type { BoardData } from "@/types";
 import { updateBoardData, readBoardData } from "@/lib/boardDataStore";
 
 // --- Path Definitions ---
-const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
+// Root-level storage directory keeps dynamic data accessible in production
+const STORAGE_DIR = path.join(process.cwd(), "..", "storage");
 const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
 const META_FILE = path.join(STORAGE_DIR, "metadata.json");
 // ------------------------

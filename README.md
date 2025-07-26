@@ -59,7 +59,7 @@ The project is split into two directories:
 ### Data flow
 
 1. **Metadata store** – All tasks and column data are persisted to
-   `taintedpaint/public/storage/metadata.json` on the server.
+   `storage/metadata.json` at the repository root.
 2. **Board loading** – The `KanbanBoard` component fetches this file through
    `/api/jobs` and keeps the board state in React.
 3. **Creating jobs** – `CreateJobForm` uploads a folder of files and creates a

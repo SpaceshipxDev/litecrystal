@@ -4,7 +4,9 @@ import { randomUUID } from 'crypto'
 import { baseColumns } from './baseColumns'
 import type { BoardData } from '@/types'
 
-const STORAGE_DIR = path.join(process.cwd(), 'public', 'storage')
+// Store dynamic data outside of the public directory so it remains
+// accessible when running `npm run build && npm run start`.
+const STORAGE_DIR = path.join(process.cwd(), '..', 'storage')
 const META_FILE = path.join(STORAGE_DIR, 'metadata.json')
 const LOCK_FILE = META_FILE + '.lock'
 

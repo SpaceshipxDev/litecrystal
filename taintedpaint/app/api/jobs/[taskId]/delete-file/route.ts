@@ -6,7 +6,8 @@ import { updateBoardData } from "@/lib/boardDataStore";
 import { sanitizeRelativePath } from "@/lib/pathUtils.mjs";
 
 // --- Path Definitions ---
-const STORAGE_DIR = path.join(process.cwd(), "public", "storage");
+// Root-level storage directory keeps dynamic data outside of Next.js public
+const STORAGE_DIR = path.join(process.cwd(), "..", "storage");
 const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
 const META_FILE = path.join(STORAGE_DIR, "metadata.json");
 // ------------------------
