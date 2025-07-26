@@ -1,7 +1,7 @@
 # Local Files Deleted When Server Folder Missing
 
 ## Architecture Recap
-- **taintedpaint** hosts uploaded files under `public/storage/tasks/<taskId>`.
+- **taintedpaint** hosts uploaded files under `storage/tasks/<taskId>`.
 - **blackpaint** downloads a task's folder and keeps it in sync via `startBidirectionalSync` in `blackpaint/src/sync.ts`.
 
 ## What Happened

@@ -1,7 +1,7 @@
 # Files Disappear After Syncing on Another Client
 
 ## Architecture Recap
-- **taintedpaint** stores uploaded job files under `public/storage/tasks/{taskId}`.
+- **taintedpaint** stores uploaded job files under `storage/tasks/{taskId}`.
 - **blackpaint** downloads a job's files locally and runs `startBidirectionalSync` from `blackpaint/src/sync.ts`.
 
 ## What Happened

@@ -1,7 +1,7 @@
 # File Sync Error When Downloading Job Folder
 
 ## Architecture Overview
-- **taintedpaint** provides the Next.js web interface and REST API. Job files are saved under `public/storage/tasks`. Metadata is tracked in `public/storage/metadata.json`.
+- **taintedpaint** provides the Next.js web interface and REST API. Job files are saved under `storage/tasks`. Metadata is tracked in `storage/metadata.json`.
 - **blackpaint** is the Electron wrapper (Estara). When the Kanban drawer's "Open" button is used, the Electron main process downloads the job's files to the user's `Downloads` directory and starts a bidirectional sync (`startBidirectionalSync` in `blackpaint/src/sync.ts`).
 
 ## Problem Description

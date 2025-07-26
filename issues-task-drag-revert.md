@@ -1,7 +1,7 @@
 # Task Moves Revert to Previous Column
 
 ## Architecture Overview
-- **taintedpaint** – Next.js app providing the Kanban board and REST API. Board state is stored in `public/storage/metadata.json` and polled by the UI every 10 seconds.
+- **taintedpaint** – Next.js app providing the Kanban board and REST API. Board state is stored in `storage/metadata.json` and polled by the UI every 10 seconds.
 - **blackpaint** – not involved in this bug but synchronises files when tasks are opened.
 
 ## Problem

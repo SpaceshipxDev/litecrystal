@@ -4,7 +4,8 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { BoardData, Task } from "@/types";
 
-const META_FILE = path.join(process.cwd(), "public", "storage", "metadata.json");
+// Read metadata from the new root-level storage directory
+const META_FILE = path.join(process.cwd(), "..", "storage", "metadata.json");
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

@@ -6,7 +6,7 @@ This document explains how Estara's Electron clients communicate with the Next.j
 
 The project consists of two parts:
 
-- **taintedpaint** – the server and web UI built with Next.js. It exposes API routes under `/api/jobs` for managing task files and metadata. Uploaded files live in `public/storage/tasks/{taskId}` and metadata is stored in `public/storage/metadata.json`.
+- **taintedpaint** – the server and web UI built with Next.js. It exposes API routes under `/api/jobs` for managing task files and metadata. Uploaded files live in `storage/tasks/{taskId}` and metadata is stored in `storage/metadata.json`.
 - **blackpaint (Estara)** – the Electron desktop client. When a user opens a task, it downloads that task's files and starts a two‑way sync process.
 
 ## Opening a Task

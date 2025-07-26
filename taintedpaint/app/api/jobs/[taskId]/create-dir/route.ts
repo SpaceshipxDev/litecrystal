@@ -3,7 +3,8 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { sanitizeRelativePath } from '@/lib/pathUtils.mjs'
 
-const TASKS_STORAGE_DIR = path.join(process.cwd(), 'public', 'storage', 'tasks')
+// Use storage directory at the repository root
+const TASKS_STORAGE_DIR = path.join(process.cwd(), '..', 'storage', 'tasks')
 
 export async function POST(
   req: NextRequest,

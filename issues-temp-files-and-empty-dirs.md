@@ -1,7 +1,7 @@
 # LCK/BAK Files and Missing Empty Directories
 
 ## Architecture
-- **taintedpaint** runs the Next.js API. Task files live under `public/storage/tasks/<taskId>` and are listed through `/api/jobs/[taskId]/files`.
+- **taintedpaint** runs the Next.js API. Task files live under `storage/tasks/<taskId>` and are listed through `/api/jobs/[taskId]/files`.
 - **blackpaint (Estara)** downloads a job's folder then keeps it in sync via `startBidirectionalSync` in `blackpaint/src/sync.ts`.
 
 ## Problem
