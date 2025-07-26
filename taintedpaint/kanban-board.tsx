@@ -50,6 +50,7 @@ export default function KanbanBoard() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const isSavingRef = useRef(false)
+  const pendingBoardRef = useRef<BoardData | null>(null)
 
   // Search functionality
   const searchResults = useMemo(() => {
@@ -134,22 +135,29 @@ export default function KanbanBoard() {
   }
 
   const saveBoard = async (nextBoard: BoardData) => {
+    pendingBoardRef.current = nextBoard
+    if (isSavingRef.current) return
     isSavingRef.current = true
     try {
-      await fetch("/api/jobs", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextBoard),
-      })
+      while (pendingBoardRef.current) {
+        const board = pendingBoardRef.current
+        pendingBoardRef.current = null
+        await fetch('/api/jobs', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(board),
+        })
+      }
+      await fetchBoard(true)
     } catch (err) {
-      console.error("保存看板失败", err)
+      console.error('保存看板失败', err)
     } finally {
       isSavingRef.current = false
     }
   }
 
-  const fetchBoard = useCallback(async () => {
-    if (isSavingRef.current) return
+  const fetchBoard = useCallback(async (force = false) => {
+    if (isSavingRef.current && !force) return
     try {
       const res = await fetch("/api/jobs")
       if (res.ok) {
@@ -217,7 +225,6 @@ export default function KanbanBoard() {
     setTasks(nextTasks)
     setColumns(nextColumns)
     await saveBoard({ tasks: nextTasks, columns: nextColumns })
-    fetchBoard()
     setDraggedTask(null)
   }
 
