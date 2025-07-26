@@ -10,11 +10,16 @@ const STORAGE_DIR = path.join(process.cwd(), '..', 'storage')
 const META_FILE = path.join(STORAGE_DIR, 'metadata.json')
 const LOCK_FILE = META_FILE + '.lock'
 
+async function ensureStorageDir() {
+  await fs.mkdir(STORAGE_DIR, { recursive: true })
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function readBoardData(): Promise<BoardData> {
+  await ensureStorageDir()
   try {
     const raw = await fs.readFile(META_FILE, 'utf-8')
     const data = JSON.parse(raw)
@@ -28,6 +33,7 @@ export async function readBoardData(): Promise<BoardData> {
 export async function updateBoardData(
   updater: (data: BoardData) => void | Promise<void>
 ): Promise<BoardData> {
+  await ensureStorageDir()
   // simple lock using a temp file
   while (true) {
     try {
