@@ -229,8 +229,6 @@ export default function KanbanBoard() {
   const handleTaskClick = (task: Task, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (task.columnId === "archive" || task.columnId === "archive2") return
-
     const column = columns.find((c) => c.id === task.columnId)
     setSelectedTaskColumnTitle(column ? column.title : null)
     setSelectedTask(task)
