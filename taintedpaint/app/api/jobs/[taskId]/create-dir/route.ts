@@ -5,8 +5,11 @@ import { sanitizeRelativePath } from '@/lib/pathUtils.mjs'
 
 const TASKS_STORAGE_DIR = path.join(process.cwd(), 'public', 'storage', 'tasks')
 
-export async function POST(req: NextRequest, { params }: { params: { taskId: string } }) {
-  const { taskId } = params
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ taskId: string }> }
+) {
+  const { taskId } = await params
   if (!taskId) return NextResponse.json({ error: 'Task ID is required' }, { status: 400 })
 
   try {

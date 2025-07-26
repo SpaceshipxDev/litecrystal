@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const filePaths: string[] = [];
     const fields: Record<string, string> = {};
 
-    busboy.on('file', (_name, file) => {
+    busboy.on('file', (_name: string, file: NodeJS.ReadableStream) => {
       const tempPath = path.join(
         os.tmpdir(),
         `upload-${Date.now()}-${tempFiles.length}`
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       );
     });
 
-    busboy.on('field', (name, val) => {
+    busboy.on('field', (name: string, val: string) => {
       if (name === 'filePaths') {
         filePaths.push(val);
       } else {

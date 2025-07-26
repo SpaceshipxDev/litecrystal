@@ -57,9 +57,9 @@ async function getFilesRecursively(directory: string, basePath: string, baseUrl:
 // The GET handler function remains the same, it just calls our improved helper
 export async function GET(
   req: NextRequest,
-  { params }: { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
-  const { taskId } = params;
+  const { taskId } = await params;
   if (!taskId) {
     return NextResponse.json({ error: "Task ID is required" }, { status: 400 });
   }
