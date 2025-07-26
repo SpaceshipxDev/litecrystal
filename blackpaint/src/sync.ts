@@ -190,11 +190,13 @@ async function pullFromServer(
       files.map(f => path.join(localRoot, sanitizeRelPath(f.relativePath)))
     );
     const localFiles = await listLocalFiles(localRoot);
-    for (const lp of localFiles) {
-      if (!remoteSet.has(lp) && !pendingUploads.has(lp)) {
-        pendingWrites.add(lp);
-        await fs.unlink(lp).catch(() => {});
-        pendingWrites.delete(lp);
+    if (remoteSet.size > 0) {
+      for (const lp of localFiles) {
+        if (!remoteSet.has(lp) && !pendingUploads.has(lp)) {
+          pendingWrites.add(lp);
+          await fs.unlink(lp).catch(() => {});
+          pendingWrites.delete(lp);
+        }
       }
     }
 
