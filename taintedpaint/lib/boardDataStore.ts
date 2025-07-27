@@ -26,14 +26,16 @@ if (!existing) {
 }
 
 export async function readBoardData(): Promise<BoardData> {
-  const row = db.prepare('SELECT data FROM board_data WHERE id=1').get()
-  if (!row) return { tasks: {}, columns: baseColumns }
+  // `row` can be undefined if no record is found!
+  const row = db.prepare('SELECT data FROM board_data WHERE id=1').get() as { data?: string } | undefined;
+  if (!row || typeof row.data !== "string") return { tasks: {}, columns: baseColumns };
   try {
-    const data = JSON.parse(row.data)
-    if (data.tasks && data.columns) return data
+    const data = JSON.parse(row.data);
+    if (data.tasks && data.columns) return data;
   } catch {}
-  return { tasks: {}, columns: baseColumns }
+  return { tasks: {}, columns: baseColumns };
 }
+
 
 export async function updateBoardData(
   updater: (data: BoardData) => void | Promise<void>
