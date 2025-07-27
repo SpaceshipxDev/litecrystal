@@ -37,6 +37,13 @@ export default function KanbanDrawer({
 }: KanbanDrawerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [filesInfo, setFilesInfo] = useState<{
+    filename: string;
+    url: string;
+    relativePath: string;
+    sizeBytes: number;
+  }[] | null>(null);
+  const [totalSizeMB, setTotalSizeMB] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -61,6 +68,34 @@ export default function KanbanDrawer({
       });
     }
     setIsEditMode(false);
+  }, [task]);
+
+  // Fetch file list and total size when a task is loaded
+  useEffect(() => {
+    if (!task) {
+      setFilesInfo(null);
+      setTotalSizeMB(null);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch(`/api/jobs/${task.id}/files`);
+        if (!res.ok) throw new Error("无法获取文件列表");
+        const files: {
+          filename: string;
+          url: string;
+          relativePath: string;
+          sizeBytes: number;
+        }[] = await res.json();
+        setFilesInfo(files);
+        const total = files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
+        setTotalSizeMB(total / (1024 * 1024));
+      } catch (err) {
+        console.error("Failed to fetch file list", err);
+        setFilesInfo(null);
+        setTotalSizeMB(null);
+      }
+    })();
   }, [task]);
 
   useEffect(() => {
@@ -103,24 +138,26 @@ export default function KanbanDrawer({
     }
     setIsDownloading(true);
     try {
-      const res = await fetch(`/api/jobs/${task.id}/files`);
-      if (!res.ok) throw new Error("无法获取文件列表");
-      const files: { filename: string; url: string; relativePath: string; sizeBytes: number }[] = await res.json();
-      if (files.length === 0) {
+      let files = filesInfo;
+      if (!files) {
+        const res = await fetch(`/api/jobs/${task.id}/files`);
+        if (!res.ok) throw new Error("无法获取文件列表");
+        files = await res.json();
+        setFilesInfo(files);
+        const total = files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
+        setTotalSizeMB(total / (1024 * 1024));
+      }
+      if (!files || files.length === 0) {
         alert("此任务没有可下载的文件。");
         return;
       }
-      const totalSize = files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
-      const MB = 1024 * 1024;
-      if (totalSize > 20 * MB) {
-        const sizeMB = (totalSize / MB).toFixed(1);
-        const proceed = confirm(`文件总大小约 ${sizeMB} MB，下载可能需要一些时间，是否继续？`);
-        if (!proceed) {
-          return;
-        }
-      }
-      const folderName = task.ynmxId || `${task.customerName} - ${task.representative} - ${task.id}`;
-      const filesForElectron = files.map(({ filename, url, relativePath }) => ({ filename, url, relativePath }));
+      const folderName =
+        task.ynmxId || `${task.customerName} - ${task.representative} - ${task.id}`;
+      const filesForElectron = files.map(({ filename, url, relativePath }) => ({
+        filename,
+        url,
+        relativePath,
+      }));
       await electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesForElectron);
     } catch (err: any) {
       console.error("Download and open failed:", err);
@@ -128,7 +165,7 @@ export default function KanbanDrawer({
     } finally {
       setIsDownloading(false);
     }
-  }, [task]);
+  }, [task, filesInfo]);
 
   if (!task) {
     return (
@@ -331,6 +368,12 @@ export default function KanbanDrawer({
             )}
           </div>
 
+          {totalSizeMB !== null && totalSizeMB >= 50 && !isDownloading && (
+            <p className="text-center text-xs text-gray-500">
+              预计下载 {totalSizeMB.toFixed(1)} MB，可能需要一些时间
+            </p>
+          )}
+
           {/* Action Button */}
           <button
             onClick={handleDownloadAndOpen}
@@ -352,7 +395,11 @@ export default function KanbanDrawer({
                 {isDownloading ? "正在下载..." : "打开文件夹"}
               </p>
               <p className="text-xs text-gray-500">
-                {isDownloading ? "文件将保存在您的下载目录" : "快速获取所有项目文件"}
+                {isDownloading
+                  ? "文件将保存在您的下载目录"
+                  : totalSizeMB !== null && totalSizeMB >= 50
+                    ? `约 ${totalSizeMB.toFixed(1)} MB`
+                    : "快速获取所有项目文件"}
               </p>
             </div>
           </button>
