@@ -15,7 +15,6 @@ import { readBoardData, updateBoardData } from "@/lib/boardDataStore";
 // Store uploads under a top-level storage directory rather than /public
 const STORAGE_DIR = path.join(process.cwd(), "..", "storage");
 const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
-const META_FILE = path.join(STORAGE_DIR, "metadata.json");
 // ------------------------
 
 // Legacy helper removed in favour of boardDataStore
