@@ -9,7 +9,6 @@ import { sanitizeRelativePath } from "@/lib/pathUtils.mjs";
 // Root-level storage directory keeps dynamic data outside of Next.js public
 const STORAGE_DIR = path.join(process.cwd(), "..", "storage");
 const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
-const META_FILE = path.join(STORAGE_DIR, "metadata.json");
 // ------------------------
 
 export async function POST(
