@@ -144,8 +144,12 @@ export default function KanbanDrawer({
         if (!res.ok) throw new Error("无法获取文件列表");
         files = await res.json();
         setFilesInfo(files);
-        const total = files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
-        setTotalSizeMB(total / (1024 * 1024));
+        if (files) {
+          const total = files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
+          setTotalSizeMB(total / (1024 * 1024));
+        } else {
+          setTotalSizeMB(null);
+        }
       }
       if (!files || files.length === 0) {
         alert("此任务没有可下载的文件。");
