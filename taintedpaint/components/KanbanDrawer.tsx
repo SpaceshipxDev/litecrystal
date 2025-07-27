@@ -105,13 +105,23 @@ export default function KanbanDrawer({
     try {
       const res = await fetch(`/api/jobs/${task.id}/files`);
       if (!res.ok) throw new Error("无法获取文件列表");
-      const filesToDownload: { filename: string; url: string; relativePath: string }[] = await res.json();
-      if (filesToDownload.length === 0) {
+      const files: { filename: string; url: string; relativePath: string; sizeBytes: number }[] = await res.json();
+      if (files.length === 0) {
         alert("此任务没有可下载的文件。");
         return;
       }
+      const totalSize = files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
+      const MB = 1024 * 1024;
+      if (totalSize > 20 * MB) {
+        const sizeMB = (totalSize / MB).toFixed(1);
+        const proceed = confirm(`文件总大小约 ${sizeMB} MB，下载可能需要一些时间，是否继续？`);
+        if (!proceed) {
+          return;
+        }
+      }
       const folderName = task.ynmxId || `${task.customerName} - ${task.representative} - ${task.id}`;
-      await electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesToDownload);
+      const filesForElectron = files.map(({ filename, url, relativePath }) => ({ filename, url, relativePath }));
+      await electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesForElectron);
     } catch (err: any) {
       console.error("Download and open failed:", err);
       alert(`下载失败: ${err.message}`);

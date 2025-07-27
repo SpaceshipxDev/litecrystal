@@ -17,6 +17,7 @@ type FileInfo = {
   relativePath: string;
   url: string;
   mtimeMs: number;
+  sizeBytes: number;
   isDir?: boolean;
 };
 
@@ -49,6 +50,7 @@ async function getFilesRecursively(directory: string, basePath: string, baseUrl:
         relativePath,
         url,
         mtimeMs: stats.mtimeMs,
+        sizeBytes: stats.size,
       });
     }
   }
