@@ -5,7 +5,7 @@ import type { Task, Column, BoardData } from "@/types"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw } from "lucide-react"
+import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw, Move } from "lucide-react"
 import Link from "next/link"
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
@@ -80,6 +80,7 @@ export default function KanbanBoard() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [selectedTaskColumnTitle, setSelectedTaskColumnTitle] = useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [highlightTaskId, setHighlightTaskId] = useState<string | null>(null)
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -148,6 +149,24 @@ export default function KanbanBoard() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isSearchOpen])
 
+  useEffect(() => {
+    if (!highlightTaskId) return
+    const node = taskRefs.current.get(highlightTaskId)
+    const container = scrollContainerRef.current
+    if (node && container) {
+      const containerRect = container.getBoundingClientRect()
+      const nodeRect = node.getBoundingClientRect()
+      const scrollPadding = 100
+      if (nodeRect.left < containerRect.left || nodeRect.right > containerRect.right) {
+        const targetScrollLeft = node.offsetLeft - scrollPadding
+        container.scrollTo({ left: targetScrollLeft, behavior: 'smooth' })
+      }
+      setTimeout(() => {
+        node.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 300)
+    }
+  }, [highlightTaskId])
+
   const getNextYnmxId = useCallback(() => {
     const today = new Date().toISOString().slice(0, 10)
     const random = Math.floor(1000 + Math.random() * 9000)
@@ -160,6 +179,34 @@ export default function KanbanBoard() {
     }
     return `${task.customerName} - ${task.representative}`
   }
+
+  const sortTaskIds = useCallback(
+    (ids: string[], taskMap: Record<string, Task>) => {
+      return [...ids].sort((a, b) => {
+        const ta = taskMap[a]
+        const tb = taskMap[b]
+        const hasDa = ta?.deliveryDate
+        const hasDb = tb?.deliveryDate
+        if (hasDa && !hasDb) return -1
+        if (!hasDa && hasDb) return 1
+        if (hasDa && hasDb) {
+          return (ta.deliveryDate || '').localeCompare(tb.deliveryDate || '')
+        }
+        return (ta?.inquiryDate || '').localeCompare(tb?.inquiryDate || '')
+      })
+    },
+    []
+  )
+
+  const sortColumnsData = useCallback(
+    (cols: Column[], taskMap: Record<string, Task>) => {
+      return cols.map((c) => ({
+        ...c,
+        taskIds: sortTaskIds(c.taskIds, taskMap),
+      }))
+    },
+    [sortTaskIds]
+  )
 
   const mergeWithSkeleton = (saved: Column[]): Column[] => {
     const savedColumnsMap = new Map(saved.map((c) => [c.id, c]))
@@ -196,8 +243,10 @@ export default function KanbanBoard() {
       const res = await fetch("/api/jobs")
       if (res.ok) {
         const data: BoardData = await res.json()
-        setTasks(data.tasks || {})
-        setColumns(mergeWithSkeleton(data.columns || []))
+        const tasksData = data.tasks || {}
+        setTasks(tasksData)
+        const merged = mergeWithSkeleton(data.columns || [])
+        setColumns(sortColumnsData(merged, tasksData))
       }
     } catch (e) {
       console.warn("metadata.json 不存在或无效，已重置")
@@ -223,10 +272,11 @@ export default function KanbanBoard() {
   }, [fetchBoard])
 
   const handleTaskUpdated = useCallback((updatedTask: Task) => {
-    setTasks((prev) => ({
-      ...prev,
-      [updatedTask.id]: updatedTask,
-    }))
+    setTasks(prev => {
+      const next = { ...prev, [updatedTask.id]: updatedTask }
+      setColumns(c => sortColumnsData(c, next))
+      return next
+    })
     setSelectedTask(updatedTask)
   }, [])
 
@@ -235,14 +285,17 @@ export default function KanbanBoard() {
       setTasks(prev => {
         const t = { ...prev }
         delete t[taskId]
+        setColumns(c =>
+          sortColumnsData(
+            c.map(col => ({
+              ...col,
+              taskIds: col.taskIds.filter(id => id !== taskId),
+            })),
+            t
+          )
+        )
         return t
       })
-      setColumns(prev =>
-        prev.map(col => ({
-          ...col,
-          taskIds: col.taskIds.filter(id => id !== taskId),
-        }))
-      )
       setSelectedTask(null)
       setIsDrawerOpen(false)
       await fetchBoard(true)
@@ -331,7 +384,7 @@ export default function KanbanBoard() {
       [draggedTask.id]: updatedTask,
     }
 
-    const nextColumns = columns.map((col) => {
+    let nextColumns = columns.map((col) => {
       if (col.id === draggedTask.columnId) {
         return {
           ...col,
@@ -359,23 +412,30 @@ export default function KanbanBoard() {
       }
       return col
     })
-
+    nextColumns = sortColumnsData(nextColumns, nextTasks)
     setTasks(nextTasks)
     setColumns(nextColumns)
+    setHighlightTaskId(draggedTask.id)
     setDragOverColumn(null)
     setDropIndicatorIndex(null)
     await saveBoard({ tasks: nextTasks, columns: nextColumns })
   }
 
   const handleJobCreated = (newTask: Task) => {
-    setTasks((prev) => ({ ...prev, [newTask.id]: newTask }))
-    setColumns((prev) =>
-      prev.map((col) =>
-        col.id === START_COLUMN_ID
-          ? { ...col, taskIds: [...col.taskIds, newTask.id] }
-          : col,
-      ),
-    )
+    setTasks(prev => {
+      const next = { ...prev, [newTask.id]: newTask }
+      setColumns(c =>
+        sortColumnsData(
+          c.map(col =>
+            col.id === START_COLUMN_ID
+              ? { ...col, taskIds: [...col.taskIds, newTask.id] }
+              : col
+          ),
+          next
+        )
+      )
+      return next
+    })
   }
 
   const handleTaskClick = (task: Task, e: React.MouseEvent) => {
@@ -658,9 +718,14 @@ export default function KanbanBoard() {
                                 draggedTask?.id === task.id
                                   ? 'opacity-50'
                                   : ''
+                              } ${
+                                highlightTaskId === task.id ? 'ring-2 ring-blue-400' : ''
                               }`}
                             >
                               <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${columnColors[task.columnId]} rounded-l-lg`} />
+                              {highlightTaskId === task.id && (
+                                <Move className="absolute top-1 right-1 w-3.5 h-3.5 text-blue-500" />
+                              )}
                               
                               <div className="pl-2">
                                 {viewMode === 'business' ? (
