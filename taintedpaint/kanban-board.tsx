@@ -10,10 +10,42 @@ import Link from "next/link"
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
 
+// Skeleton component
+const TaskSkeleton = () => (
+  <div className="relative bg-white border border-gray-200 rounded-lg p-3 animate-pulse">
+    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gray-200 rounded-l-lg" />
+    <div className="pl-2">
+      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+      <div className="h-3 bg-gray-200 rounded w-1/2 mb-2" />
+      <div className="h-3 bg-gray-100 rounded w-2/3" />
+    </div>
+  </div>
+)
+
+const ColumnSkeleton = ({ title }: { title: string }) => (
+  <div className="flex-shrink-0 w-80 h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/50">
+    <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-medium text-gray-700">{title}</h2>
+        </div>
+        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full animate-pulse">
+          <div className="h-3 w-4 bg-gray-200 rounded" />
+        </span>
+      </div>
+    </div>
+    <div className="flex-1 overflow-y-auto p-3 min-h-0">
+      <div className="space-y-2">
+        <TaskSkeleton />
+        <TaskSkeleton />
+        <TaskSkeleton />
+      </div>
+    </div>
+  </div>
+)
+
 export default function KanbanBoard() {
-  const restricted =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('restricted') === '1'
+  const restricted = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('restricted') === '1'
 
   const [tasks, setTasks] = useState<Record<string, Task>>({})
   const [columns, setColumns] = useState<Column[]>(baseColumns)
@@ -43,7 +75,7 @@ export default function KanbanBoard() {
     archive: 'bg-gray-400',
     archive2: 'bg-gray-400',
   }
-  
+
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [selectedTaskColumnTitle, setSelectedTaskColumnTitle] = useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -56,7 +88,7 @@ export default function KanbanBoard() {
   // Search functionality
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return []
-    
+
     const query = searchQuery.toLowerCase()
     return Object.values(tasks).filter(task => {
       const searchableText = `${task.customerName} ${task.representative} ${task.ynmxId || ''} ${task.notes || ''}`.toLowerCase()
@@ -71,7 +103,7 @@ export default function KanbanBoard() {
     setSelectedSearchResult(taskId)
     const node = taskRefs.current.get(taskId)
     const container = scrollContainerRef.current
-    
+
     if (node && container) {
       // Calculate scroll position
       const containerRect = container.getBoundingClientRect()
@@ -110,7 +142,7 @@ export default function KanbanBoard() {
         setSelectedSearchResult(null)
       }
     }
-    
+
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isSearchOpen])
@@ -175,8 +207,12 @@ export default function KanbanBoard() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    await fetchBoard(true)
-    setTimeout(() => setIsRefreshing(false), 600)
+    // Add a minimum delay to show the skeleton UI
+    await Promise.all([
+      fetchBoard(true),
+      new Promise(resolve => setTimeout(resolve, 500))
+    ])
+    setIsRefreshing(false)
   }
 
   useEffect(() => {
@@ -200,11 +236,10 @@ export default function KanbanBoard() {
         delete t[taskId]
         return t
       })
-      setColumns(prev =>
-        prev.map(col => ({
-          ...col,
-          taskIds: col.taskIds.filter(id => id !== taskId),
-        }))
+      setColumns(prev => prev.map(col => ({
+        ...col,
+        taskIds: col.taskIds.filter(id => id !== taskId),
+      }))
       )
       setSelectedTask(null)
       setIsDrawerOpen(false)
@@ -297,7 +332,7 @@ export default function KanbanBoard() {
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-gray-900">Estara</h1>
-            
+
             <button
               onClick={handleRefresh}
               className={`p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-all ${
@@ -443,110 +478,132 @@ export default function KanbanBoard() {
           className="flex-1 flex gap-3 overflow-x-auto p-6 transition-all duration-300"
           style={{ marginLeft: isSearchOpen ? '320px' : '0' }}
         >
-          {viewMode === 'business' && (
+          {viewMode === 'business' && !isRefreshing && (
             <CreateJobForm onJobCreated={handleJobCreated} />
           )}
 
-          {visibleColumns.map((column) => {
-            const columnTasks = column.taskIds.map(id => tasks[id]).filter(Boolean)
-            const isArchive = ['archive', 'archive2'].includes(column.id)
-
-            return (
-              <div
-                key={column.id}
-                onDragOver={handleDragOver}
-                onDragEnter={() => handleDragEnter(column.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, column.id)}
-                className={`flex-shrink-0 w-80 h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/50 transition-all duration-200 ${
-                  dragOverColumn === column.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
-                }`}
-              >
-                <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
-                      <h2 className="text-sm font-medium text-gray-700">{column.title}</h2>
+          {isRefreshing ? (
+            <>
+              {viewMode === 'business' && (
+                <div className="flex-shrink-0 w-80 h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/50 animate-pulse">
+                  <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100">
+                    <div className="h-4 bg-gray-200 rounded w-24" />
+                  </div>
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      <div className="h-10 bg-gray-100 rounded-lg" />
+                      <div className="h-10 bg-gray-100 rounded-lg" />
+                      <div className="h-10 bg-gray-100 rounded-lg" />
                     </div>
-                    <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                      {columnTasks.length}
-                    </span>
                   </div>
                 </div>
-                
-                <div className="flex-1 overflow-y-auto p-3 min-h-0">
-                  {columnTasks.length === 0 ? (
-                    <div className="h-full flex items-center justify-center">
-                      <div className="text-center">
-                        {isArchive ? (
-                          <>
-                            <Archive className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                            <p className="text-xs text-gray-400">拖拽任务到此处归档</p>
-                          </>
-                        ) : (
-                          <p className="text-xs text-gray-400">暂无任务</p>
-                        )}
+              )}
+              {visibleColumns.map((column) => (
+                <ColumnSkeleton key={column.id} title={column.title} />
+              ))}
+            </>
+          ) : (
+            visibleColumns.map((column) => {
+              const columnTasks = column.taskIds.map(id => tasks[id]).filter(Boolean)
+              const isArchive = ['archive', 'archive2'].includes(column.id)
+
+              return (
+                <div
+                  key={column.id}
+                  onDragOver={handleDragOver}
+                  onDragEnter={() => handleDragEnter(column.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, column.id)}
+                  className={`flex-shrink-0 w-80 h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/50 transition-all duration-200 ${
+                    dragOverColumn === column.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
+                  }`}
+                >
+                  <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
+                        <h2 className="text-sm font-medium text-gray-700">{column.title}</h2>
                       </div>
+                      <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                        {columnTasks.length}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {columnTasks.map((task) => (
-                        <div
-                          key={task.id}
-                          ref={(node) => {
-                            if (node) taskRefs.current.set(task.id, node)
-                            else taskRefs.current.delete(task.id)
-                          }}
-                          draggable
-                          onDragStart={() => handleDragStart(task)}
-                          onClick={(e) => handleTaskClick(task, e)}
-                          className={`relative group bg-white border border-gray-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-gray-300 ${
-                            selectedSearchResult === task.id
-                              ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md'
-                              : ''
-                          }`}
-                        >
-                          <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${columnColors[task.columnId]} rounded-l-lg`} />
-                          
-                          <div className="pl-2">
-                            {viewMode === 'business' ? (
-                              <>
-                                <h3 className="text-sm font-medium text-gray-900 mb-0.5">
-                                  {task.customerName}
-                                </h3>
-                                <p className="text-xs text-gray-600">{task.representative}</p>
-                                {task.ynmxId && (
-                                  <p className="text-xs text-gray-500 mt-0.5">{task.ynmxId}</p>
-                                )}
-                              </>
-                            ) : (
-                              <h3 className="text-sm font-medium text-gray-900">
-                                {getTaskDisplayName(task)}
-                              </h3>
-                            )}
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto p-3 min-h-0">
+                    {columnTasks.length === 0 ? (
+                      <div className="h-full flex items-center justify-center">
+                        <div className="text-center">
+                          {isArchive ? (
+                            <>
+                              <Archive className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                              <p className="text-xs text-gray-400">拖拽任务到此处归档</p>
+                            </>
+                          ) : (
+                            <p className="text-xs text-gray-400">暂无任务</p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {columnTasks.map((task) => (
+                          <div
+                            key={task.id}
+                            ref={(node) => {
+                              if (node) taskRefs.current.set(task.id, node)
+                              else taskRefs.current.delete(task.id)
+                            }}
+                            draggable
+                            onDragStart={() => handleDragStart(task)}
+                            onClick={(e) => handleTaskClick(task, e)}
+                            className={`relative group bg-white border border-gray-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-gray-300 ${
+                              selectedSearchResult === task.id
+                                ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md'
+                                : ''
+                            }`}
+                          >
+                            <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${columnColors[task.columnId]} rounded-l-lg`} />
                             
-                            <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-                              {task.deliveryDate ? (
-                                <span>交期: {task.deliveryDate}</span>
+                            <div className="pl-2">
+                              {viewMode === 'business' ? (
+                                <>
+                                  <h3 className="text-sm font-medium text-gray-900 mb-0.5">
+                                    {task.customerName}
+                                  </h3>
+                                  <p className="text-xs text-gray-600">{task.representative}</p>
+                                  {task.ynmxId && (
+                                    <p className="text-xs text-gray-500 mt-0.5">{task.ynmxId}</p>
+                                  )}
+                                </>
                               ) : (
-                                <span>询价: {task.inquiryDate}</span>
+                                <h3 className="text-sm font-medium text-gray-900">
+                                  {getTaskDisplayName(task)}
+                                </h3>
+                              )}
+                              
+                              <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                                {task.deliveryDate ? (
+                                  <span>交期: {task.deliveryDate}</span>
+                                ) : (
+                                  <span>询价: {task.inquiryDate}</span>
+                                )}
+                              </div>
+                              
+                              {task.notes && (
+                                <p className="mt-1 text-xs text-gray-400 truncate">
+                                  {task.notes}
+                                </p>
                               )}
                             </div>
-                            
-                            {task.notes && (
-                              <p className="mt-1 text-xs text-gray-400 truncate">
-                                {task.notes}
-                              </p>
-                            )}
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          )}
         </div>
 
         <KanbanDrawer
