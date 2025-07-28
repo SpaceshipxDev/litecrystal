@@ -11,6 +11,7 @@ import {
   Folder,
   Pencil,
   Check,
+  Trash2,
   Building2,
   User,
   Hash,
@@ -24,6 +25,7 @@ interface KanbanDrawerProps {
   columnTitle: string | null;
   onClose: () => void;
   onTaskUpdated?: (task: Task) => void;
+  onTaskDeleted?: (taskId: string) => void;
   viewMode?: "business" | "production";
 }
 
@@ -33,9 +35,11 @@ export default function KanbanDrawer({
   columnTitle,
   onClose,
   onTaskUpdated,
+  onTaskDeleted,
   viewMode = "business",
 }: KanbanDrawerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [filesInfo, setFilesInfo] = useState<{
     filename: string;
@@ -170,6 +174,25 @@ export default function KanbanDrawer({
       setIsDownloading(false);
     }
   }, [task, filesInfo]);
+
+  const handleDelete = useCallback(async () => {
+    if (!task) return;
+    if (!confirm('确定要删除此任务及其文件吗？')) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/jobs/${task.id}/delete`, { method: 'POST' });
+      if (res.ok) {
+        onTaskDeleted?.(task.id);
+        onClose();
+      } else {
+        console.error('Delete task failed');
+      }
+    } catch (err) {
+      console.error('Delete task failed', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [task, onTaskDeleted, onClose]);
 
   if (!task) {
     return (
@@ -405,6 +428,25 @@ export default function KanbanDrawer({
                     ? `约 ${totalSizeMB.toFixed(1)} MB`
                     : "快速获取所有项目文件"}
               </p>
+            </div>
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="w-full mt-3 flex items-center gap-4 p-4 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 group disabled:opacity-60 disabled:cursor-wait"
+          >
+            <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-red-100 group-hover:bg-red-200 transition-colors duration-200">
+              {isDeleting ? (
+                <svg className="h-5 w-5 text-red-600 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" opacity="0.25" />
+                  <path d="M22 12a10 10 0 0 1-10 10" />
+                </svg>
+              ) : (
+                <Trash2 className="h-5 w-5 text-red-600" />
+              )}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium text-gray-900">删除任务</p>
             </div>
           </button>
         </div>
