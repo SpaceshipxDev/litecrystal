@@ -244,9 +244,18 @@ export default function KanbanBoard() {
       if (res.ok) {
         const data: BoardData = await res.json()
         const tasksData = data.tasks || {}
+        let merged = mergeWithSkeleton(data.columns || [])
+        const colIds = new Set(merged.map(c => c.id))
+        const startCol = merged.find(c => c.id === START_COLUMN_ID) || merged[0]
+        for (const [id, t] of Object.entries(tasksData)) {
+          if (!colIds.has(t.columnId)) {
+            t.columnId = START_COLUMN_ID
+            if (!startCol.taskIds.includes(id)) startCol.taskIds.push(id)
+          }
+        }
         setTasks(tasksData)
-        const merged = mergeWithSkeleton(data.columns || [])
-        setColumns(sortColumnsData(merged, tasksData))
+        merged = sortColumnsData(merged, tasksData)
+        setColumns(merged)
       }
     } catch (e) {
       console.warn("metadata.json 不存在或无效，已重置")
@@ -368,8 +377,9 @@ export default function KanbanBoard() {
   const handleDrop = async (e: React.DragEvent, targetColumnId: string, dropIndex?: number) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    if (!draggedTask || draggedTask.columnId === targetColumnId && dropIndex === undefined) {
+
+    if (!draggedTask || !columns.some(c => c.id === targetColumnId) ||
+        (draggedTask.columnId === targetColumnId && dropIndex === undefined)) {
       setDragOverColumn(null)
       setDropIndicatorIndex(null)
       return

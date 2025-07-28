@@ -1,7 +1,7 @@
 import { mkdirSync } from 'fs'
 import path from 'path'
 import Database from 'better-sqlite3'
-import { baseColumns } from './baseColumns'
+import { baseColumns, START_COLUMN_ID } from './baseColumns'
 import type { BoardData } from '@/types'
 
 // Store dynamic data outside of the public directory so it remains
@@ -31,7 +31,17 @@ export async function readBoardData(): Promise<BoardData> {
   if (!row || typeof row.data !== "string") return { tasks: {}, columns: baseColumns };
   try {
     const data = JSON.parse(row.data);
-    if (data.tasks && data.columns) return data;
+    if (data.tasks && data.columns) {
+      const columnIds = new Set(data.columns.map(c => c.id));
+      const startCol = data.columns.find(c => c.id === START_COLUMN_ID) || data.columns[0];
+      for (const [id, task] of Object.entries(data.tasks)) {
+        if (!columnIds.has(task.columnId)) {
+          task.columnId = START_COLUMN_ID;
+          if (!startCol.taskIds.includes(id)) startCol.taskIds.push(id);
+        }
+      }
+      return data;
+    }
   } catch {}
   return { tasks: {}, columns: baseColumns };
 }
