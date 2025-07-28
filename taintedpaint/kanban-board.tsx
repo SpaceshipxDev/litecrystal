@@ -305,6 +305,7 @@ export default function KanbanBoard() {
 
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTask(task)
+    setHighlightTaskId(task.id)
     // Make the drag image semi-transparent
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move'
@@ -715,17 +716,10 @@ export default function KanbanBoard() {
                                   ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md'
                                   : ''
                               } ${
-                                draggedTask?.id === task.id
-                                  ? 'opacity-50'
-                                  : ''
-                              } ${
-                                highlightTaskId === task.id ? 'ring-2 ring-blue-400' : ''
+                                highlightTaskId === task.id ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md' : ''
                               }`}
                             >
                               <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${columnColors[task.columnId]} rounded-l-lg`} />
-                              {highlightTaskId === task.id && (
-                                <Move className="absolute top-1 right-1 w-3.5 h-3.5 text-blue-500" />
-                              )}
                               
                               <div className="pl-2">
                                 {viewMode === 'business' ? (
