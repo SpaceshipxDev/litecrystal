@@ -73,8 +73,15 @@ export async function POST(req: NextRequest) {
     });
     await Promise.all(pendingWrites);
 
-    const { customerName = '', representative = '', inquiryDate = '', notes = '', folderName = '' } = fields;
-    const deliveryDate = '';
+    const {
+      customerName = '',
+      representative = '',
+      inquiryDate = '',
+      deliveryDate = '',
+      ynmxId = '',
+      notes = '',
+      folderName = '',
+    } = fields;
 
     if (
       tempFiles.length === 0 ||
@@ -116,8 +123,9 @@ export async function POST(req: NextRequest) {
       customerName: customerName.trim(),
       representative: representative.trim(),
       inquiryDate: inquiryDate.trim(),
-      deliveryDate,
+      deliveryDate: deliveryDate.trim() || undefined,
       notes: notes.trim(),
+      ynmxId: ynmxId.trim() || undefined,
       taskFolderPath: `/storage/tasks/${taskId}`,
       files: [folderName],
     };

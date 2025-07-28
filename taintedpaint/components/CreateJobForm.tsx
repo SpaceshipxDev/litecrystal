@@ -15,14 +15,28 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const [customerName, setCustomerName] = useState("")
   const [representative, setRepresentative] = useState("")
   const [inquiryDate, setInquiryDate] = useState("")
+  const [deliveryDate, setDeliveryDate] = useState("")
+  const [ynmxId, setYnmxId] = useState("")
   const [notes, setNotes] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   const [customerOptions, setCustomerOptions] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inquiryDateInputRef = useRef<HTMLInputElement>(null)
+  const deliveryDateInputRef = useRef<HTMLInputElement>(null)
 
   const openInquiryDatePicker = () => {
     const input = inquiryDateInputRef.current
+    if (!input) return
+    if ((input as any).showPicker) {
+      (input as any).showPicker()
+    } else {
+      input.focus()
+      input.click()
+    }
+  }
+
+  const openDeliveryDatePicker = () => {
+    const input = deliveryDateInputRef.current
     if (!input) return
     if ((input as any).showPicker) {
       (input as any).showPicker()
@@ -76,6 +90,8 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       formData.append("customerName", customerName.trim())
       formData.append("representative", representative.trim())
       formData.append("inquiryDate", inquiryDate.trim())
+      formData.append("deliveryDate", deliveryDate.trim())
+      formData.append("ynmxId", ynmxId.trim())
       formData.append("notes", notes.trim())
       formData.append("folderName", getFolderName())
 
@@ -93,6 +109,8 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       setCustomerName("")
       setRepresentative("")
       setInquiryDate("")
+      setDeliveryDate("")
+      setYnmxId("")
       setNotes("")
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
@@ -155,6 +173,13 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
         />
 
+        <Input
+          placeholder="生产编号（可选）"
+          value={ynmxId}
+          onChange={(e) => setYnmxId(e.target.value)}
+          className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
+        />
+
         <div className="relative">
           <Input
             readOnly
@@ -163,14 +188,34 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
             onClick={openInquiryDatePicker}
             className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500 pr-9 cursor-pointer"
           />
-          <Calendar 
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" 
+          <Calendar
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
           />
           <input
             ref={inquiryDateInputRef}
             type="date"
             value={inquiryDate}
             onChange={(e) => setInquiryDate(e.target.value)}
+            className="sr-only"
+          />
+        </div>
+
+        <div className="relative">
+          <Input
+            readOnly
+            placeholder="交货日期（可选）"
+            value={deliveryDate}
+            onClick={openDeliveryDatePicker}
+            className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500 pr-9 cursor-pointer"
+          />
+          <Calendar
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+          />
+          <input
+            ref={deliveryDateInputRef}
+            type="date"
+            value={deliveryDate}
+            onChange={(e) => setDeliveryDate(e.target.value)}
             className="sr-only"
           />
         </div>
