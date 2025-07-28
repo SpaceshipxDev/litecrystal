@@ -5,7 +5,7 @@ import type { Task, Column, BoardData } from "@/types"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid, Lock, X, ChevronRight } from "lucide-react"
+import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
@@ -25,6 +25,7 @@ export default function KanbanBoard() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [selectedSearchResult, setSelectedSearchResult] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const columnColors: Record<string, string> = {
     create: 'bg-blue-500',
@@ -171,6 +172,12 @@ export default function KanbanBoard() {
       setColumns(baseColumns)
     }
   }, [])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchBoard(true)
+    setTimeout(() => setIsRefreshing(false), 600)
+  }
 
   useEffect(() => {
     fetchBoard()
@@ -319,6 +326,16 @@ export default function KanbanBoard() {
 
           <div className="flex items-center gap-3">
             <button
+              onClick={handleRefresh}
+              className={`p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+
+            <div className="w-px h-5 bg-gray-200" />
+
+            <button
               onClick={() => {
                 setIsSearchOpen(true)
                 setTimeout(() => searchInputRef.current?.focus(), 100)
@@ -333,8 +350,8 @@ export default function KanbanBoard() {
             </button>
 
             {!restricted && (
-              <Link 
-                href="/holistic" 
+              <Link
+                href="/holistic"
                 className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
               >
                 <LayoutGrid className="w-4 h-4" />
