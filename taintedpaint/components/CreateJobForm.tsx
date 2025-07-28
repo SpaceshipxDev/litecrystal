@@ -174,7 +174,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
         />
 
         <Input
-          placeholder="生产编号（可选）"
+          placeholder="生产编号"
           value={ynmxId}
           onChange={(e) => setYnmxId(e.target.value)}
           className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
@@ -203,7 +203,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
         <div className="relative">
           <Input
             readOnly
-            placeholder="交货日期（可选）"
+            placeholder="交货日期"
             value={deliveryDate}
             onClick={openDeliveryDatePicker}
             className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500 pr-9 cursor-pointer"
@@ -221,7 +221,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
         </div>
 
         <Input
-          placeholder="备注（可选）"
+          placeholder="备注"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
