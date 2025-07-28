@@ -3,6 +3,7 @@
 import type { Column } from "@/types";
 
 export const START_COLUMN_ID = "create";
+export const ARCHIVE_COLUMN_ID = "archive";
 
 // Updated to use taskIds
 export const baseColumns: Column[] = [
