@@ -213,13 +213,31 @@ export default function KanbanDrawer({
           <h2 className="text-[13px] font-semibold text-gray-500 uppercase tracking-wider">Task Details</h2>
           <div className="flex items-center gap-2">
             {isEditMode ? (
-              <button
-                onClick={handleSave}
-                className="h-8 px-3 flex items-center gap-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20"
-              >
-                <Check className="h-3.5 w-3.5" />
-                保存
-              </button>
+              <>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-all duration-200 disabled:opacity-50"
+                  title="删除任务"
+                >
+                  {isDeleting ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" opacity="0.25" />
+                      <path d="M22 12a10 10 0 0 1-10 10" />
+                    </svg>
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
+                <div className="w-px h-5 bg-gray-200" />
+                <button
+                  onClick={handleSave}
+                  className="h-8 px-3 flex items-center gap-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  保存
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => setIsEditMode(true)}
@@ -428,25 +446,6 @@ export default function KanbanDrawer({
                     ? `约 ${totalSizeMB.toFixed(1)} MB`
                     : "快速获取所有项目文件"}
               </p>
-            </div>
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="w-full mt-3 flex items-center gap-4 p-4 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 group disabled:opacity-60 disabled:cursor-wait"
-          >
-            <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-red-100 group-hover:bg-red-200 transition-colors duration-200">
-              {isDeleting ? (
-                <svg className="h-5 w-5 text-red-600 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" opacity="0.25" />
-                  <path d="M22 12a10 10 0 0 1-10 10" />
-                </svg>
-              ) : (
-                <Trash2 className="h-5 w-5 text-red-600" />
-              )}
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-medium text-gray-900">删除任务</p>
             </div>
           </button>
         </div>
