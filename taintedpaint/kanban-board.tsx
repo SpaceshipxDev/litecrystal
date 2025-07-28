@@ -54,6 +54,7 @@ export default function KanbanBoard() {
   )
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [selectedSearchResult, setSelectedSearchResult] = useState<string | null>(null)
@@ -236,10 +237,11 @@ export default function KanbanBoard() {
         delete t[taskId]
         return t
       })
-      setColumns(prev => prev.map(col => ({
-        ...col,
-        taskIds: col.taskIds.filter(id => id !== taskId),
-      }))
+      setColumns(prev =>
+        prev.map(col => ({
+          ...col,
+          taskIds: col.taskIds.filter(id => id !== taskId),
+        }))
       )
       setSelectedTask(null)
       setIsDrawerOpen(false)
@@ -248,18 +250,76 @@ export default function KanbanBoard() {
     [fetchBoard]
   )
 
-  const handleDragStart = (task: Task) => {
+  const handleDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTask(task)
+    // Make the drag image semi-transparent
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move'
+      const dragImage = e.currentTarget as HTMLElement
+      const clone = dragImage.cloneNode(true) as HTMLElement
+      clone.style.opacity = '0.5'
+      clone.style.position = 'absolute'
+      clone.style.top = '-1000px'
+      document.body.appendChild(clone)
+      e.dataTransfer.setDragImage(clone, 0, 0)
+      setTimeout(() => document.body.removeChild(clone), 0)
+    }
   }
 
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault()
-  const handleDragEnter = (columnId: string) => setDragOverColumn(columnId)
-  const handleDragLeave = () => setDragOverColumn(null)
-
-  const handleDrop = async (e: React.DragEvent, targetColumnId: string) => {
-    e.preventDefault()
+  const handleDragEnd = () => {
+    setDraggedTask(null)
     setDragOverColumn(null)
-    if (!draggedTask || draggedTask.columnId === targetColumnId) return
+    setDropIndicatorIndex(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move'
+    }
+  }
+
+  const handleDragOverTask = (e: React.DragEvent, index: number, columnId: string) => {
+    e.preventDefault()
+    if (!draggedTask) return
+
+    const taskElement = e.currentTarget as HTMLElement
+    const rect = taskElement.getBoundingClientRect()
+    const y = e.clientY - rect.top
+    const height = rect.height
+
+    // Determine if we should show indicator above or below this task
+    if (y < height / 2) {
+      setDropIndicatorIndex(index)
+    } else {
+      setDropIndicatorIndex(index + 1)
+    }
+    setDragOverColumn(columnId)
+  }
+
+  const handleDragEnterColumn = (columnId: string) => {
+    if (draggedTask) {
+      setDragOverColumn(columnId)
+    }
+  }
+
+  const handleDragLeaveColumn = (e: React.DragEvent) => {
+    // Only clear if we're actually leaving the column
+    const relatedTarget = e.relatedTarget as HTMLElement
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      setDropIndicatorIndex(null)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent, targetColumnId: string, dropIndex?: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!draggedTask || draggedTask.columnId === targetColumnId && dropIndex === undefined) {
+      setDragOverColumn(null)
+      setDropIndicatorIndex(null)
+      return
+    }
 
     let updatedTask: Task = { ...draggedTask, columnId: targetColumnId }
     if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
@@ -279,15 +339,32 @@ export default function KanbanBoard() {
         }
       }
       if (col.id === targetColumnId) {
-        return { ...col, taskIds: [...col.taskIds, draggedTask.id] }
+        const newTaskIds = [...col.taskIds]
+        
+        // If dropIndex is specified, insert at that position
+        if (dropIndex !== undefined) {
+          // Remove the task if it's already in this column
+          const existingIndex = newTaskIds.indexOf(draggedTask.id)
+          if (existingIndex !== -1) {
+            newTaskIds.splice(existingIndex, 1)
+          }
+          // Insert at the new position
+          newTaskIds.splice(dropIndex, 0, draggedTask.id)
+        } else {
+          // Otherwise add to end
+          newTaskIds.push(draggedTask.id)
+        }
+        
+        return { ...col, taskIds: newTaskIds }
       }
       return col
     })
 
     setTasks(nextTasks)
     setColumns(nextColumns)
+    setDragOverColumn(null)
+    setDropIndicatorIndex(null)
     await saveBoard({ tasks: nextTasks, columns: nextColumns })
-    setDraggedTask(null)
   }
 
   const handleJobCreated = (newTask: Task) => {
@@ -511,11 +588,13 @@ export default function KanbanBoard() {
                 <div
                   key={column.id}
                   onDragOver={handleDragOver}
-                  onDragEnter={() => handleDragEnter(column.id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, column.id)}
-                  className={`flex-shrink-0 w-80 h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/50 transition-all duration-200 ${
-                    dragOverColumn === column.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
+                  onDragEnter={() => handleDragEnterColumn(column.id)}
+                  onDragLeave={handleDragLeaveColumn}
+                  onDrop={(e) => handleDrop(e, column.id, dropIndicatorIndex ?? undefined)}
+                  className={`flex-shrink-0 w-80 h-full flex flex-col bg-white rounded-xl shadow-sm border transition-all duration-200 ${
+                    dragOverColumn === column.id 
+                      ? 'border-blue-400 shadow-lg' 
+                      : 'border-gray-200/50'
                   }`}
                 >
                   <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100">
@@ -532,7 +611,13 @@ export default function KanbanBoard() {
                   
                   <div className="flex-1 overflow-y-auto p-3 min-h-0">
                     {columnTasks.length === 0 ? (
-                      <div className="h-full flex items-center justify-center">
+                      <div 
+                        className={`h-full flex items-center justify-center rounded-lg transition-all duration-200 ${
+                          dragOverColumn === column.id 
+                            ? 'bg-blue-50 border-2 border-dashed border-blue-300' 
+                            : ''
+                        }`}
+                      >
                         <div className="text-center">
                           {isArchive ? (
                             <>
@@ -540,61 +625,80 @@ export default function KanbanBoard() {
                               <p className="text-xs text-gray-400">拖拽任务到此处归档</p>
                             </>
                           ) : (
-                            <p className="text-xs text-gray-400">暂无任务</p>
+                            <p className="text-xs text-gray-400">
+                              {dragOverColumn === column.id ? '放置任务' : '暂无任务'}
+                            </p>
                           )}
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-2">
-                        {columnTasks.map((task) => (
-                          <div
-                            key={task.id}
-                            ref={(node) => {
-                              if (node) taskRefs.current.set(task.id, node)
-                              else taskRefs.current.delete(task.id)
-                            }}
-                            draggable
-                            onDragStart={() => handleDragStart(task)}
-                            onClick={(e) => handleTaskClick(task, e)}
-                            className={`relative group bg-white border border-gray-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-gray-300 ${
-                              selectedSearchResult === task.id
-                                ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md'
-                                : ''
-                            }`}
-                          >
-                            <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${columnColors[task.columnId]} rounded-l-lg`} />
-                            
-                            <div className="pl-2">
-                              {viewMode === 'business' ? (
-                                <>
-                                  <h3 className="text-sm font-medium text-gray-900 mb-0.5">
-                                    {task.customerName}
-                                  </h3>
-                                  <p className="text-xs text-gray-600">{task.representative}</p>
-                                  {task.ynmxId && (
-                                    <p className="text-xs text-gray-500 mt-0.5">{task.ynmxId}</p>
-                                  )}
-                                </>
-                              ) : (
-                                <h3 className="text-sm font-medium text-gray-900">
-                                  {getTaskDisplayName(task)}
-                                </h3>
-                              )}
+                      <div className="space-y-2 relative">
+                        {/* Drop indicator at top */}
+                        {dragOverColumn === column.id && dropIndicatorIndex === 0 && (
+                          <div className="h-0.5 bg-blue-500 rounded-full -mt-1 mb-2 animate-pulse" />
+                        )}
+                        
+                        {columnTasks.map((task, index) => (
+                          <div key={task.id} className="relative">
+                            <div
+                              ref={(node) => {
+                                if (node) taskRefs.current.set(task.id, node)
+                                else taskRefs.current.delete(task.id)
+                              }}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, task)}
+                              onDragEnd={handleDragEnd}
+                              onDragOver={(e) => handleDragOverTask(e, index, column.id)}
+                              onClick={(e) => handleTaskClick(task, e)}
+                              className={`relative group bg-white border border-gray-200 rounded-lg p-3 cursor-move transition-all duration-200 hover:shadow-md hover:border-gray-300 ${
+                                selectedSearchResult === task.id
+                                  ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md'
+                                  : ''
+                              } ${
+                                draggedTask?.id === task.id
+                                  ? 'opacity-50'
+                                  : ''
+                              }`}
+                            >
+                              <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${columnColors[task.columnId]} rounded-l-lg`} />
                               
-                              <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-                                {task.deliveryDate ? (
-                                  <span>交期: {task.deliveryDate}</span>
+                              <div className="pl-2">
+                                {viewMode === 'business' ? (
+                                  <>
+                                    <h3 className="text-sm font-medium text-gray-900 mb-0.5">
+                                      {task.customerName}
+                                    </h3>
+                                    <p className="text-xs text-gray-600">{task.representative}</p>
+                                    {task.ynmxId && (
+                                      <p className="text-xs text-gray-500 mt-0.5">{task.ynmxId}</p>
+                                    )}
+                                  </>
                                 ) : (
-                                  <span>询价: {task.inquiryDate}</span>
+                                  <h3 className="text-sm font-medium text-gray-900">
+                                    {getTaskDisplayName(task)}
+                                  </h3>
+                                )}
+                                
+                                <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                                  {task.deliveryDate ? (
+                                    <span>交期: {task.deliveryDate}</span>
+                                  ) : (
+                                    <span>询价: {task.inquiryDate}</span>
+                                  )}
+                                </div>
+                                
+                                {task.notes && (
+                                  <p className="mt-1 text-xs text-gray-400 truncate">
+                                    {task.notes}
+                                  </p>
                                 )}
                               </div>
-                              
-                              {task.notes && (
-                                <p className="mt-1 text-xs text-gray-400 truncate">
-                                  {task.notes}
-                                </p>
-                              )}
                             </div>
+                            
+                            {/* Drop indicator after this task */}
+                            {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
+                              <div className="h-0.5 bg-blue-500 rounded-full mt-2 animate-pulse" />
+                            )}
                           </div>
                         ))}
                       </div>
