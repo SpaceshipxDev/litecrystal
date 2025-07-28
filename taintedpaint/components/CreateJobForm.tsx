@@ -173,12 +173,6 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
         />
 
-        <Input
-          placeholder="生产编号"
-          value={ynmxId}
-          onChange={(e) => setYnmxId(e.target.value)}
-          className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
-        />
 
         <div className="relative">
           <Input
@@ -219,6 +213,13 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
             className="sr-only"
           />
         </div>
+
+        <Input
+          placeholder="生产编号"
+          value={ynmxId}
+          onChange={(e) => setYnmxId(e.target.value)}
+          className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
+        />
 
         <Input
           placeholder="备注 (可选）"
