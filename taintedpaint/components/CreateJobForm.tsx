@@ -221,7 +221,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
         </div>
 
         <Input
-          placeholder="备注"
+          placeholder="备注 (可选）"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
