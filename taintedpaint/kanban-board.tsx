@@ -186,6 +186,26 @@ export default function KanbanBoard() {
     setSelectedTask(updatedTask)
   }, [])
 
+  const handleTaskDeleted = useCallback(
+    async (taskId: string) => {
+      setTasks(prev => {
+        const t = { ...prev }
+        delete t[taskId]
+        return t
+      })
+      setColumns(prev =>
+        prev.map(col => ({
+          ...col,
+          taskIds: col.taskIds.filter(id => id !== taskId),
+        }))
+      )
+      setSelectedTask(null)
+      setIsDrawerOpen(false)
+      await fetchBoard(true)
+    },
+    [fetchBoard]
+  )
+
   const handleDragStart = (task: Task) => {
     setDraggedTask(task)
   }
@@ -517,6 +537,7 @@ export default function KanbanBoard() {
           viewMode={viewMode}
           onClose={closeDrawer}
           onTaskUpdated={handleTaskUpdated}
+          onTaskDeleted={handleTaskDeleted}
         />
       </div>
     </div>
