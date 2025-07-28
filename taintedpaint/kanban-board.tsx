@@ -5,7 +5,7 @@ import type { Task, Column, BoardData } from "@/types"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RefreshCw } from "lucide-react"
+import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw } from "lucide-react"
 import Link from "next/link"
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
@@ -295,8 +295,20 @@ export default function KanbanBoard() {
       {/* Header */}
       <header className="flex-shrink-0 h-14 px-6 bg-white/80 backdrop-blur-xl sticky top-0 z-30 border-b border-gray-200/50 flex items-center">
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-gray-900">Estara</h1>
+            
+            <button
+              onClick={handleRefresh}
+              className={`p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-all ${
+                isRefreshing ? 'animate-spin' : ''
+              }`}
+              disabled={isRefreshing}
+            >
+              <RotateCw className="w-4 h-4" />
+            </button>
+
+            <div className="w-px h-5 bg-gray-200 mx-2" />
             
             <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
               <button
@@ -326,16 +338,6 @@ export default function KanbanBoard() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={handleRefresh}
-              className={`p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all ${isRefreshing ? 'animate-spin' : ''}`}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-
-            <div className="w-px h-5 bg-gray-200" />
-
-            <button
               onClick={() => {
                 setIsSearchOpen(true)
                 setTimeout(() => searchInputRef.current?.focus(), 100)
@@ -350,8 +352,8 @@ export default function KanbanBoard() {
             </button>
 
             {!restricted && (
-              <Link
-                href="/holistic"
+              <Link 
+                href="/holistic" 
                 className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
               >
                 <LayoutGrid className="w-4 h-4" />
