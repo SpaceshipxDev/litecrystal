@@ -1,7 +1,7 @@
 import { mkdirSync } from 'fs'
 import path from 'path'
 import Database from 'better-sqlite3'
-import { baseColumns, START_COLUMN_ID } from './baseColumns'
+import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from './baseColumns'
 import type { BoardData } from '@/types'
 
 // Store dynamic data outside of the public directory so it remains
@@ -25,6 +25,25 @@ if (!existing) {
   db.prepare('INSERT INTO board_data (id, data) VALUES (1, ?)').run(initial)
 }
 
+function normalizeBoardData(data: BoardData) {
+  const columnMap = new Map(data.columns.map(c => [c.id, c]))
+  const columnIds = new Set(columnMap.keys())
+  const archiveCol = columnMap.get(ARCHIVE_COLUMN_ID) || data.columns[0]
+
+  // Remove unknown taskIds from columns
+  for (const col of data.columns) {
+    col.taskIds = Array.from(new Set(col.taskIds.filter(id => id in data.tasks)))
+  }
+
+  for (const [id, task] of Object.entries(data.tasks)) {
+    if (!columnIds.has(task.columnId)) {
+      task.columnId = ARCHIVE_COLUMN_ID
+    }
+    const col = columnMap.get(task.columnId) || archiveCol
+    if (!col.taskIds.includes(id)) col.taskIds.push(id)
+  }
+}
+
 export async function readBoardData(): Promise<BoardData> {
   // `row` can be undefined if no record is found!
   const row = db.prepare('SELECT data FROM board_data WHERE id=1').get() as { data?: string } | undefined;
@@ -32,15 +51,8 @@ export async function readBoardData(): Promise<BoardData> {
   try {
     const data = JSON.parse(row.data);
     if (data.tasks && data.columns) {
-      const columnIds = new Set(data.columns.map(c => c.id));
-      const startCol = data.columns.find(c => c.id === START_COLUMN_ID) || data.columns[0];
-      for (const [id, task] of Object.entries(data.tasks)) {
-        if (!columnIds.has(task.columnId)) {
-          task.columnId = START_COLUMN_ID;
-          if (!startCol.taskIds.includes(id)) startCol.taskIds.push(id);
-        }
-      }
-      return data;
+      normalizeBoardData(data)
+      return data
     }
   } catch {}
   return { tasks: {}, columns: baseColumns };
@@ -52,6 +64,7 @@ export async function updateBoardData(
 ): Promise<BoardData> {
   const data = await readBoardData()
   await updater(data)
+  normalizeBoardData(data)
   db.prepare('UPDATE board_data SET data=? WHERE id=1').run(JSON.stringify(data, null, 2))
   return data
 }
