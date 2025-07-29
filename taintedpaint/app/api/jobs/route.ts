@@ -11,11 +11,13 @@ import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
 import { readBoardData, updateBoardData } from "@/lib/boardDataStore";
 import { invalidateFilesCache } from "@/lib/filesCache";
+import { STORAGE_ROOT, TASKS_STORAGE_DIR } from "@/lib/storagePaths";
 
 // --- Path Definitions ---
-// Store uploads under a top-level storage directory rather than /public
-const STORAGE_DIR = path.join(process.cwd(), "..", "storage");
-const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
+// Files are stored on a shared network disk. Configure the root path with the
+// SMB_ROOT environment variable. Defaults to the local `storage` folder for
+// development.
+// `TASKS_STORAGE_DIR` is exported from `lib/storagePaths`.
 // ------------------------
 
 // Legacy helper removed in favour of boardDataStore
@@ -148,7 +150,9 @@ export async function POST(req: NextRequest) {
       deliveryDate: deliveryDate.trim() || undefined,
       notes: notes.trim(),
       ynmxId: ynmxId.trim() || undefined,
-      taskFolderPath: `/storage/tasks/${taskId}`,
+      // Store the relative path inside the SMB share so clients can resolve it
+      // using their own mounted location.
+      taskFolderPath: `tasks/${taskId}`,
       files: [folderName],
     };
 

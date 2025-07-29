@@ -4,10 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { getCachedFiles, setCachedFiles } from "@/lib/filesCache";
+import { TASKS_STORAGE_DIR } from "@/lib/storagePaths";
 
-// Serve files from the root-level storage directory
-const TASKS_STORAGE_DIR = path.join(process.cwd(), "..", "storage", "tasks");
-
+// Files are served from the shared disk defined by `SMB_ROOT`.
 // A list of common system and temporary files to ignore
 const ignoredFiles = ['.DS_Store', 'Thumbs.db'];
 const ignoredExtensions = ['.lck', '.bak'];

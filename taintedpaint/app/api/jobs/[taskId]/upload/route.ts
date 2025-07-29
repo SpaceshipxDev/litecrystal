@@ -6,11 +6,11 @@ import path from "path";
 import type { BoardData } from "@/types";
 import { updateBoardData, readBoardData } from "@/lib/boardDataStore";
 import { invalidateFilesCache } from "@/lib/filesCache";
+import { TASKS_STORAGE_DIR } from "@/lib/storagePaths";
 
 // --- Path Definitions ---
-// Root-level storage directory keeps dynamic data accessible in production
-const STORAGE_DIR = path.join(process.cwd(), "..", "storage");
-const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
+// Files are stored on a shared network disk. `TASKS_STORAGE_DIR` comes from
+// `lib/storagePaths` and respects the SMB_ROOT environment variable.
 // ------------------------
 
 export async function POST(

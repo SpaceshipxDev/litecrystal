@@ -2,12 +2,8 @@
 
 // This interface must match the object exposed in preload.ts
 export interface ElectronAPI {
-  downloadAndOpenTaskFolder: (
-    taskId: string,
-    folderName: string,
-    // This signature must match the one in preload.ts
-    filesToDownload: { filename: string, relativePath: string, url: string }[]
-  ) => Promise<void>;
+  // Opens a folder on the SMB share. The path is relative to the share root
+  openTaskFolder: (relativePath: string) => Promise<void>;
 }
 
 declare global {

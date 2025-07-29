@@ -5,13 +5,9 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 export const ELECTRON_API = {
-  // We update the type definition for filesToDownload here
-  downloadAndOpenTaskFolder: (
-    taskId: string,
-    folderName: string,
-    // This is the corrected type, now including relativePath
-    filesToDownload: { filename: string, relativePath: string, url: string }[]
-  ) => ipcRenderer.invoke('download-and-open-task-folder', taskId, folderName, filesToDownload),
+  // Open a folder located on the shared SMB disk
+  openTaskFolder: (relativePath: string) =>
+    ipcRenderer.invoke('open-task-folder', relativePath),
 };
 
 // Expose it securely

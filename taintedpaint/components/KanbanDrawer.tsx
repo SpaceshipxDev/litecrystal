@@ -9,7 +9,6 @@ import {
   CalendarDays,
   MessageSquare,
   Folder,
-  Loader2,
   Pencil,
   Check,
   Trash2,
@@ -40,17 +39,9 @@ export default function KanbanDrawer({
   onTaskDeleted,
   viewMode = "business",
 }: KanbanDrawerProps) {
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isReplacing, setIsReplacing] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [filesInfo, setFilesInfo] = useState<{
-    filename: string;
-    url: string;
-    relativePath: string;
-    sizeBytes: number;
-  }[] | null>(null);
-  const [totalSizeMB, setTotalSizeMB] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -62,9 +53,6 @@ export default function KanbanDrawer({
   });
 
   const customerInputRef = useRef<HTMLInputElement>(null);
-  const replaceInputRef = useRef<HTMLInputElement>(null);
-  const quickReplaceInputRef = useRef<HTMLInputElement>(null);
-  const [replaceFiles, setReplaceFiles] = useState<FileList | null>(null);
 
   useEffect(() => {
     if (task) {
@@ -114,43 +102,6 @@ export default function KanbanDrawer({
     }
   }, [isEditMode]);
 
-  const getReplaceFolderName = (files?: FileList | null): string => {
-    const list = files ?? replaceFiles;
-    if (!list || list.length === 0) return '选择文件夹';
-    const firstPath = (list[0] as any).webkitRelativePath || '';
-    return firstPath.split('/')[0] || '已选文件夹';
-  };
-
-  const handleReplaceFolder = useCallback(async (filesParam?: FileList | null) => {
-    const filesToUse = filesParam ?? replaceFiles;
-    if (!task || !filesToUse || filesToUse.length === 0) return;
-    setIsReplacing(true);
-    try {
-      const formData = new FormData();
-      for (const file of Array.from(filesToUse)) {
-        formData.append('files', file);
-        formData.append('paths', (file as any).webkitRelativePath);
-      }
-      formData.append('folderName', getReplaceFolderName(filesToUse));
-      const res = await fetch(`/api/jobs/${task.id}/replace`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (res.ok) {
-        const updated: Task = await res.json();
-        onTaskUpdated?.(updated);
-        setReplaceFiles(null);
-        if (replaceInputRef.current) replaceInputRef.current.value = '';
-        if (quickReplaceInputRef.current) quickReplaceInputRef.current.value = '';
-      } else {
-        console.error('Replace folder failed');
-      }
-    } catch (err) {
-      console.error('Replace folder failed', err);
-    } finally {
-      setIsReplacing(false);
-    }
-  }, [task, replaceFiles, onTaskUpdated]);
 
   const handleSave = useCallback(async () => {
     if (!task) return;
@@ -177,47 +128,23 @@ export default function KanbanDrawer({
     }
   }, [task, formData, onTaskUpdated]);
 
-  const handleDownloadAndOpen = useCallback(async () => {
-    if (!task) return;
+  const handleOpenFolder = useCallback(async () => {
+    if (!task || !task.taskFolderPath) return;
     const electronAPI: ElectronAPI | undefined = window.electronAPI;
     if (!electronAPI) {
       alert("此功能仅在桌面应用中可用。请下载桌面版以获得最佳体验。");
       return;
     }
-    setIsDownloading(true);
+    setIsOpening(true);
     try {
-      let files = filesInfo;
-      if (!files) {
-        const res = await fetch(`/api/jobs/${task.id}/files`);
-        if (!res.ok) throw new Error("无法获取文件列表");
-        files = await res.json();
-        setFilesInfo(files);
-        if (files) {
-          const total = files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
-          setTotalSizeMB(total / (1024 * 1024));
-        } else {
-          setTotalSizeMB(null);
-        }
-      }
-      if (!files || files.length === 0) {
-        alert("此任务没有可下载的文件。");
-        return;
-      }
-      const folderName =
-        task.ynmxId || `${task.customerName} - ${task.representative} - ${task.id}`;
-      const filesForElectron = files.map(({ filename, url, relativePath }) => ({
-        filename,
-        url,
-        relativePath,
-      }));
-      await electronAPI.downloadAndOpenTaskFolder(task.id, folderName, filesForElectron);
+      await electronAPI.openTaskFolder(task.taskFolderPath);
     } catch (err: any) {
-      console.error("Download and open failed:", err);
-      alert(`下载失败: ${err.message}`);
+      console.error("Open folder failed:", err);
+      alert(`打开失败: ${err.message}`);
     } finally {
-      setIsDownloading(false);
+      setIsOpening(false);
     }
-  }, [task, filesInfo]);
+  }, [task]);
 
   const handleDelete = useCallback(async () => {
     if (!task) return;
@@ -457,51 +384,16 @@ export default function KanbanDrawer({
           )}
         </div>
 
-        {isEditMode && (
-          <div className="p-4 bg-gray-50 rounded-xl space-y-3">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">替换文件夹</h3>
-            <label
-              htmlFor="replaceUpload"
-              className="flex items-center gap-3 w-full rounded-lg bg-white hover:bg-gray-100 transition-colors cursor-pointer px-3 py-2.5"
-            >
-              <Folder className="w-4 h-4 text-gray-400" />
-              <span className="text-sm flex-1 truncate">
-                {getReplaceFolderName()}
-              </span>
-              <Input
-                id="replaceUpload"
-                ref={replaceInputRef}
-                type="file"
-                webkitdirectory=""
-                directory=""
-                className="hidden"
-                onChange={(e) => setReplaceFiles(e.target.files)}
-              />
-            </label>
-            <Button
-              onClick={() => handleReplaceFolder()}
-              disabled={!replaceFiles || replaceFiles.length === 0 || isReplacing}
-              className="w-full h-9"
-            >
-              {isReplacing ? <Loader2 className="w-4 h-4 animate-spin" /> : '上传并替换'}
-            </Button>
-          </div>
-        )}
-
-          {totalSizeMB !== null && totalSizeMB >= 50 && !isDownloading && (
-            <p className="text-center text-xs text-gray-500">
-              预计下载 {totalSizeMB.toFixed(1)} MB，可能需要一些时间
-            </p>
-          )}
+        {/* Open folder action */}
 
           {/* Action Button */}
           <button
-            onClick={handleDownloadAndOpen}
-            disabled={isDownloading}
+            onClick={handleOpenFolder}
+            disabled={isOpening}
             className="w-full flex items-center gap-4 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all duration-200 group disabled:opacity-60 disabled:cursor-wait"
           >
             <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors duration-200">
-              {isDownloading ? (
+              {isOpening ? (
                 <svg className="h-5 w-5 text-blue-600 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" opacity="0.25" />
                   <path d="M22 12a10 10 0 0 1-10 10" />
@@ -512,45 +404,11 @@ export default function KanbanDrawer({
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-medium text-gray-900">
-                {isDownloading ? "正在下载..." : "打开文件夹"}
+                {isOpening ? "正在打开..." : "打开文件夹"}
               </p>
-          <p className="text-xs text-gray-500">
-            {isDownloading
-              ? "文件将保存在您的下载目录"
-              : totalSizeMB !== null && totalSizeMB >= 50
-                ? `约 ${totalSizeMB.toFixed(1)} MB`
-                : "快速获取所有项目文件"}
-          </p>
-        </div>
-      </button>
-      <label
-        htmlFor="replaceQuickUpload"
-        className="mt-3 w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 group cursor-pointer"
-      >
-        <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors duration-200">
-          {isReplacing ? (
-            <Loader2 className="h-5 w-5 text-gray-600 animate-spin" />
-          ) : (
-            <Folder className="h-5 w-5 text-gray-600" />
-          )}
-        </div>
-        <div className="flex-1 text-left">
-          <p className="text-sm font-medium text-gray-900">替换文件夹</p>
-          <p className="text-xs text-gray-500">上传新的文件夹以替换</p>
-        </div>
-        <Input
-          id="replaceQuickUpload"
-          ref={quickReplaceInputRef}
-          type="file"
-          webkitdirectory=""
-          directory=""
-          className="hidden"
-          onChange={(e) => {
-            setReplaceFiles(e.target.files);
-            handleReplaceFolder(e.target.files);
-          }}
-        />
-      </label>
+              <p className="text-xs text-gray-500">直接在共享磁盘中查看任务文件</p>
+            </div>
+          </button>
     </div>
   </div>
 </aside>

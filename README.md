@@ -73,3 +73,40 @@ The project is split into two directories:
 The web UI is intentionally clean and minimal, inspired by Apple's design
 language. The Electron wrapper simply points to the same UI and enables access
 to local file operations.
+
+## SMB Network Share Setup
+
+CrystalPaint now stores all task files on a shared network disk. The web server
+and every Electron client must have access to this SMB share.
+
+### Windows server
+
+1. Create a folder that will hold all task data, e.g. `D:\CrystalData`.
+2. Right‑click the folder and choose **Properties → Sharing → Advanced Sharing**.
+3. Enable **Share this folder** and set a share name (for example `CrystalData`).
+4. Click **Permissions** and grant **Read/Write** access to the users that will
+   connect (or `Everyone` on a trusted local network).
+5. Note the UNC path of the share, e.g. `\\YOUR-SERVER\CrystalData`.
+6. Set the environment variable `SMB_ROOT` to this UNC path when starting the
+   Next.js server:
+
+   ```cmd
+   set SMB_ROOT=\\YOUR-SERVER\CrystalData
+   npm run build && npm run start
+   ```
+
+### Electron clients
+
+1. Make sure the same share is accessible from each workstation. You can map it
+   to a drive letter or access it directly via the UNC path.
+2. Set the environment variable `SMB_CLIENT_ROOT` to the UNC path before
+   launching the Electron app:
+
+   ```cmd
+   set SMB_CLIENT_ROOT=\\YOUR-SERVER\CrystalData
+   npm run start
+   ```
+
+When a task is created, files are uploaded to the shared disk. Opening a task
+simply launches the folder from the SMB location, so all edits are instantly
+visible to other clients.
