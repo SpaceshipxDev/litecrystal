@@ -479,7 +479,7 @@ export default function KanbanDrawer({
               />
             </label>
             <Button
-              onClick={handleReplaceFolder}
+              onClick={() => handleReplaceFolder()}
               disabled={!replaceFiles || replaceFiles.length === 0 || isReplacing}
               className="w-full h-9"
             >
