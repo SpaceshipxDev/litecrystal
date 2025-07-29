@@ -9,6 +9,7 @@ import {
   CalendarDays,
   MessageSquare,
   Folder,
+  Loader2,
   Pencil,
   Check,
   Trash2,
@@ -17,6 +18,7 @@ import {
   Hash,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 interface KanbanDrawerProps {
@@ -40,6 +42,7 @@ export default function KanbanDrawer({
 }: KanbanDrawerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReplacing, setIsReplacing] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [filesInfo, setFilesInfo] = useState<{
     filename: string;
@@ -59,6 +62,8 @@ export default function KanbanDrawer({
   });
 
   const customerInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replaceFiles, setReplaceFiles] = useState<FileList | null>(null);
 
   useEffect(() => {
     if (task) {
@@ -107,6 +112,41 @@ export default function KanbanDrawer({
       customerInputRef.current.focus();
     }
   }, [isEditMode]);
+
+  const getReplaceFolderName = (): string => {
+    if (!replaceFiles || replaceFiles.length === 0) return '选择文件夹';
+    const firstPath = (replaceFiles[0] as any).webkitRelativePath || '';
+    return firstPath.split('/')[0] || '已选文件夹';
+  };
+
+  const handleReplaceFolder = useCallback(async () => {
+    if (!task || !replaceFiles || replaceFiles.length === 0) return;
+    setIsReplacing(true);
+    try {
+      const formData = new FormData();
+      for (const file of Array.from(replaceFiles)) {
+        formData.append('files', file);
+        formData.append('paths', (file as any).webkitRelativePath);
+      }
+      formData.append('folderName', getReplaceFolderName());
+      const res = await fetch(`/api/jobs/${task.id}/replace`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const updated: Task = await res.json();
+        onTaskUpdated?.(updated);
+        setReplaceFiles(null);
+        if (replaceInputRef.current) replaceInputRef.current.value = '';
+      } else {
+        console.error('Replace folder failed');
+      }
+    } catch (err) {
+      console.error('Replace folder failed', err);
+    } finally {
+      setIsReplacing(false);
+    }
+  }, [task, replaceFiles, onTaskUpdated]);
 
   const handleSave = useCallback(async () => {
     if (!task) return;
@@ -398,20 +438,51 @@ export default function KanbanDrawer({
               <MessageSquare className="h-4 w-4 text-gray-400" />
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">备注</h3>
             </div>
-            {isEditMode ? (
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="添加备注..."
-                rows={4}
-                className="border-0 bg-white transition-all duration-200 rounded-lg resize-none"
+          {isEditMode ? (
+            <Textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="添加备注..."
+              rows={4}
+              className="border-0 bg-white transition-all duration-200 rounded-lg resize-none"
+            />
+          ) : (
+            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+              {formData.notes || "暂无备注"}
+            </p>
+          )}
+        </div>
+
+        {isEditMode && (
+          <div className="p-4 bg-gray-50 rounded-xl space-y-3">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">替换文件夹</h3>
+            <label
+              htmlFor="replaceUpload"
+              className="flex items-center gap-3 w-full rounded-lg bg-white hover:bg-gray-100 transition-colors cursor-pointer px-3 py-2.5"
+            >
+              <Folder className="w-4 h-4 text-gray-400" />
+              <span className="text-sm flex-1 truncate">
+                {getReplaceFolderName()}
+              </span>
+              <Input
+                id="replaceUpload"
+                ref={replaceInputRef}
+                type="file"
+                webkitdirectory=""
+                directory=""
+                className="hidden"
+                onChange={(e) => setReplaceFiles(e.target.files)}
               />
-            ) : (
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {formData.notes || "暂无备注"}
-              </p>
-            )}
+            </label>
+            <Button
+              onClick={handleReplaceFolder}
+              disabled={!replaceFiles || replaceFiles.length === 0 || isReplacing}
+              className="w-full h-9"
+            >
+              {isReplacing ? <Loader2 className="w-4 h-4 animate-spin" /> : '上传并替换'}
+            </Button>
           </div>
+        )}
 
           {totalSizeMB !== null && totalSizeMB >= 50 && !isDownloading && (
             <p className="text-center text-xs text-gray-500">
