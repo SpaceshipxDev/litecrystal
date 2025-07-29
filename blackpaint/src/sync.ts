@@ -264,9 +264,13 @@ export function startBidirectionalSync(taskId: string, localRoot: string) {
       await deleteDir(taskId, relPath);
     });
 
+  // Poll less aggressively to reduce server load when many clients are active.
+  // A small random jitter avoids every client hitting the server at once.
+  const SYNC_INTERVAL = 60000; // 60 seconds
+  const jitter = Math.floor(Math.random() * 5000); // up to 5s
   const interval = setInterval(
     () => pullFromServer(taskId, localRoot, pendingUploads),
-    10000,
+    SYNC_INTERVAL + jitter,
   );
   activeSyncs.set(taskId, { watcher, interval, pendingUploads, localRoot });
 }

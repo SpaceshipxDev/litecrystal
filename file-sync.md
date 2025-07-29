@@ -30,7 +30,7 @@ The project consists of two parts:
   - When a file is added or changed locally, it is uploaded via `POST /api/jobs/{taskId}/upload` with its relative path.
   - If a file is deleted locally, a request is sent to `POST /api/jobs/{taskId}/delete-file`.
 - **Server → Local**
-  - Every 10 seconds the client fetches `/api/jobs/{taskId}/files` to get the authoritative list of files with modification timestamps.
+  - Every 60 seconds (with a small random jitter) the client fetches `/api/jobs/{taskId}/files` to get the authoritative list of files with modification timestamps.
   - New or updated files are downloaded and written to the local folder.
   - Files that were removed on the server are also removed locally.
 
