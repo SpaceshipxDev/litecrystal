@@ -11,7 +11,7 @@ import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
 import { readBoardData, updateBoardData } from "@/lib/boardDataStore";
 import { invalidateFilesCache } from "@/lib/filesCache";
-import { STORAGE_ROOT, TASKS_STORAGE_DIR } from "@/lib/storagePaths";
+import { STORAGE_ROOT, TASKS_STORAGE_DIR, TASKS_DIR_NAME } from "@/lib/storagePaths";
 
 // --- Path Definitions ---
 // Files are stored on a shared network disk. Configure the root path with the
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
       ynmxId: ynmxId.trim() || undefined,
       // Store the relative path inside the SMB share so clients can resolve it
       // using their own mounted location.
-      taskFolderPath: `tasks/${taskId}`,
+      taskFolderPath: `${TASKS_DIR_NAME}/${taskId}`,
       files: [folderName],
     };
 

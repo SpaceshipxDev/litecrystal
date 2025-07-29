@@ -1,7 +1,7 @@
 # Slow Download When Opening Job Folder
 
 ## Architecture Overview
-- **taintedpaint** serves the Next.js UI and API. Task files are stored under `storage/tasks/{taskId}` and listed via `/api/jobs/[taskId]/files`.
+- **taintedpaint** serves the Next.js UI and API. Task files are stored under `storage/项目/{taskId}` and listed via `/api/jobs/[taskId]/files`.
 - **blackpaint** is the Electron wrapper (Estara). The Kanban drawer invokes `downloadAndOpenTaskFolder` which downloads each listed file and then starts bidirectional sync.
 
 ## Problem

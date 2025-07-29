@@ -1,7 +1,7 @@
 # Download Fails with Invalid URL Error
 
 ## Architecture Overview
-- **taintedpaint** hosts the Next.js API routes and serves uploaded files from `storage/tasks/{taskId}`.
+- **taintedpaint** hosts the Next.js API routes and serves uploaded files from `storage/项目/{taskId}`.
 - **blackpaint** is the Electron client (Estara). The Kanban drawer calls `downloadAndOpenTaskFolder` which retrieves `/api/jobs/{taskId}/files`, downloads each entry and starts sync.
 
 ## Problem

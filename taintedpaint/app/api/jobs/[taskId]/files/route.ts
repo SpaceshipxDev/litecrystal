@@ -43,7 +43,7 @@ async function getFilesRecursively(directory: string, basePath: string, baseUrl:
       const urlPathParts = relativePath.split(path.sep).map(part => encodeURIComponent(part));
       const encodedRelativePath = urlPathParts.join('/');
       
-      const url = `${baseUrl}/storage/tasks/${path.basename(basePath)}/${encodedRelativePath}`;
+      const url = `${baseUrl}/storage/项目/${path.basename(basePath)}/${encodedRelativePath}`;
 
       fileList.push({
         filename: entry.name,
