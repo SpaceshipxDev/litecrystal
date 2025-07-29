@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import type { Task, Column, BoardData } from "@/types"
+import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/types"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
@@ -47,12 +47,14 @@ const ColumnSkeleton = ({ title }: { title: string }) => (
 export default function KanbanBoard() {
   const restricted = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('restricted') === '1'
 
-  const [tasks, setTasks] = useState<Record<string, Task>>({})
+  const [tasks, setTasks] = useState<Record<string, TaskSummary & Partial<Task>>>(
+    {},
+  )
   const [columns, setColumns] = useState<Column[]>(baseColumns)
   const [viewMode, setViewMode] = useState<'business' | 'production'>(
     restricted ? 'production' : 'business',
   )
-  const [draggedTask, setDraggedTask] = useState<Task | null>(null)
+  const [draggedTask, setDraggedTask] = useState<(TaskSummary & Partial<Task>) | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -174,7 +176,7 @@ export default function KanbanBoard() {
     return `YNMX-${today}-${random}`
   }, [])
 
-  const getTaskDisplayName = (task: Task) => {
+  const getTaskDisplayName = (task: TaskSummary) => {
     if (viewMode === 'production') {
       return task.ynmxId || `${task.customerName} - ${task.representative}`
     }
@@ -182,7 +184,7 @@ export default function KanbanBoard() {
   }
 
   const sortTaskIds = useCallback(
-    (ids: string[], taskMap: Record<string, Task>) => {
+    (ids: string[], taskMap: Record<string, TaskSummary>) => {
       return [...ids].sort((a, b) => {
         const ta = taskMap[a]
         const tb = taskMap[b]
@@ -200,7 +202,7 @@ export default function KanbanBoard() {
   )
 
   const sortColumnsData = useCallback(
-    (cols: Column[], taskMap: Record<string, Task>) => {
+    (cols: Column[], taskMap: Record<string, TaskSummary>) => {
       return cols.map((c) => ({
         ...c,
         taskIds: sortTaskIds(c.taskIds, taskMap),
@@ -230,7 +232,7 @@ export default function KanbanBoard() {
           body: JSON.stringify(board),
         })
       }
-      await fetchBoard(true)
+      await fetchBoardFull(true)
     } catch (err) {
       console.error('保存看板失败', err)
     } finally {
@@ -238,7 +240,34 @@ export default function KanbanBoard() {
     }
   }
 
-  const fetchBoard = useCallback(async (force = false) => {
+  const fetchBoardSummary = useCallback(async (force = false) => {
+    if (isSavingRef.current && !force) return
+    try {
+      const res = await fetch("/api/jobs?summary=1")
+      if (res.ok) {
+        const data: BoardSummaryData = await res.json()
+        const tasksData = data.tasks || {}
+        let merged = mergeWithSkeleton(data.columns || [])
+        const colIds = new Set(merged.map(c => c.id))
+        const startCol = merged.find(c => c.id === START_COLUMN_ID) || merged[0]
+        for (const [id, t] of Object.entries(tasksData)) {
+          if (!colIds.has(t.columnId)) {
+            t.columnId = START_COLUMN_ID
+            if (!startCol.taskIds.includes(id)) startCol.taskIds.push(id)
+          }
+        }
+        setTasks(tasksData)
+        merged = sortColumnsData(merged, tasksData)
+        setColumns(merged)
+      }
+    } catch (e) {
+      console.warn("metadata.json 不存在或无效，已重置")
+      setTasks({})
+      setColumns(baseColumns)
+    }
+  }, [])
+
+  const fetchBoardFull = useCallback(async (force = false) => {
     if (isSavingRef.current && !force) return
     try {
       const res = await fetch("/api/jobs")
@@ -269,17 +298,18 @@ export default function KanbanBoard() {
     setIsRefreshing(true)
     // Add a minimum delay to show the skeleton UI
     await Promise.all([
-      fetchBoard(true),
+      fetchBoardSummary(true).then(() => fetchBoardFull(true)),
       new Promise(resolve => setTimeout(resolve, 500))
     ])
     setIsRefreshing(false)
   }
 
   useEffect(() => {
-    fetchBoard()
-    const interval = setInterval(fetchBoard, 10000)
+    fetchBoardSummary()
+    fetchBoardFull()
+    const interval = setInterval(fetchBoardFull, 10000)
     return () => clearInterval(interval)
-  }, [fetchBoard])
+  }, [fetchBoardSummary, fetchBoardFull])
 
   const handleTaskUpdated = useCallback((updatedTask: Task) => {
     setTasks(prev => {
@@ -308,12 +338,12 @@ export default function KanbanBoard() {
       })
       setSelectedTask(null)
       setIsDrawerOpen(false)
-      await fetchBoard(true)
+      await fetchBoardFull()
     },
-    [fetchBoard]
+    [fetchBoardFull]
   )
 
-  const handleDragStart = (e: React.DragEvent, task: Task) => {
+  const handleDragStart = (e: React.DragEvent, task: TaskSummary) => {
     setDraggedTask(task)
     setHighlightTaskId(task.id)
     // Make the drag image semi-transparent
@@ -450,12 +480,22 @@ export default function KanbanBoard() {
     })
   }
 
-  const handleTaskClick = (task: Task, e: React.MouseEvent) => {
+  const handleTaskClick = async (task: Task, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     const column = columns.find((c) => c.id === task.columnId)
     setSelectedTaskColumnTitle(column ? column.title : null)
-    setSelectedTask(task)
+    try {
+      const res = await fetch(`/api/jobs/${task.id}`)
+      if (res.ok) {
+        const full: Task = await res.json()
+        setSelectedTask(full)
+      } else {
+        setSelectedTask(task)
+      }
+    } catch {
+      setSelectedTask(task)
+    }
     setIsDrawerOpen(true)
   }
 

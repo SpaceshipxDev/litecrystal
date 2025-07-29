@@ -19,9 +19,30 @@ const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, "tasks");
 
 // Legacy helper removed in favour of boardDataStore
 
-// GET: Returns the entire board data object (no changes)
-export async function GET() {
+// GET: Returns the board data. If `?summary=1` is passed only lightweight
+// task information is returned.
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const summary = url.searchParams.get('summary') === '1';
   const boardData = await readBoardData();
+  if (summary) {
+    const tasksSummary = Object.fromEntries(
+      Object.entries(boardData.tasks).map(([id, t]) => [
+        id,
+        {
+          id: t.id,
+          columnId: t.columnId,
+          customerName: t.customerName,
+          representative: t.representative,
+          inquiryDate: t.inquiryDate,
+          deliveryDate: t.deliveryDate,
+          notes: t.notes,
+          ynmxId: t.ynmxId,
+        },
+      ])
+    );
+    return NextResponse.json({ tasks: tasksSummary, columns: boardData.columns });
+  }
   return NextResponse.json(boardData);
 }
 

@@ -14,6 +14,18 @@ export interface Task {
   ynmxId?: string; // ID assigned when moving to approval
 }
 
+// A lightweight version used for the Kanban overview
+export interface TaskSummary {
+  id: string;
+  columnId: string;
+  customerName: string;
+  representative: string;
+  inquiryDate: string;
+  deliveryDate?: string;
+  notes: string;
+  ynmxId?: string;
+}
+
 export interface Column {
   id: string;
   title: string;
@@ -23,5 +35,11 @@ export interface Column {
 // NEW: A type for the entire board data
 export interface BoardData {
   tasks: Record<string, Task>;
+  columns: Column[];
+}
+
+// Returned by the /api/jobs?summary=1 endpoint
+export interface BoardSummaryData {
+  tasks: Record<string, TaskSummary>;
   columns: Column[];
 }
