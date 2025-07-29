@@ -4,6 +4,7 @@ import path from "path";
 import type { BoardData } from "@/types";
 import { updateBoardData } from "@/lib/boardDataStore";
 import { sanitizeRelativePath } from "@/lib/pathUtils.mjs";
+import { invalidateFilesCache } from "@/lib/filesCache";
 
 // --- Path Definitions ---
 // Root-level storage directory keeps dynamic data outside of Next.js public
@@ -60,6 +61,8 @@ export async function POST(
 
       updatedTask = taskToUpdate;
     });
+
+    invalidateFilesCache(taskId);
 
     return NextResponse.json(updatedTask);
 

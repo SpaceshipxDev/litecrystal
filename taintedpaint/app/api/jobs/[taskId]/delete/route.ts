@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { updateBoardData } from '@/lib/boardDataStore';
+import { invalidateFilesCache } from '@/lib/filesCache';
 
 const STORAGE_DIR = path.join(process.cwd(), '..', 'storage');
 const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, 'tasks');
@@ -26,6 +27,8 @@ export async function POST(
         if (idx !== -1) col.taskIds.splice(idx, 1);
       }
     });
+
+    invalidateFilesCache(taskId);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { sanitizeRelativePath } from '@/lib/pathUtils.mjs'
+import { invalidateFilesCache } from '@/lib/filesCache'
 
 // Use storage directory at the repository root
 const TASKS_STORAGE_DIR = path.join(process.cwd(), '..', 'storage', 'tasks')
@@ -27,6 +28,7 @@ export async function POST(
 
     const dirPath = path.join(TASKS_STORAGE_DIR, taskId, safeRel)
     await fs.mkdir(dirPath, { recursive: true })
+    invalidateFilesCache(taskId)
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('create-dir error', err)
