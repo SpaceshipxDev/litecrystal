@@ -63,6 +63,7 @@ export default function KanbanDrawer({
 
   const customerInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
+  const quickReplaceInputRef = useRef<HTMLInputElement>(null);
   const [replaceFiles, setReplaceFiles] = useState<FileList | null>(null);
 
   useEffect(() => {
@@ -113,22 +114,24 @@ export default function KanbanDrawer({
     }
   }, [isEditMode]);
 
-  const getReplaceFolderName = (): string => {
-    if (!replaceFiles || replaceFiles.length === 0) return '选择文件夹';
-    const firstPath = (replaceFiles[0] as any).webkitRelativePath || '';
+  const getReplaceFolderName = (files?: FileList | null): string => {
+    const list = files ?? replaceFiles;
+    if (!list || list.length === 0) return '选择文件夹';
+    const firstPath = (list[0] as any).webkitRelativePath || '';
     return firstPath.split('/')[0] || '已选文件夹';
   };
 
-  const handleReplaceFolder = useCallback(async () => {
-    if (!task || !replaceFiles || replaceFiles.length === 0) return;
+  const handleReplaceFolder = useCallback(async (filesParam?: FileList | null) => {
+    const filesToUse = filesParam ?? replaceFiles;
+    if (!task || !filesToUse || filesToUse.length === 0) return;
     setIsReplacing(true);
     try {
       const formData = new FormData();
-      for (const file of Array.from(replaceFiles)) {
+      for (const file of Array.from(filesToUse)) {
         formData.append('files', file);
         formData.append('paths', (file as any).webkitRelativePath);
       }
-      formData.append('folderName', getReplaceFolderName());
+      formData.append('folderName', getReplaceFolderName(filesToUse));
       const res = await fetch(`/api/jobs/${task.id}/replace`, {
         method: 'POST',
         body: formData,
@@ -138,6 +141,7 @@ export default function KanbanDrawer({
         onTaskUpdated?.(updated);
         setReplaceFiles(null);
         if (replaceInputRef.current) replaceInputRef.current.value = '';
+        if (quickReplaceInputRef.current) quickReplaceInputRef.current.value = '';
       } else {
         console.error('Replace folder failed');
       }
@@ -510,17 +514,45 @@ export default function KanbanDrawer({
               <p className="text-sm font-medium text-gray-900">
                 {isDownloading ? "正在下载..." : "打开文件夹"}
               </p>
-              <p className="text-xs text-gray-500">
-                {isDownloading
-                  ? "文件将保存在您的下载目录"
-                  : totalSizeMB !== null && totalSizeMB >= 50
-                    ? `约 ${totalSizeMB.toFixed(1)} MB`
-                    : "快速获取所有项目文件"}
-              </p>
-            </div>
-          </button>
+          <p className="text-xs text-gray-500">
+            {isDownloading
+              ? "文件将保存在您的下载目录"
+              : totalSizeMB !== null && totalSizeMB >= 50
+                ? `约 ${totalSizeMB.toFixed(1)} MB`
+                : "快速获取所有项目文件"}
+          </p>
         </div>
-      </div>
-    </aside>
+      </button>
+      <label
+        htmlFor="replaceQuickUpload"
+        className="mt-3 w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 group cursor-pointer"
+      >
+        <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors duration-200">
+          {isReplacing ? (
+            <Loader2 className="h-5 w-5 text-gray-600 animate-spin" />
+          ) : (
+            <Folder className="h-5 w-5 text-gray-600" />
+          )}
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-medium text-gray-900">替换文件夹</p>
+          <p className="text-xs text-gray-500">上传新的文件夹以替换</p>
+        </div>
+        <Input
+          id="replaceQuickUpload"
+          ref={quickReplaceInputRef}
+          type="file"
+          webkitdirectory=""
+          directory=""
+          className="hidden"
+          onChange={(e) => {
+            setReplaceFiles(e.target.files);
+            handleReplaceFolder(e.target.files);
+          }}
+        />
+      </label>
+    </div>
+  </div>
+</aside>
   );
 }
