@@ -1,7 +1,7 @@
 # EBUSY Error When Reopening Downloaded Job
 
 ## Architecture Overview
-- **taintedpaint** is the Next.js server and web UI. Task files live under `storage/tasks/{taskId}`.
+- **taintedpaint** is the Next.js server and web UI. Task files live under `storage/项目/{taskId}`.
 - **blackpaint (Estara)** downloads a task's files to `C:\EstaraSync/<Folder>` on Windows (or `~/Desktop/Estara 数据/<Folder>` on other platforms) and starts `startBidirectionalSync` from `blackpaint/src/sync.ts`.
 
 ## What Happened

@@ -1,7 +1,7 @@
 # Folder from Another Job Appears Inside a Task
 
 ## Architecture Recap
-- **taintedpaint** (Next.js web UI & API) stores uploaded job files under `storage/tasks/{taskId}`. Metadata about tasks lives in `storage/metadata.json`.
+- **taintedpaint** (Next.js web UI & API) stores uploaded job files under `storage/项目/{taskId}`. Metadata about tasks lives in `storage/metadata.json`.
 - **blackpaint** (Electron client "Estara") downloads a job's files to the user's `Downloads/{folderName}` and runs `startBidirectionalSync` from `blackpaint/src/sync.ts` to keep local and remote files in sync.
 
 ## Problem
