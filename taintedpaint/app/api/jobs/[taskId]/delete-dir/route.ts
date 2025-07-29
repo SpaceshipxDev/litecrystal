@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { sanitizeRelativePath } from '@/lib/pathUtils.mjs'
+import { invalidateFilesCache } from '@/lib/filesCache'
 
 // Use storage directory at the repository root
 const TASKS_STORAGE_DIR = path.join(process.cwd(), '..', 'storage', 'tasks')
@@ -31,6 +32,7 @@ export async function POST(
     } catch (err: any) {
       if (err.code !== 'ENOENT') throw err
     }
+    invalidateFilesCache(taskId)
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('delete-dir error', err)

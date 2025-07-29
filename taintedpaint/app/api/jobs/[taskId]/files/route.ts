@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { getCachedFiles, setCachedFiles } from "@/lib/filesCache";
 
 // Serve files from the root-level storage directory
 const TASKS_STORAGE_DIR = path.join(process.cwd(), "..", "storage", "tasks");
@@ -70,6 +71,11 @@ export async function GET(
   try {
     const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
 
+    const cached = getCachedFiles(taskId);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const urlFromRequest = new URL(req.url);
     const host = req.headers.get('host');
     const baseUrl = host
@@ -81,6 +87,8 @@ export async function GET(
       taskDirectoryPath,
       baseUrl
     );
+
+    setCachedFiles(taskId, files);
 
     return NextResponse.json(files);
   } catch (err: any) {

@@ -6,6 +6,7 @@ import path from "path";
 import type { BoardData } from "@/types";
 import { updateBoardData } from "@/lib/boardDataStore";
 import { sanitizeRelativePath } from "@/lib/pathUtils.mjs";
+import { invalidateFilesCache } from "@/lib/filesCache";
 
 // Root-level storage directory keeps dynamic data accessible in production
 const STORAGE_DIR = path.join(process.cwd(), "..", "storage");
@@ -82,6 +83,8 @@ export async function POST(
       }
       updatedTask = taskToUpdate;
     });
+
+    invalidateFilesCache(taskId);
 
     return NextResponse.json(updatedTask);
   } catch (err) {
