@@ -3,9 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { updateBoardData } from '@/lib/boardDataStore';
 import { invalidateFilesCache } from '@/lib/filesCache';
-
-const STORAGE_DIR = path.join(process.cwd(), '..', 'storage');
-const TASKS_STORAGE_DIR = path.join(STORAGE_DIR, 'tasks');
+import { TASKS_STORAGE_DIR } from '@/lib/storagePaths';
 
 export async function POST(
   _req: NextRequest,

@@ -1,12 +1,13 @@
 import { mkdirSync } from 'fs'
 import path from 'path'
+import { STORAGE_ROOT } from './storagePaths'
 import Database from 'better-sqlite3'
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from './baseColumns'
 import type { BoardData } from '@/types'
 
 // Store dynamic data outside of the public directory so it remains
 // accessible when running `npm run build && npm run start`.
-const STORAGE_DIR = path.join(process.cwd(), '..', 'storage')
+const STORAGE_DIR = STORAGE_ROOT
 const DB_PATH = path.join(STORAGE_DIR, 'board.sqlite')
 
 mkdirSync(STORAGE_DIR, { recursive: true })
