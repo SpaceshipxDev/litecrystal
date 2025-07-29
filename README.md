@@ -18,7 +18,7 @@ npm install
 npm run dev
 ```
 
-By default the web app runs on `http://localhost:3000`. Set `NEXT_PUBLIC_APP_URL` in the environment if the Electron app should point elsewhere.
+By default the web app runs on `http://localhost:3001`. Set `NEXT_PUBLIC_APP_URL` in the environment if the Electron app should point elsewhere.
 
 ## Building Electron Apps
 
