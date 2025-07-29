@@ -68,33 +68,6 @@ export default function KanbanDrawer({
     setIsEditMode(false);
   }, [task]);
 
-  // Fetch file list and total size when a task is loaded
-  useEffect(() => {
-    if (!task) {
-      setFilesInfo(null);
-      setTotalSizeMB(null);
-      return;
-    }
-    (async () => {
-      try {
-        const res = await fetch(`/api/jobs/${task.id}/files`);
-        if (!res.ok) throw new Error("无法获取文件列表");
-        const files: {
-          filename: string;
-          url: string;
-          relativePath: string;
-          sizeBytes: number;
-        }[] = await res.json();
-        setFilesInfo(files);
-        const total = files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
-        setTotalSizeMB(total / (1024 * 1024));
-      } catch (err) {
-        console.error("Failed to fetch file list", err);
-        setFilesInfo(null);
-        setTotalSizeMB(null);
-      }
-    })();
-  }, [task]);
 
   useEffect(() => {
     if (isEditMode && customerInputRef.current) {
