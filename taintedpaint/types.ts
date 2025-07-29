@@ -9,8 +9,8 @@ export interface Task {
   /** Required delivery date, editable in the Kanban drawer */
   deliveryDate?: string;
   notes: string;
-  taskFolderPath: string;
-  files: string[];
+  taskFolderPath?: string;
+  files?: string[];
   ynmxId?: string; // ID assigned when moving to approval
 }
 
