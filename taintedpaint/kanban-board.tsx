@@ -92,7 +92,9 @@ export default function KanbanBoard() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchStartDateInputRef = useRef<HTMLInputElement>(null)
   const searchEndDateInputRef = useRef<HTMLInputElement>(null)
-  const openSearchDatePicker = (ref: React.RefObject<HTMLInputElement>) => {
+  const openSearchDatePicker = (
+    ref: React.RefObject<HTMLInputElement | null>,
+  ) => {
     const input = ref.current
     if (!input) return
     if ((input as any).showPicker) {
