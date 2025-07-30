@@ -5,7 +5,7 @@ import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/t
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw, Move } from "lucide-react"
+import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw, Move, CalendarDays } from "lucide-react"
 import Link from "next/link"
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
@@ -58,6 +58,7 @@ export default function KanbanBoard() {
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [searchDate, setSearchDate] = useState("")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [selectedSearchResult, setSelectedSearchResult] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -88,22 +89,39 @@ export default function KanbanBoard() {
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchDateInputRef = useRef<HTMLInputElement>(null)
+  const openSearchDatePicker = () => {
+    const input = searchDateInputRef.current
+    if (!input) return
+    if ((input as any).showPicker) {
+      (input as any).showPicker()
+    } else {
+      input.focus()
+      input.click()
+    }
+  }
   const isSavingRef = useRef(false)
   const pendingBoardRef = useRef<BoardData | null>(null)
 
   // Search functionality
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return []
+    const hasQuery = searchQuery.trim() !== ''
+    const hasDate = searchDate.trim() !== ''
+    if (!hasQuery && !hasDate) return []
 
     const query = searchQuery.toLowerCase()
-    return Object.values(tasks).filter(task => {
-      const searchableText = `${task.customerName} ${task.representative} ${task.ynmxId || ''} ${task.notes || ''}`.toLowerCase()
-      return searchableText.includes(query)
-    }).map(task => {
-      const column = columns.find(col => col.id === task.columnId)
-      return { task, column }
-    })
-  }, [tasks, columns, searchQuery])
+    return Object.values(tasks)
+      .filter(task => {
+        const text = `${task.customerName} ${task.representative} ${task.ynmxId || ''} ${task.notes || ''}`.toLowerCase()
+        const matchesQuery = hasQuery ? text.includes(query) : true
+        const matchesDate = hasDate ? task.deliveryDate === searchDate : true
+        return matchesQuery && matchesDate
+      })
+      .map(task => {
+        const column = columns.find(col => col.id === task.columnId)
+        return { task, column }
+      })
+  }, [tasks, columns, searchQuery, searchDate])
 
   const handleSearchResultClick = (taskId: string) => {
     setSelectedSearchResult(taskId)
@@ -145,6 +163,7 @@ export default function KanbanBoard() {
       if (e.key === 'Escape' && isSearchOpen) {
         setIsSearchOpen(false)
         setSearchQuery("")
+        setSearchDate("")
         setSelectedSearchResult(null)
       }
     }
@@ -601,6 +620,7 @@ export default function KanbanBoard() {
                 onClick={() => {
                   setIsSearchOpen(false)
                   setSearchQuery("")
+                  setSearchDate("")
                   setSelectedSearchResult(null)
                 }}
                 className="p-1 hover:bg-gray-100 rounded-md transition-colors"
@@ -616,11 +636,28 @@ export default function KanbanBoard() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+            <div className="relative mt-3">
+              <input
+                readOnly
+                placeholder="按交期筛选"
+                value={searchDate}
+                onClick={openSearchDatePicker}
+                className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg pr-9 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <CalendarDays className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                ref={searchDateInputRef}
+                type="date"
+                value={searchDate}
+                onChange={(e) => setSearchDate(e.target.value)}
+                className="sr-only"
+              />
+            </div>
             <p className="mt-2 text-xs text-gray-400">如：海康 徐鹏</p>
           </div>
           
           <div className="overflow-y-auto h-[calc(100%-88px)]">
-            {searchQuery && searchResults.length === 0 && (
+            {(searchQuery || searchDate) && searchResults.length === 0 && (
               <div className="p-8 text-center text-sm text-gray-500">
                 没有找到相关任务
               </div>
