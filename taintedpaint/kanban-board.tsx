@@ -73,6 +73,7 @@ export default function KanbanBoard() {
     program: 'bg-indigo-500',
     operate: 'bg-cyan-500',
     manual: 'bg-pink-500',
+    batch: 'bg-fuchsia-500',
     surface: 'bg-rose-500',
     inspect: 'bg-lime-500',
     ship: 'bg-green-500',
@@ -509,7 +510,7 @@ export default function KanbanBoard() {
 
   const visibleColumns = useMemo(() => {
     if (viewMode === 'production') {
-      return columns.filter(c => ['approval', 'outsourcing', 'daohe', 'program', 'operate', 'manual', 'surface', 'inspect', 'ship', 'archive2'].includes(c.id))
+      return columns.filter(c => ['approval', 'outsourcing', 'daohe', 'program', 'operate', 'manual', 'batch', 'surface', 'inspect', 'ship', 'archive2'].includes(c.id))
     }
     return columns
   }, [viewMode, columns])
