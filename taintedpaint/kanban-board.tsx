@@ -58,7 +58,8 @@ export default function KanbanBoard() {
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [searchDate, setSearchDate] = useState("")
+  const [searchStartDate, setSearchStartDate] = useState("")
+  const [searchEndDate, setSearchEndDate] = useState("")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [selectedSearchResult, setSelectedSearchResult] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -89,9 +90,10 @@ export default function KanbanBoard() {
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const searchDateInputRef = useRef<HTMLInputElement>(null)
-  const openSearchDatePicker = () => {
-    const input = searchDateInputRef.current
+  const searchStartDateInputRef = useRef<HTMLInputElement>(null)
+  const searchEndDateInputRef = useRef<HTMLInputElement>(null)
+  const openSearchDatePicker = (ref: React.RefObject<HTMLInputElement>) => {
+    const input = ref.current
     if (!input) return
     if ((input as any).showPicker) {
       (input as any).showPicker()
@@ -106,22 +108,30 @@ export default function KanbanBoard() {
   // Search functionality
   const searchResults = useMemo(() => {
     const hasQuery = searchQuery.trim() !== ''
-    const hasDate = searchDate.trim() !== ''
-    if (!hasQuery && !hasDate) return []
+    const hasStart = searchStartDate.trim() !== ''
+    const hasEnd = searchEndDate.trim() !== ''
+    if (!hasQuery && !hasStart && !hasEnd) return []
 
     const query = searchQuery.toLowerCase()
     return Object.values(tasks)
       .filter(task => {
         const text = `${task.customerName} ${task.representative} ${task.ynmxId || ''} ${task.notes || ''}`.toLowerCase()
         const matchesQuery = hasQuery ? text.includes(query) : true
-        const matchesDate = hasDate ? task.deliveryDate === searchDate : true
+        let matchesDate = true
+        if (hasStart && hasEnd) {
+          matchesDate = (task.deliveryDate || '') >= searchStartDate && (task.deliveryDate || '') <= searchEndDate
+        } else if (hasStart) {
+          matchesDate = (task.deliveryDate || '') >= searchStartDate
+        } else if (hasEnd) {
+          matchesDate = (task.deliveryDate || '') <= searchEndDate
+        }
         return matchesQuery && matchesDate
       })
       .map(task => {
         const column = columns.find(col => col.id === task.columnId)
         return { task, column }
       })
-  }, [tasks, columns, searchQuery, searchDate])
+  }, [tasks, columns, searchQuery, searchStartDate, searchEndDate])
 
   const handleSearchResultClick = (taskId: string) => {
     setSelectedSearchResult(taskId)
@@ -163,7 +173,8 @@ export default function KanbanBoard() {
       if (e.key === 'Escape' && isSearchOpen) {
         setIsSearchOpen(false)
         setSearchQuery("")
-        setSearchDate("")
+        setSearchStartDate("")
+        setSearchEndDate("")
         setSelectedSearchResult(null)
       }
     }
@@ -620,7 +631,8 @@ export default function KanbanBoard() {
                 onClick={() => {
                   setIsSearchOpen(false)
                   setSearchQuery("")
-                  setSearchDate("")
+                  setSearchStartDate("")
+                  setSearchEndDate("")
                   setSelectedSearchResult(null)
                 }}
                 className="p-1 hover:bg-gray-100 rounded-md transition-colors"
@@ -636,28 +648,47 @@ export default function KanbanBoard() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            <div className="relative mt-3">
-              <input
-                readOnly
-                placeholder="按交期筛选"
-                value={searchDate}
-                onClick={openSearchDatePicker}
-                className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg pr-9 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <CalendarDays className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              <input
-                ref={searchDateInputRef}
-                type="date"
-                value={searchDate}
-                onChange={(e) => setSearchDate(e.target.value)}
-                className="sr-only"
-              />
+            <div className="flex gap-2 mt-3">
+              <div className="relative flex-1">
+                <input
+                  readOnly
+                  placeholder="开始交期"
+                  value={searchStartDate}
+                  onClick={() => openSearchDatePicker(searchStartDateInputRef)}
+                  className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg pr-9 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <CalendarDays className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  ref={searchStartDateInputRef}
+                  type="date"
+                  value={searchStartDate}
+                  onChange={(e) => setSearchStartDate(e.target.value)}
+                  className="sr-only"
+                />
+              </div>
+              <div className="relative flex-1">
+                <input
+                  readOnly
+                  placeholder="结束交期"
+                  value={searchEndDate}
+                  onClick={() => openSearchDatePicker(searchEndDateInputRef)}
+                  className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg pr-9 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <CalendarDays className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  ref={searchEndDateInputRef}
+                  type="date"
+                  value={searchEndDate}
+                  onChange={(e) => setSearchEndDate(e.target.value)}
+                  className="sr-only"
+                />
+              </div>
             </div>
             <p className="mt-2 text-xs text-gray-400">如：海康 徐鹏</p>
           </div>
           
           <div className="overflow-y-auto h-[calc(100%-88px)]">
-            {(searchQuery || searchDate) && searchResults.length === 0 && (
+            {(searchQuery || searchStartDate || searchEndDate) && searchResults.length === 0 && (
               <div className="p-8 text-center text-sm text-gray-500">
                 没有找到相关任务
               </div>
