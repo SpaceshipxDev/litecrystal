@@ -862,7 +862,12 @@ export default function KanbanBoard() {
                                 
                                 <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
                                   {task.deliveryDate ? (
-                                    <span>交期: {task.deliveryDate}</span>
+                                    <span className="flex items-center gap-1">
+                                      交期: {task.deliveryDate}
+                                      {task.deliveryDate < new Date().toISOString().slice(0, 10) && (
+                                        <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">逾期</span>
+                                      )}
+                                    </span>
                                   ) : (
                                     <span>询价: {task.inquiryDate}</span>
                                   )}
