@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
           deliveryDate: t.deliveryDate,
           notes: t.notes,
           ynmxId: t.ynmxId,
+          deliveryNoteGenerated: t.deliveryNoteGenerated,
         },
       ])
     );
@@ -154,6 +155,7 @@ export async function POST(req: NextRequest) {
       // using their own mounted location.
       taskFolderPath: `${TASKS_DIR_NAME}/${taskId}`,
       files: [folderName],
+      deliveryNoteGenerated: false,
     };
 
     await updateBoardData(async (boardData) => {

@@ -245,6 +245,11 @@ export default function KanbanDrawer({
                     {columnTitle}
                   </span>
                 )}
+                {task?.deliveryNoteGenerated && (
+                  <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                    出货单已生成
+                  </span>
+                )}
               </div>
             </>
           )}
