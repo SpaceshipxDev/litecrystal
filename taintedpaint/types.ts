@@ -12,6 +12,7 @@ export interface Task {
   taskFolderPath?: string;
   files?: string[];
   ynmxId?: string; // ID assigned when moving to approval
+  deliveryNoteGenerated?: boolean;
 }
 
 // A lightweight version used for the Kanban overview
@@ -24,6 +25,7 @@ export interface TaskSummary {
   deliveryDate?: string;
   notes: string;
   ynmxId?: string;
+  deliveryNoteGenerated?: boolean;
 }
 
 export interface Column {

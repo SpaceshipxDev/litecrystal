@@ -449,9 +449,25 @@ export default function KanbanBoard() {
       return
     }
 
-    let updatedTask: Task = { ...draggedTask, columnId: targetColumnId }
+    let updatedTask: Task = {
+      ...draggedTask,
+      columnId: targetColumnId,
+      deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
+    }
     if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
       updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() }
+    }
+    if (targetColumnId === 'ship') {
+      try {
+        const res = await fetch(`/api/jobs/${draggedTask.id}/delivery-note`, {
+          method: 'POST',
+        })
+        if (res.ok) {
+          updatedTask.deliveryNoteGenerated = true
+        }
+      } catch (err) {
+        console.error('生成出货单失败', err)
+      }
     }
 
     const nextTasks = {
