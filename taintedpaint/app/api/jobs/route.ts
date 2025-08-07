@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
         {
           id: t.id,
           columnId: t.columnId,
+          previousColumnId: t.previousColumnId,
           customerName: t.customerName,
           representative: t.representative,
           inquiryDate: t.inquiryDate,
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
           notes: t.notes,
           ynmxId: t.ynmxId,
           deliveryNoteGenerated: t.deliveryNoteGenerated,
+          awaitingAcceptance: t.awaitingAcceptance,
         },
       ])
     );
@@ -156,6 +158,7 @@ export async function POST(req: NextRequest) {
       taskFolderPath: `${TASKS_DIR_NAME}/${taskId}`,
       files: [folderName],
       deliveryNoteGenerated: false,
+      awaitingAcceptance: false,
     };
 
     await updateBoardData(async (boardData) => {
