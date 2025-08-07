@@ -13,6 +13,8 @@ export interface Task {
   files?: string[];
   ynmxId?: string; // ID assigned when moving to approval
   deliveryNoteGenerated?: boolean;
+  awaitingAcceptance?: boolean;
+  previousColumnId?: string;
 }
 
 // A lightweight version used for the Kanban overview
@@ -26,6 +28,8 @@ export interface TaskSummary {
   notes: string;
   ynmxId?: string;
   deliveryNoteGenerated?: boolean;
+  awaitingAcceptance?: boolean;
+  previousColumnId?: string;
 }
 
 export interface Column {
