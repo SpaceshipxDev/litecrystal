@@ -5,7 +5,7 @@ import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/t
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check } from "lucide-react"
+import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check, Plus } from "lucide-react"
 import Link from "next/link"
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
@@ -64,6 +64,7 @@ export default function KanbanBoard() {
   const [selectedSearchResult, setSelectedSearchResult] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [openPending, setOpenPending] = useState<Record<string, boolean>>({})
+  const [addingColumnId, setAddingColumnId] = useState<string | null>(null)
 
   const columnColors: Record<string, string> = {
     create: 'bg-blue-500',
@@ -137,7 +138,32 @@ export default function KanbanBoard() {
       })
   }, [tasks, columns, searchQuery, searchStartDate, searchEndDate])
 
+  const handleAddExistingTask = async (taskId: string, columnId: string) => {
+    const original = tasks[taskId]
+    if (!original) return
+    const newId = `${taskId}-${Date.now()}`
+    const newTask: TaskSummary & Partial<Task> = { ...original, id: newId, columnId, awaitingAcceptance: false, previousColumnId: undefined }
+    const nextTasks = { ...tasks, [newId]: newTask }
+    let nextColumns = columns.map(col =>
+      col.id === columnId ? { ...col, taskIds: [newId, ...col.taskIds] } : col
+    )
+    nextColumns = sortColumnsData(nextColumns, nextTasks)
+    setTasks(nextTasks)
+    setColumns(nextColumns)
+    await saveBoard({ tasks: nextTasks, columns: nextColumns })
+  }
+
   const handleSearchResultClick = (taskId: string) => {
+    if (addingColumnId) {
+      handleAddExistingTask(taskId, addingColumnId)
+      setAddingColumnId(null)
+      setIsSearchOpen(false)
+      setSearchQuery("")
+      setSearchStartDate("")
+      setSearchEndDate("")
+      return
+    }
+
     setSelectedSearchResult(taskId)
     const node = taskRefs.current.get(taskId)
     const container = scrollContainerRef.current
@@ -147,7 +173,7 @@ export default function KanbanBoard() {
       const containerRect = container.getBoundingClientRect()
       const nodeRect = node.getBoundingClientRect()
       const scrollPadding = 100
-      
+
       // Horizontal scroll
       if (nodeRect.left < containerRect.left || nodeRect.right > containerRect.right) {
         const targetScrollLeft = node.offsetLeft - scrollPadding
@@ -156,7 +182,7 @@ export default function KanbanBoard() {
           behavior: 'smooth',
         })
       }
-      
+
       // Vertical scroll into view
       setTimeout(() => {
         node.scrollIntoView({
@@ -180,6 +206,7 @@ export default function KanbanBoard() {
         setSearchStartDate("")
         setSearchEndDate("")
         setSelectedSearchResult(null)
+        setAddingColumnId(null)
       }
     }
 
@@ -541,6 +568,12 @@ export default function KanbanBoard() {
     setOpenPending(prev => ({ ...prev, [columnId]: !prev[columnId] }))
   }
 
+  const handleAddTaskButton = (columnId: string) => {
+    setAddingColumnId(columnId)
+    setIsSearchOpen(true)
+    setTimeout(() => searchInputRef.current?.focus(), 100)
+  }
+
   const handleAcceptTask = async (taskId: string, columnId: string) => {
     const task = tasks[taskId]
     if (!task) return
@@ -564,28 +597,15 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks, columns: nextColumns })
   }
 
-  const handleDeclineTask = async (taskId: string, columnId: string) => {
-    const task = tasks[taskId]
-    if (!task) return
-    const prevColId = task.previousColumnId || START_COLUMN_ID
-    const nextTasks = {
-      ...tasks,
-      [taskId]: {
-        ...task,
-        columnId: prevColId,
-        awaitingAcceptance: false,
-        previousColumnId: undefined
-      }
-    }
-    let nextColumns = columns.map(col => {
-      if (col.id === columnId) {
-        return { ...col, pendingTaskIds: col.pendingTaskIds.filter(id => id !== taskId) }
-      }
-      if (col.id === prevColId) {
-        return { ...col, taskIds: [taskId, ...col.taskIds] }
-      }
-      return col
-    })
+  const handleDeclineTask = async (taskId: string, _columnId: string) => {
+    if (!tasks[taskId]) return
+    const nextTasks = { ...tasks }
+    delete nextTasks[taskId]
+    let nextColumns = columns.map(col => ({
+      ...col,
+      taskIds: col.taskIds.filter(id => id !== taskId),
+      pendingTaskIds: col.pendingTaskIds.filter(id => id !== taskId)
+    }))
     nextColumns = sortColumnsData(nextColumns, nextTasks)
     setTasks(nextTasks)
     setColumns(nextColumns)
@@ -732,6 +752,7 @@ export default function KanbanBoard() {
                   setSearchStartDate("")
                   setSearchEndDate("")
                   setSelectedSearchResult(null)
+                  setAddingColumnId(null)
                 }}
                 className="p-1 hover:bg-gray-100 rounded-md transition-colors"
               >
@@ -892,6 +913,12 @@ export default function KanbanBoard() {
                             待接受({pendingTasks.length})
                           </button>
                         )}
+                        <button
+                          onClick={() => handleAddTaskButton(column.id)}
+                          className="p-1 hover:bg-gray-100 rounded-md"
+                        >
+                          <Plus className="w-4 h-4 text-gray-500" />
+                        </button>
                         <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                           {columnTasks.length}
                         </span>
