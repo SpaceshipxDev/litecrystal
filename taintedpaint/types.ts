@@ -17,6 +17,8 @@ export interface Task {
   deliveryNoteGenerated?: boolean;
   /** Whether this task is waiting for acceptance in the target column */
   awaitingAcceptance?: boolean;
+  /** ISO timestamp of the last modification */
+  updatedAt?: string;
 }
 
 // A lightweight version used for the Kanban overview
@@ -32,6 +34,8 @@ export interface TaskSummary {
   ynmxId?: string;
   deliveryNoteGenerated?: boolean;
   awaitingAcceptance?: boolean;
+  /** ISO timestamp of the last modification */
+  updatedAt?: string;
 }
 
 export interface Column {

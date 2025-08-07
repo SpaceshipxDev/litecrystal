@@ -40,7 +40,10 @@ export async function POST(
 
     await updateBoardData(data => {
       const t = data.tasks[taskId];
-      if (t) t.deliveryNoteGenerated = true;
+      if (t) {
+        t.deliveryNoteGenerated = true;
+        t.updatedAt = new Date().toISOString();
+      }
     });
 
     return NextResponse.json({ ok: true });

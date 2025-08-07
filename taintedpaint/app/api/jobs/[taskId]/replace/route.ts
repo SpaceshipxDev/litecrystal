@@ -48,6 +48,7 @@ export async function POST(
       const t = data.tasks[taskId];
       if (!t) throw new Error('Task not found');
       t.files = folderName ? [folderName] : [];
+      t.updatedAt = new Date().toISOString();
       updatedTask = t;
     });
 

@@ -67,6 +67,7 @@ export async function POST(
         taskToUpdate.files = [];
       }
       taskToUpdate.files.push(...newlyAddedFiles);
+      taskToUpdate.updatedAt = new Date().toISOString();
       updatedTask = taskToUpdate;
     });
 
