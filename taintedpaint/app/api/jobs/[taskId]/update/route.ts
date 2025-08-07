@@ -15,7 +15,6 @@ export async function PATCH(
       inquiryDate,
       deliveryDate,
       notes,
-      userName,
     } = await req.json();
     if (customerName !== undefined && typeof customerName !== 'string') {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
@@ -40,39 +39,17 @@ export async function PATCH(
     await updateBoardData(async data => {
       const t = data.tasks[taskId];
       if (!t) throw new Error('Task not found');
-      const timestamp = new Date().toISOString();
-      const history: any[] = [];
-      if (typeof customerName === 'string' && customerName.trim() !== t.customerName) {
-        t.customerName = customerName.trim();
-        history.push({ user: userName, action: `将客户名称修改为 ${t.customerName}`, timestamp });
-      }
-      if (typeof representative === 'string' && representative.trim() !== t.representative) {
-        t.representative = representative.trim();
-        history.push({ user: userName, action: `将负责人修改为 ${t.representative}`, timestamp });
-      }
-      if (typeof ynmxId === 'string' && ynmxId.trim() !== (t.ynmxId || '')) {
+      if (typeof customerName === 'string') t.customerName = customerName.trim();
+      if (typeof representative === 'string') t.representative = representative.trim();
+      if (typeof ynmxId === 'string') {
         t.ynmxId = ynmxId.trim() || undefined;
-        history.push({ user: userName, action: `将YNMX号修改为 ${ynmxId.trim()}`, timestamp });
-      } else if (ynmxId === null && t.ynmxId) {
+      } else if (ynmxId === null) {
         t.ynmxId = undefined;
-        history.push({ user: userName, action: `清除YNMX号`, timestamp });
       }
-      if (typeof inquiryDate === 'string' && inquiryDate !== t.inquiryDate) {
-        t.inquiryDate = inquiryDate;
-        history.push({ user: userName, action: `将询价日期修改为 ${inquiryDate}`, timestamp });
-      }
-      if (typeof deliveryDate === 'string' && deliveryDate !== t.deliveryDate) {
-        t.deliveryDate = deliveryDate;
-        history.push({ user: userName, action: `将交货日期修改为 ${deliveryDate}`, timestamp });
-      }
-      if (typeof notes === 'string' && notes.trim() !== t.notes) {
-        t.notes = notes.trim();
-        history.push({ user: userName, action: `修改备注`, timestamp });
-      }
-      if (history.length && userName) {
-        t.history = t.history ? [...history, ...t.history] : history;
-      }
-      t.updatedAt = timestamp;
+      if (typeof inquiryDate === 'string') t.inquiryDate = inquiryDate;
+      if (typeof deliveryDate === 'string') t.deliveryDate = deliveryDate;
+      if (typeof notes === 'string') t.notes = notes.trim();
+      t.updatedAt = new Date().toISOString();
       updatedTask = t;
     });
 
