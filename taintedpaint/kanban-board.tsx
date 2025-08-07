@@ -7,7 +7,7 @@ import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
 import { Archive, Search, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check, Plus, Clock } from "lucide-react"
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
-import KanbanDrawer from "@/components/KanbanDrawer"
+import KanbanModal from "@/components/KanbanModal"
 import AccountButton from "@/components/AccountButton"
 import { formatTimeAgo } from "@/lib/utils"
 
@@ -88,7 +88,7 @@ export default function KanbanBoard() {
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [selectedTaskColumnTitle, setSelectedTaskColumnTitle] = useState<string | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(null)
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -419,7 +419,7 @@ export default function KanbanBoard() {
         return t
       })
       setSelectedTask(null)
-      setIsDrawerOpen(false)
+      setIsModalOpen(false)
       await fetchBoardFull()
     },
     [fetchBoardFull]
@@ -663,11 +663,11 @@ export default function KanbanBoard() {
     } catch {
       setSelectedTask(task)
     }
-    setIsDrawerOpen(true)
+    setIsModalOpen(true)
   }
 
-  const closeDrawer = () => {
-    setIsDrawerOpen(false)
+  const closeModal = () => {
+    setIsModalOpen(false)
     setTimeout(() => {
       setSelectedTask(null)
       setSelectedTaskColumnTitle(null)
@@ -855,8 +855,8 @@ export default function KanbanBoard() {
         </div>
 
         {/* Backdrop */}
-        {isDrawerOpen && (
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40" onClick={closeDrawer} />
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40" onClick={closeModal} />
         )}
 
         {/* Main Board */}
@@ -1024,13 +1024,12 @@ export default function KanbanBoard() {
                               <div className="pl-2">
                                 {viewMode === 'business' ? (
                                   <>
-                                    <h3 className="text-sm font-medium text-gray-900 mb-0.5">
+                                  <h3 className="text-sm font-medium text-gray-900 mb-0.5">
                                       {task.customerName}
-                                    </h3>
-                                    <p className="text-xs text-gray-600">{task.representative}</p>
-                                    {task.ynmxId && (
+                                  </h3>
+                                  {task.ynmxId && (
                                       <p className="text-xs text-gray-500 mt-0.5">{task.ynmxId}</p>
-                                    )}
+                                  )}
                                   </>
                                 ) : (
                                   <h3 className="text-sm font-medium text-gray-900">
@@ -1058,9 +1057,12 @@ export default function KanbanBoard() {
                                 )}
                               </div>
                               {task.updatedAt && (
-                                <div className="absolute bottom-1 right-2 flex items-center gap-0.5 text-[10px] text-gray-400">
+                                <div className="absolute bottom-1 right-2 flex items-center gap-1 text-[10px] text-gray-400">
                                   <Clock className="w-3 h-3" />
                                   <span>{formatTimeAgo(task.updatedAt)}</span>
+                                  {task.representative && (
+                                    <span className="ml-1 text-gray-500">{task.representative}</span>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1080,12 +1082,12 @@ export default function KanbanBoard() {
           )}
         </div>
 
-        <KanbanDrawer
-          isOpen={isDrawerOpen}
+        <KanbanModal
+          isOpen={isModalOpen}
           task={selectedTask}
           columnTitle={selectedTaskColumnTitle}
           viewMode={viewMode}
-          onClose={closeDrawer}
+          onClose={closeModal}
           onTaskUpdated={handleTaskUpdated}
           onTaskDeleted={handleTaskDeleted}
         />

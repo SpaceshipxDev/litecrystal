@@ -10,7 +10,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Task, Column, BoardData } from '@/types';
 import { baseColumns } from '@/lib/baseColumns';
-import KanbanDrawer from '@/components/KanbanDrawer';
+import KanbanModal from '@/components/KanbanModal';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
@@ -107,7 +107,7 @@ export default function ArchivePage() {
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTaskColumnTitle, setSelectedTaskColumnTitle] = useState<string | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleTaskUpdated = useCallback((updated: Task) => {
     setTasks(prev => ({ ...prev, [updated.id]: updated }));
@@ -140,11 +140,11 @@ export default function ArchivePage() {
     setSelectedTask(job);
     const col = columns.find(c => c.id === job.columnId);
     setSelectedTaskColumnTitle(col ? col.title : null);
-    setIsDrawerOpen(true);
+    setIsModalOpen(true);
   };
 
-  const closeDrawer = () => {
-    setIsDrawerOpen(false);
+  const closeModal = () => {
+    setIsModalOpen(false);
     setTimeout(() => {
       setSelectedTask(null);
       setSelectedTaskColumnTitle(null);
@@ -222,13 +222,13 @@ export default function ArchivePage() {
             </div>
           )}
         </div>
-        {isDrawerOpen && <div className="fixed inset-0 backdrop-blur-[2px] z-40" onClick={closeDrawer} />}
-        <KanbanDrawer
-          isOpen={isDrawerOpen}
+        {isModalOpen && <div className="fixed inset-0 backdrop-blur-[2px] z-40" onClick={closeModal} />}
+        <KanbanModal
+          isOpen={isModalOpen}
           task={selectedTask}
           columnTitle={selectedTaskColumnTitle}
           viewMode="business"
-          onClose={closeDrawer}
+          onClose={closeModal}
           onTaskUpdated={handleTaskUpdated}
         />
       </div>

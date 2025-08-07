@@ -19,6 +19,8 @@ export interface Task {
   awaitingAcceptance?: boolean;
   /** ISO timestamp of the last modification */
   updatedAt?: string;
+  /** Activity history entries */
+  history?: TaskActivity[];
 }
 
 // A lightweight version used for the Kanban overview
@@ -62,4 +64,10 @@ export interface User {
   name: string;
   department: string;
   passwordHash: string;
+}
+
+export interface TaskActivity {
+  user: string;
+  action: string;
+  timestamp: string;
 }
