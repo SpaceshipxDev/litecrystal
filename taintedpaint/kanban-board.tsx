@@ -5,10 +5,10 @@ import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/t
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check, Plus } from "lucide-react"
-import Link from "next/link"
+import { Archive, Search, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check, Plus } from "lucide-react"
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
+import AccountButton from "@/components/AccountButton"
 
 // Skeleton component
 const TaskSkeleton = () => (
@@ -724,15 +724,7 @@ export default function KanbanBoard() {
               </kbd>
             </button>
 
-            {!restricted && (
-              <Link 
-                href="/holistic" 
-                className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                <span>总揽</span>
-              </Link>
-            )}
+            <AccountButton />
           </div>
         </div>
       </header>

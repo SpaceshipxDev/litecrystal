@@ -7,6 +7,7 @@
  */
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Task, Column, BoardData } from '@/types';
 import { baseColumns } from '@/lib/baseColumns';
 import KanbanDrawer from '@/components/KanbanDrawer';
@@ -57,8 +58,19 @@ const statusInfo = {
 
 // ─── 主页面组件 ───────────────────────────────────────────────────────────────
 export default function ArchivePage() {
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (!user) {
+      router.replace('/login');
+    } else {
+      setReady(true);
+    }
+  }, [router]);
   const [tasks, setTasks] = useState<Record<string, Task>>({});
   const [columns, setColumns] = useState<Column[]>(baseColumns);
+  if (!ready) return null;
 
   useEffect(() => {
     (async () => {

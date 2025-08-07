@@ -53,3 +53,9 @@ export interface BoardSummaryData {
   tasks: Record<string, TaskSummary>;
   columns: Column[];
 }
+
+export interface User {
+  name: string;
+  department: string;
+  passwordHash: string;
+}
