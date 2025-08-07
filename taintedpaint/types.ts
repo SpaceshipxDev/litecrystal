@@ -13,7 +13,7 @@ export interface Task {
   notes: string;
   taskFolderPath?: string;
   files?: string[];
-  ynmxId?: string; // ID assigned when moving to approval
+  ynmxId?: string; // Order ID provided by users
   deliveryNoteGenerated?: boolean;
   /** Whether this task is waiting for acceptance in the target column */
   awaitingAcceptance?: boolean;

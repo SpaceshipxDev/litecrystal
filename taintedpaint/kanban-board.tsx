@@ -247,12 +247,6 @@ export default function KanbanBoard() {
     }
   }, [highlightTaskId])
 
-  const getNextYnmxId = useCallback(() => {
-    const today = new Date().toISOString().slice(0, 10)
-    const random = Math.floor(1000 + Math.random() * 9000)
-    return `YNMX-${today}-${random}`
-  }, [])
-
   const getTaskDisplayName = (task: TaskSummary) => {
     if (viewMode === 'production') {
       return task.ynmxId || `${task.customerName} - ${task.representative}`
@@ -555,9 +549,6 @@ export default function KanbanBoard() {
         ...(existingTask?.history || []),
         { user: userName, timestamp: moveTime, description: `移动到${columns.find(c => c.id === targetColumnId)?.title || ''}` },
       ],
-    }
-    if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
-      updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() }
     }
     if (targetColumnId === 'ship') {
       try {
