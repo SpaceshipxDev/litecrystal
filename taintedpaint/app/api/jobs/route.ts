@@ -101,16 +101,15 @@ export async function POST(req: NextRequest) {
     });
     await Promise.all(pendingWrites);
 
-      const {
-        customerName = '',
-        representative = '',
-        inquiryDate = '',
-        deliveryDate = '',
-        ynmxId = '',
-        notes = '',
-        folderName = '',
-        userName = '',
-      } = fields;
+    const {
+      customerName = '',
+      representative = '',
+      inquiryDate = '',
+      deliveryDate = '',
+      ynmxId = '',
+      notes = '',
+      folderName = '',
+    } = fields;
 
     if (
       tempFiles.length === 0 ||
@@ -162,15 +161,6 @@ export async function POST(req: NextRequest) {
       deliveryNoteGenerated: false,
       awaitingAcceptance: false,
       updatedAt: new Date().toISOString(),
-      history: userName
-        ? [
-            {
-              user: userName,
-              action: '创建任务',
-              timestamp: new Date().toISOString(),
-            },
-          ]
-        : [],
     };
 
     await updateBoardData(async (boardData) => {
