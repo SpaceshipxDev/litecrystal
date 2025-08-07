@@ -19,6 +19,7 @@ export async function POST(
     const files = formData.getAll('files') as File[];
     const paths = formData.getAll('paths') as string[];
     const folderName = formData.get('folderName') as string | null;
+    const updatedBy = formData.get('updatedBy') as string | null;
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
@@ -49,6 +50,11 @@ export async function POST(
       if (!t) throw new Error('Task not found');
       t.files = folderName ? [folderName] : [];
       t.updatedAt = new Date().toISOString();
+      if (updatedBy) {
+        t.updatedBy = updatedBy;
+        const entry = { user: updatedBy, timestamp: t.updatedAt, description: '替换文件' };
+        t.history = [...(t.history || []), entry];
+      }
       updatedTask = t;
     });
 

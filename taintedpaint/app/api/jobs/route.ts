@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
           deliveryNoteGenerated: t.deliveryNoteGenerated,
           awaitingAcceptance: t.awaitingAcceptance,
           updatedAt: t.updatedAt,
+          updatedBy: t.updatedBy,
         },
       ])
     );
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
       ynmxId = '',
       notes = '',
       folderName = '',
+      updatedBy = '',
     } = fields;
 
     if (
@@ -145,6 +147,7 @@ export async function POST(req: NextRequest) {
       await renameWithFallback(tempFiles[i], destinationPath);
     }
 
+    const now = new Date().toISOString();
     const newTask: Task = {
       id: taskId,
       columnId: START_COLUMN_ID,
@@ -160,7 +163,9 @@ export async function POST(req: NextRequest) {
       files: [folderName],
       deliveryNoteGenerated: false,
       awaitingAcceptance: false,
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
+      updatedBy: updatedBy.trim() || undefined,
+      history: updatedBy ? [{ user: updatedBy, timestamp: now, description: '创建任务' }] : [],
     };
 
     await updateBoardData(async (boardData) => {
