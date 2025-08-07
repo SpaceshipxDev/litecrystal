@@ -20,6 +20,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const [notes, setNotes] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   const [customerOptions, setCustomerOptions] = useState<string[]>([])
+  const [userName, setUserName] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inquiryDateInputRef = useRef<HTMLInputElement>(null)
   const deliveryDateInputRef = useRef<HTMLInputElement>(null)
@@ -60,6 +61,16 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
     })()
   }, [])
 
+  useEffect(() => {
+    const stored = localStorage.getItem('user')
+    if (stored) {
+      try {
+        const u = JSON.parse(stored)
+        setUserName(u.name || '')
+      } catch {}
+    }
+  }, [])
+
   const getFolderName = (): string => {
     if (!selectedFiles || selectedFiles.length === 0) {
       return "选择文件夹"
@@ -94,6 +105,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       formData.append("ynmxId", ynmxId.trim())
       formData.append("notes", notes.trim())
       formData.append("folderName", getFolderName())
+      formData.append("updatedBy", userName)
 
       const res = await fetch("/api/jobs", {
         method: "POST",

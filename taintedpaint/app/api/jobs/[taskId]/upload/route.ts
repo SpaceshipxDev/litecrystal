@@ -26,6 +26,7 @@ export async function POST(
     const formData = await req.formData();
     const files = formData.getAll("files") as File[];
     const paths = formData.getAll("paths") as string[];
+    const updatedBy = formData.get("updatedBy") as string | null;
 
     const boardData = await readBoardData();
     if (!boardData.tasks[taskId]) {
@@ -68,6 +69,11 @@ export async function POST(
       }
       taskToUpdate.files.push(...newlyAddedFiles);
       taskToUpdate.updatedAt = new Date().toISOString();
+      if (updatedBy) {
+        taskToUpdate.updatedBy = updatedBy;
+        const entry = { user: updatedBy, timestamp: taskToUpdate.updatedAt, description: '上传文件' };
+        taskToUpdate.history = [...(taskToUpdate.history || []), entry];
+      }
       updatedTask = taskToUpdate;
     });
 

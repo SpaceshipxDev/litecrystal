@@ -7,7 +7,7 @@ import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
 import { Archive, Search, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check, Plus, Clock } from "lucide-react"
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
-import KanbanDrawer from "@/components/KanbanDrawer"
+import TaskModal from "@/components/TaskModal"
 import AccountButton from "@/components/AccountButton"
 import { formatTimeAgo } from "@/lib/utils"
 
@@ -88,7 +88,8 @@ export default function KanbanBoard() {
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [selectedTaskColumnTitle, setSelectedTaskColumnTitle] = useState<string | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [userName, setUserName] = useState("")
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(null)
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -143,13 +144,19 @@ export default function KanbanBoard() {
     const original = tasks[taskId]
     if (!original) return
     const newId = `${taskId}-${Date.now()}`
+    const time = new Date().toISOString()
     const newTask: TaskSummary & Partial<Task> = {
       ...original,
       id: newId,
       columnId,
       awaitingAcceptance: false,
       previousColumnId: undefined,
-      updatedAt: new Date().toISOString(),
+      updatedAt: time,
+      updatedBy: userName,
+      history: [
+        ...(original.history || []),
+        { user: userName, timestamp: time, description: `复制到${columns.find(c => c.id === columnId)?.title || ''}` },
+      ],
     }
     const nextTasks = { ...tasks, [newId]: newTask }
     let nextColumns = columns.map(col =>
@@ -388,6 +395,16 @@ export default function KanbanBoard() {
     return () => clearInterval(interval)
   }, [fetchBoardSummary, fetchBoardFull])
 
+  useEffect(() => {
+    const stored = localStorage.getItem('user')
+    if (stored) {
+      try {
+        const u = JSON.parse(stored)
+        setUserName(u.name || '')
+      } catch {}
+    }
+  }, [])
+
   const handleTaskUpdated = useCallback((updatedTask: Task) => {
     const withTime = {
       ...updatedTask,
@@ -419,7 +436,7 @@ export default function KanbanBoard() {
         return t
       })
       setSelectedTask(null)
-      setIsDrawerOpen(false)
+      setIsModalOpen(false)
       await fetchBoardFull()
     },
     [fetchBoardFull]
@@ -523,13 +540,21 @@ export default function KanbanBoard() {
       return
     }
 
+    const existingTask = tasks[draggedTask.id] as Task
+    const moveTime = new Date().toISOString()
     let updatedTask: Task = {
+      ...existingTask,
       ...draggedTask,
       columnId: targetColumnId,
       previousColumnId: sourceColumnId,
       deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
       awaitingAcceptance: !isArchive,
-      updatedAt: new Date().toISOString(),
+      updatedAt: moveTime,
+      updatedBy: userName,
+      history: [
+        ...(existingTask?.history || []),
+        { user: userName, timestamp: moveTime, description: `移动到${columns.find(c => c.id === targetColumnId)?.title || ''}` },
+      ],
     }
     if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
       updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() }
@@ -590,13 +615,19 @@ export default function KanbanBoard() {
   const handleAcceptTask = async (taskId: string, columnId: string) => {
     const task = tasks[taskId]
     if (!task) return
+    const time = new Date().toISOString()
     const nextTasks = {
       ...tasks,
       [taskId]: {
         ...task,
         awaitingAcceptance: false,
         previousColumnId: undefined,
-        updatedAt: new Date().toISOString(),
+        updatedAt: time,
+        updatedBy: userName,
+        history: [
+          ...(task.history || []),
+          { user: userName, timestamp: time, description: `确认进入${columns.find(c => c.id === columnId)?.title || ''}` },
+        ],
       }
     }
     let nextColumns = columns.map(col => {
@@ -663,11 +694,11 @@ export default function KanbanBoard() {
     } catch {
       setSelectedTask(task)
     }
-    setIsDrawerOpen(true)
+    setIsModalOpen(true)
   }
 
-  const closeDrawer = () => {
-    setIsDrawerOpen(false)
+  const closeModal = () => {
+    setIsModalOpen(false)
     setTimeout(() => {
       setSelectedTask(null)
       setSelectedTaskColumnTitle(null)
@@ -853,11 +884,6 @@ export default function KanbanBoard() {
             ))}
           </div>
         </div>
-
-        {/* Backdrop */}
-        {isDrawerOpen && (
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40" onClick={closeDrawer} />
-        )}
 
         {/* Main Board */}
         <div
@@ -1060,7 +1086,10 @@ export default function KanbanBoard() {
                               {task.updatedAt && (
                                 <div className="absolute bottom-1 right-2 flex items-center gap-0.5 text-[10px] text-gray-400">
                                   <Clock className="w-3 h-3" />
-                                  <span>{formatTimeAgo(task.updatedAt)}</span>
+                                  <span>
+                                    {task.updatedBy ? `${task.updatedBy} · ` : ''}
+                                    {formatTimeAgo(task.updatedAt)}
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -1080,12 +1109,13 @@ export default function KanbanBoard() {
           )}
         </div>
 
-        <KanbanDrawer
-          isOpen={isDrawerOpen}
+        <TaskModal
+          open={isModalOpen}
           task={selectedTask}
           columnTitle={selectedTaskColumnTitle}
           viewMode={viewMode}
-          onClose={closeDrawer}
+          userName={userName}
+          onOpenChange={(o) => !o && closeModal()}
           onTaskUpdated={handleTaskUpdated}
           onTaskDeleted={handleTaskDeleted}
         />

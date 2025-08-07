@@ -19,6 +19,16 @@ export interface Task {
   awaitingAcceptance?: boolean;
   /** ISO timestamp of the last modification */
   updatedAt?: string;
+  /** Name of the user who made the last modification */
+  updatedBy?: string;
+  /** Activity history entries */
+  history?: TaskHistoryEntry[];
+}
+
+export interface TaskHistoryEntry {
+  user: string;
+  timestamp: string;
+  description: string;
 }
 
 // A lightweight version used for the Kanban overview
@@ -36,6 +46,8 @@ export interface TaskSummary {
   awaitingAcceptance?: boolean;
   /** ISO timestamp of the last modification */
   updatedAt?: string;
+  /** Name of the user who made the last modification */
+  updatedBy?: string;
 }
 
 export interface Column {
