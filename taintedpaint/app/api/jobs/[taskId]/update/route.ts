@@ -49,6 +49,7 @@ export async function PATCH(
       if (typeof inquiryDate === 'string') t.inquiryDate = inquiryDate;
       if (typeof deliveryDate === 'string') t.deliveryDate = deliveryDate;
       if (typeof notes === 'string') t.notes = notes.trim();
+      t.updatedAt = new Date().toISOString();
       updatedTask = t;
     });
 

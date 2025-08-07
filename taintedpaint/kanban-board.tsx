@@ -5,10 +5,11 @@ import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/t
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check, Plus } from "lucide-react"
+import { Archive, Search, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check, Plus, Clock } from "lucide-react"
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
 import AccountButton from "@/components/AccountButton"
+import { formatTimeAgo } from "@/lib/utils"
 
 // Skeleton component
 const TaskSkeleton = () => (
@@ -142,7 +143,14 @@ export default function KanbanBoard() {
     const original = tasks[taskId]
     if (!original) return
     const newId = `${taskId}-${Date.now()}`
-    const newTask: TaskSummary & Partial<Task> = { ...original, id: newId, columnId, awaitingAcceptance: false, previousColumnId: undefined }
+    const newTask: TaskSummary & Partial<Task> = {
+      ...original,
+      id: newId,
+      columnId,
+      awaitingAcceptance: false,
+      previousColumnId: undefined,
+      updatedAt: new Date().toISOString(),
+    }
     const nextTasks = { ...tasks, [newId]: newTask }
     let nextColumns = columns.map(col =>
       col.id === columnId ? { ...col, taskIds: [newId, ...col.taskIds] } : col
@@ -381,12 +389,16 @@ export default function KanbanBoard() {
   }, [fetchBoardSummary, fetchBoardFull])
 
   const handleTaskUpdated = useCallback((updatedTask: Task) => {
+    const withTime = {
+      ...updatedTask,
+      updatedAt: updatedTask.updatedAt || new Date().toISOString(),
+    }
     setTasks(prev => {
-      const next = { ...prev, [updatedTask.id]: updatedTask }
+      const next = { ...prev, [withTime.id]: withTime }
       setColumns(c => sortColumnsData(c, next))
       return next
     })
-    setSelectedTask(updatedTask)
+    setSelectedTask(withTime)
   }, [])
 
   const handleTaskDeleted = useCallback(
@@ -517,6 +529,7 @@ export default function KanbanBoard() {
       previousColumnId: sourceColumnId,
       deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
       awaitingAcceptance: !isArchive,
+      updatedAt: new Date().toISOString(),
     }
     if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
       updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() }
@@ -579,7 +592,12 @@ export default function KanbanBoard() {
     if (!task) return
     const nextTasks = {
       ...tasks,
-      [taskId]: { ...task, awaitingAcceptance: false, previousColumnId: undefined }
+      [taskId]: {
+        ...task,
+        awaitingAcceptance: false,
+        previousColumnId: undefined,
+        updatedAt: new Date().toISOString(),
+      }
     }
     let nextColumns = columns.map(col => {
       if (col.id === columnId) {
@@ -1039,6 +1057,12 @@ export default function KanbanBoard() {
                                   </p>
                                 )}
                               </div>
+                              {task.updatedAt && (
+                                <div className="absolute bottom-1 right-2 flex items-center gap-0.5 text-[10px] text-gray-400">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{formatTimeAgo(task.updatedAt)}</span>
+                                </div>
+                              )}
                             </div>
                             
                             {/* Drop indicator after this task */}

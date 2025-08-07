@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
           ynmxId: t.ynmxId,
           deliveryNoteGenerated: t.deliveryNoteGenerated,
           awaitingAcceptance: t.awaitingAcceptance,
+          updatedAt: t.updatedAt,
         },
       ])
     );
@@ -159,6 +160,7 @@ export async function POST(req: NextRequest) {
       files: [folderName],
       deliveryNoteGenerated: false,
       awaitingAcceptance: false,
+      updatedAt: new Date().toISOString(),
     };
 
     await updateBoardData(async (boardData) => {
