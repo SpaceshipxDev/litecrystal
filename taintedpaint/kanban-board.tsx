@@ -5,7 +5,7 @@ import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/t
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
-import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw, Move, CalendarDays } from "lucide-react"
+import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check } from "lucide-react"
 import Link from "next/link"
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
@@ -63,6 +63,7 @@ export default function KanbanBoard() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [selectedSearchResult, setSelectedSearchResult] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [openPending, setOpenPending] = useState<Record<string, boolean>>({})
 
   const columnColors: Record<string, string> = {
     create: 'bg-blue-500',
@@ -240,6 +241,7 @@ export default function KanbanBoard() {
       return cols.map((c) => ({
         ...c,
         taskIds: sortTaskIds(c.taskIds, taskMap),
+        pendingTaskIds: sortTaskIds(c.pendingTaskIds, taskMap),
       }))
     },
     [sortTaskIds]
@@ -247,9 +249,15 @@ export default function KanbanBoard() {
 
   const mergeWithSkeleton = (saved: Column[]): Column[] => {
     const savedColumnsMap = new Map(saved.map((c) => [c.id, c]))
-    return baseColumns.map(
-      (baseCol) => savedColumnsMap.get(baseCol.id) || baseCol
-    )
+    return baseColumns.map(baseCol => {
+      const savedCol = savedColumnsMap.get(baseCol.id)
+      return {
+        ...baseCol,
+        ...savedCol,
+        taskIds: savedCol?.taskIds || [],
+        pendingTaskIds: savedCol?.pendingTaskIds || [],
+      }
+    })
   }
 
   const saveBoard = async (nextBoard: BoardData) => {
@@ -364,6 +372,7 @@ export default function KanbanBoard() {
             c.map(col => ({
               ...col,
               taskIds: col.taskIds.filter(id => id !== taskId),
+              pendingTaskIds: col.pendingTaskIds.filter(id => id !== taskId),
             })),
             t
           )
@@ -443,19 +452,44 @@ export default function KanbanBoard() {
     e.preventDefault()
     e.stopPropagation()
 
-    if (!draggedTask || !columns.some(c => c.id === targetColumnId) ||
-        (draggedTask.columnId === targetColumnId && dropIndex === undefined)) {
+    if (!draggedTask || !columns.some(c => c.id === targetColumnId)) {
       setDragOverColumn(null)
       setDropIndicatorIndex(null)
       return
     }
 
+    const sourceColumnId = draggedTask.columnId
     const isArchive = targetColumnId === ARCHIVE_COLUMN_ID || targetColumnId === 'archive2'
+
+    // Reordering within the same column
+    if (sourceColumnId === targetColumnId) {
+      if (dropIndex === undefined) {
+        setDragOverColumn(null)
+        setDropIndicatorIndex(null)
+        return
+      }
+      const col = columns.find(c => c.id === sourceColumnId)!
+      const newTaskIds = [...col.taskIds]
+      const fromIndex = newTaskIds.indexOf(draggedTask.id)
+      if (fromIndex !== -1) newTaskIds.splice(fromIndex, 1)
+      newTaskIds.splice(dropIndex, 0, draggedTask.id)
+      const nextColumns = sortColumnsData(
+        columns.map(c => c.id === sourceColumnId ? { ...c, taskIds: newTaskIds } : c),
+        tasks
+      )
+      setColumns(nextColumns)
+      setDragOverColumn(null)
+      setDropIndicatorIndex(null)
+      await saveBoard({ tasks, columns: nextColumns })
+      return
+    }
 
     let updatedTask: Task = {
       ...draggedTask,
       columnId: targetColumnId,
+      previousColumnId: sourceColumnId,
       deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
+      awaitingAcceptance: !isArchive,
     }
     if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
       updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() }
@@ -480,37 +514,17 @@ export default function KanbanBoard() {
       nextTasks[draggedTask.id] = updatedTask
     }
 
-    let nextColumns = columns.map((col) => {
-      if (col.id === draggedTask.columnId) {
-        return {
-          ...col,
-          taskIds: col.taskIds.filter((id) => id !== draggedTask.id),
-        }
+    let nextColumns = columns.map(col => {
+      if (col.id === sourceColumnId) {
+        return { ...col, taskIds: col.taskIds.filter(id => id !== draggedTask.id) }
       }
       if (col.id === targetColumnId) {
-        if (isArchive) {
-          return col
-        }
-        const newTaskIds = [...col.taskIds]
-
-        // If dropIndex is specified, insert at that position
-        if (dropIndex !== undefined) {
-          // Remove the task if it's already in this column
-          const existingIndex = newTaskIds.indexOf(draggedTask.id)
-          if (existingIndex !== -1) {
-            newTaskIds.splice(existingIndex, 1)
-          }
-          // Insert at the new position
-          newTaskIds.splice(dropIndex, 0, draggedTask.id)
-        } else {
-          // Otherwise add to end
-          newTaskIds.push(draggedTask.id)
-        }
-
-        return { ...col, taskIds: newTaskIds }
+        if (isArchive) return col
+        return { ...col, pendingTaskIds: [draggedTask.id, ...col.pendingTaskIds] }
       }
       return col
     })
+
     nextColumns = sortColumnsData(nextColumns, nextTasks)
     setTasks(nextTasks)
     setColumns(nextColumns)
@@ -523,6 +537,61 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks, columns: nextColumns })
   }
 
+  const togglePending = (columnId: string) => {
+    setOpenPending(prev => ({ ...prev, [columnId]: !prev[columnId] }))
+  }
+
+  const handleAcceptTask = async (taskId: string, columnId: string) => {
+    const task = tasks[taskId]
+    if (!task) return
+    const nextTasks = {
+      ...tasks,
+      [taskId]: { ...task, awaitingAcceptance: false, previousColumnId: undefined }
+    }
+    let nextColumns = columns.map(col => {
+      if (col.id === columnId) {
+        return {
+          ...col,
+          pendingTaskIds: col.pendingTaskIds.filter(id => id !== taskId),
+          taskIds: [taskId, ...col.taskIds]
+        }
+      }
+      return col
+    })
+    nextColumns = sortColumnsData(nextColumns, nextTasks)
+    setTasks(nextTasks)
+    setColumns(nextColumns)
+    await saveBoard({ tasks: nextTasks, columns: nextColumns })
+  }
+
+  const handleDeclineTask = async (taskId: string, columnId: string) => {
+    const task = tasks[taskId]
+    if (!task) return
+    const prevColId = task.previousColumnId || START_COLUMN_ID
+    const nextTasks = {
+      ...tasks,
+      [taskId]: {
+        ...task,
+        columnId: prevColId,
+        awaitingAcceptance: false,
+        previousColumnId: undefined
+      }
+    }
+    let nextColumns = columns.map(col => {
+      if (col.id === columnId) {
+        return { ...col, pendingTaskIds: col.pendingTaskIds.filter(id => id !== taskId) }
+      }
+      if (col.id === prevColId) {
+        return { ...col, taskIds: [taskId, ...col.taskIds] }
+      }
+      return col
+    })
+    nextColumns = sortColumnsData(nextColumns, nextTasks)
+    setTasks(nextTasks)
+    setColumns(nextColumns)
+    await saveBoard({ tasks: nextTasks, columns: nextColumns })
+  }
+
   const handleJobCreated = (newTask: Task) => {
     setTasks(prev => {
       const next = { ...prev, [newTask.id]: newTask }
@@ -530,7 +599,7 @@ export default function KanbanBoard() {
         sortColumnsData(
           c.map(col =>
             col.id === START_COLUMN_ID
-              ? { ...col, taskIds: [...col.taskIds, newTask.id] }
+              ? { ...col, taskIds: [...col.taskIds, newTask.id], pendingTaskIds: col.pendingTaskIds }
               : col
           ),
           next
@@ -792,6 +861,7 @@ export default function KanbanBoard() {
           ) : (
             visibleColumns.map((column) => {
               const columnTasks = column.taskIds.map(id => tasks[id]).filter(Boolean)
+              const pendingTasks = column.pendingTaskIds.map(id => tasks[id]).filter(Boolean)
               const isArchive = ['archive', 'archive2'].includes(column.id)
 
               return (
@@ -808,18 +878,62 @@ export default function KanbanBoard() {
                   }`}
                 >
                   <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100">
-                    <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
                         <h2 className="text-sm font-medium text-gray-700">{column.title}</h2>
                       </div>
-                      <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                        {columnTasks.length}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {pendingTasks.length > 0 && (
+                          <button
+                            onClick={() => togglePending(column.id)}
+                            className="text-xs text-blue-600"
+                          >
+                            待接受({pendingTasks.length})
+                          </button>
+                        )}
+                        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                          {columnTasks.length}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex-1 overflow-y-auto p-3 min-h-0">
+                    {openPending[column.id] && pendingTasks.length > 0 && (
+                      <div className="mb-4 space-y-2">
+                        {pendingTasks.map(task => (
+                          <div
+                            key={task.id}
+                            className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 cursor-pointer"
+                            onClick={(e) => handleTaskClick(task as Task, e)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-medium text-gray-900 truncate">
+                                  {getTaskDisplayName(task)}
+                                </h3>
+                                <p className="text-xs text-gray-600">{task.representative}</p>
+                              </div>
+                              <div className="flex gap-1 ml-2 flex-shrink-0">
+                                <button
+                                  className="p-1 rounded bg-green-100 text-green-600"
+                                  onClick={() => handleAcceptTask(task.id, column.id)}
+                                >
+                                  <Check className="w-3 h-3" />
+                                </button>
+                                <button
+                                  className="p-1 rounded bg-red-100 text-red-600"
+                                  onClick={() => handleDeclineTask(task.id, column.id)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {columnTasks.length === 0 ? (
                       <div 
                         className={`h-full flex items-center justify-center rounded-lg transition-all duration-200 ${

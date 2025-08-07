@@ -3,6 +3,8 @@
 export interface Task {
   id: string;
   columnId: string; // <-- NEW
+  /** Previous column when awaiting acceptance */
+  previousColumnId?: string;
   customerName: string;
   representative: string;
   inquiryDate: string;
@@ -13,12 +15,15 @@ export interface Task {
   files?: string[];
   ynmxId?: string; // ID assigned when moving to approval
   deliveryNoteGenerated?: boolean;
+  /** Whether this task is waiting for acceptance in the target column */
+  awaitingAcceptance?: boolean;
 }
 
 // A lightweight version used for the Kanban overview
 export interface TaskSummary {
   id: string;
   columnId: string;
+  previousColumnId?: string;
   customerName: string;
   representative: string;
   inquiryDate: string;
@@ -26,12 +31,15 @@ export interface TaskSummary {
   notes: string;
   ynmxId?: string;
   deliveryNoteGenerated?: boolean;
+  awaitingAcceptance?: boolean;
 }
 
 export interface Column {
   id: string;
   title: string;
   taskIds: string[]; // <-- CHANGED from tasks: Task[]
+  /** Tasks waiting to be accepted for this column */
+  pendingTaskIds: string[];
 }
 
 // NEW: A type for the entire board data

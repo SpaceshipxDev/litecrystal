@@ -68,14 +68,21 @@ export default function ArchivePage() {
           const data: BoardData = await res.json();
           setTasks(data.tasks || {});
           const map = new Map((data.columns || []).map(c => [c.id, c]));
-          setColumns(baseColumns.map(b => map.get(b.id) || b));
+          setColumns(
+            baseColumns.map(b => {
+              const saved = map.get(b.id);
+              return { ...b, ...saved, pendingTaskIds: saved?.pendingTaskIds || [] };
+            })
+          );
         }
       } catch {}
     })();
   }, []);
 
   const jobs = useMemo<Job[]>(() =>
-    Object.values(tasks).map(t => ({ ...t, status: getStatus(t) }))
+    Object.values(tasks)
+      .filter(t => !t.awaitingAcceptance)
+      .map(t => ({ ...t, status: getStatus(t) }))
   , [tasks]);
 
   const customers = useMemo(() => Array.from(new Set(jobs.map(j => j.customerName))), [jobs]);

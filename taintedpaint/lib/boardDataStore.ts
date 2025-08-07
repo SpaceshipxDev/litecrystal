@@ -30,16 +30,21 @@ function normalizeBoardData(data: BoardData) {
   const columnIds = new Set(columnMap.keys())
   const archiveCol = columnMap.get(ARCHIVE_COLUMN_ID) || data.columns[0]
 
-  // Remove unknown and archived taskIds from columns
+  // Normalize task arrays in columns
   for (const col of data.columns) {
-    col.taskIds = Array.from(
-      new Set(
-        col.taskIds.filter(id => {
-          const t = (data.tasks as Record<string, any>)[id]
-          return t && t.columnId !== ARCHIVE_COLUMN_ID && t.columnId !== 'archive2'
-        })
-      )
-    )
+    col.pendingTaskIds = Array.from(new Set(
+      (col.pendingTaskIds || []).filter(id => {
+        const t = (data.tasks as Record<string, any>)[id]
+        return t && t.awaitingAcceptance && t.columnId === col.id
+      })
+    ))
+
+    col.taskIds = Array.from(new Set(
+      col.taskIds.filter(id => {
+        const t = (data.tasks as Record<string, any>)[id]
+        return t && !t.awaitingAcceptance && t.columnId !== ARCHIVE_COLUMN_ID && t.columnId !== 'archive2'
+      })
+    ))
   }
 
   for (const [id, task] of Object.entries(data.tasks)) {
@@ -51,7 +56,8 @@ function normalizeBoardData(data: BoardData) {
       task.columnId = ARCHIVE_COLUMN_ID
     }
     const col = columnMap.get(task.columnId) || archiveCol
-    if (!col.taskIds.includes(id)) col.taskIds.push(id)
+    const list = task.awaitingAcceptance ? col.pendingTaskIds : col.taskIds
+    if (!list.includes(id)) list.push(id)
   }
 }
 
