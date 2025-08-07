@@ -7,7 +7,7 @@ import CreateJobForm from "@/components/CreateJobForm"
 import { Card } from "@/components/ui/card"
 import { Archive, Search, LayoutGrid, Lock, X, ChevronRight, RotateCw, Move, CalendarDays } from "lucide-react"
 import Link from "next/link"
-import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns"
+import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
 import KanbanDrawer from "@/components/KanbanDrawer"
 
 // Skeleton component
@@ -117,6 +117,7 @@ export default function KanbanBoard() {
     const query = searchQuery.toLowerCase()
     return Object.values(tasks)
       .filter(task => {
+        if (task.columnId === ARCHIVE_COLUMN_ID || task.columnId === 'archive2') return false
         const text = `${task.customerName} ${task.representative} ${task.ynmxId || ''} ${task.notes || ''}`.toLowerCase()
         const matchesQuery = hasQuery ? text.includes(query) : true
         let matchesDate = true
@@ -449,6 +450,8 @@ export default function KanbanBoard() {
       return
     }
 
+    const isArchive = targetColumnId === ARCHIVE_COLUMN_ID || targetColumnId === 'archive2'
+
     let updatedTask: Task = {
       ...draggedTask,
       columnId: targetColumnId,
@@ -470,9 +473,11 @@ export default function KanbanBoard() {
       }
     }
 
-    const nextTasks = {
-      ...tasks,
-      [draggedTask.id]: updatedTask,
+    const nextTasks = { ...tasks }
+    if (isArchive) {
+      delete nextTasks[draggedTask.id]
+    } else {
+      nextTasks[draggedTask.id] = updatedTask
     }
 
     let nextColumns = columns.map((col) => {
@@ -483,8 +488,11 @@ export default function KanbanBoard() {
         }
       }
       if (col.id === targetColumnId) {
+        if (isArchive) {
+          return col
+        }
         const newTaskIds = [...col.taskIds]
-        
+
         // If dropIndex is specified, insert at that position
         if (dropIndex !== undefined) {
           // Remove the task if it's already in this column
@@ -498,7 +506,7 @@ export default function KanbanBoard() {
           // Otherwise add to end
           newTaskIds.push(draggedTask.id)
         }
-        
+
         return { ...col, taskIds: newTaskIds }
       }
       return col
@@ -506,7 +514,10 @@ export default function KanbanBoard() {
     nextColumns = sortColumnsData(nextColumns, nextTasks)
     setTasks(nextTasks)
     setColumns(nextColumns)
-    setHighlightTaskId(draggedTask.id)
+    setHighlightTaskId(isArchive ? null : draggedTask.id)
+    if (isArchive) {
+      taskRefs.current.delete(draggedTask.id)
+    }
     setDragOverColumn(null)
     setDropIndicatorIndex(null)
     await saveBoard({ tasks: nextTasks, columns: nextColumns })

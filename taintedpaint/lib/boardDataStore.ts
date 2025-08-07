@@ -30,12 +30,23 @@ function normalizeBoardData(data: BoardData) {
   const columnIds = new Set(columnMap.keys())
   const archiveCol = columnMap.get(ARCHIVE_COLUMN_ID) || data.columns[0]
 
-  // Remove unknown taskIds from columns
+  // Remove unknown and archived taskIds from columns
   for (const col of data.columns) {
-    col.taskIds = Array.from(new Set(col.taskIds.filter(id => id in data.tasks)))
+    col.taskIds = Array.from(
+      new Set(
+        col.taskIds.filter(id => {
+          const t = (data.tasks as Record<string, any>)[id]
+          return t && t.columnId !== ARCHIVE_COLUMN_ID && t.columnId !== 'archive2'
+        })
+      )
+    )
   }
 
   for (const [id, task] of Object.entries(data.tasks)) {
+    if (task.columnId === ARCHIVE_COLUMN_ID || task.columnId === 'archive2') {
+      delete data.tasks[id]
+      continue
+    }
     if (!columnIds.has(task.columnId)) {
       task.columnId = ARCHIVE_COLUMN_ID
     }
