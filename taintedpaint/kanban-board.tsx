@@ -63,6 +63,7 @@ export default function KanbanBoard() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [selectedSearchResult, setSelectedSearchResult] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [openAwaitingColumn, setOpenAwaitingColumn] = useState<string | null>(null)
 
   const columnColors: Record<string, string> = {
     create: 'bg-blue-500',
@@ -443,74 +444,100 @@ export default function KanbanBoard() {
     e.preventDefault()
     e.stopPropagation()
 
-    if (!draggedTask || !columns.some(c => c.id === targetColumnId) ||
-        (draggedTask.columnId === targetColumnId && dropIndex === undefined)) {
+    if (
+      !draggedTask ||
+      !columns.some((c) => c.id === targetColumnId) ||
+      (draggedTask.columnId === targetColumnId && dropIndex === undefined)
+    ) {
       setDragOverColumn(null)
       setDropIndicatorIndex(null)
       return
     }
 
-    const isArchive = targetColumnId === ARCHIVE_COLUMN_ID || targetColumnId === 'archive2'
+    const isArchive =
+      targetColumnId === ARCHIVE_COLUMN_ID || targetColumnId === 'archive2'
+    const sameColumn = draggedTask.columnId === targetColumnId
 
-    let updatedTask: Task = {
-      ...draggedTask,
-      columnId: targetColumnId,
-      deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
-    }
-    if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
-      updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() }
-    }
-    if (targetColumnId === 'ship') {
-      try {
-        const res = await fetch(`/api/jobs/${draggedTask.id}/delivery-note`, {
-          method: 'POST',
-        })
-        if (res.ok) {
-          updatedTask.deliveryNoteGenerated = true
-        }
-      } catch (err) {
-        console.error('生成出货单失败', err)
-      }
-    }
+    let nextTasks: Record<string, Task> = { ...tasks } as Record<string, Task>
+    let nextColumns: Column[] = columns
 
-    const nextTasks = { ...tasks }
-    if (isArchive) {
-      delete nextTasks[draggedTask.id]
-    } else {
-      nextTasks[draggedTask.id] = updatedTask
-    }
-
-    let nextColumns = columns.map((col) => {
-      if (col.id === draggedTask.columnId) {
-        return {
-          ...col,
-          taskIds: col.taskIds.filter((id) => id !== draggedTask.id),
-        }
-      }
-      if (col.id === targetColumnId) {
-        if (isArchive) {
-          return col
-        }
-        const newTaskIds = [...col.taskIds]
-
-        // If dropIndex is specified, insert at that position
-        if (dropIndex !== undefined) {
-          // Remove the task if it's already in this column
+    if (sameColumn) {
+      nextColumns = columns.map((col) => {
+        if (col.id === targetColumnId) {
+          const newTaskIds = [...col.taskIds]
           const existingIndex = newTaskIds.indexOf(draggedTask.id)
-          if (existingIndex !== -1) {
-            newTaskIds.splice(existingIndex, 1)
-          }
-          // Insert at the new position
-          newTaskIds.splice(dropIndex, 0, draggedTask.id)
-        } else {
-          // Otherwise add to end
-          newTaskIds.push(draggedTask.id)
+          if (existingIndex !== -1) newTaskIds.splice(existingIndex, 1)
+          if (dropIndex !== undefined) newTaskIds.splice(dropIndex, 0, draggedTask.id)
+          return { ...col, taskIds: newTaskIds }
         }
-
-        return { ...col, taskIds: newTaskIds }
+        return col
+      })
+    } else if (isArchive) {
+      let updatedTask: Task = {
+        ...draggedTask,
+        columnId: targetColumnId,
+        deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
       }
-      return col
-    })
+      if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
+        updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() }
+      }
+      if (targetColumnId === 'ship') {
+        try {
+          const res = await fetch(`/api/jobs/${draggedTask.id}/delivery-note`, {
+            method: 'POST',
+          })
+          if (res.ok) {
+            updatedTask.deliveryNoteGenerated = true
+          }
+        } catch (err) {
+          console.error('生成出货单失败', err)
+        }
+      }
+      delete nextTasks[draggedTask.id]
+      nextColumns = columns.map((col) => {
+        if (col.id === draggedTask.columnId) {
+          return {
+            ...col,
+            taskIds: col.taskIds.filter((id) => id !== draggedTask.id),
+          }
+        }
+        return col
+      })
+    } else {
+      let updatedTask: Task = {
+        ...draggedTask,
+        columnId: targetColumnId,
+        deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
+        awaitingAcceptance: true,
+        previousColumnId: draggedTask.columnId,
+      }
+      if (targetColumnId === 'sheet' && !draggedTask.ynmxId) {
+        updatedTask = { ...updatedTask, ynmxId: getNextYnmxId() }
+      }
+      if (targetColumnId === 'ship') {
+        try {
+          const res = await fetch(`/api/jobs/${draggedTask.id}/delivery-note`, {
+            method: 'POST',
+          })
+          if (res.ok) {
+            updatedTask.deliveryNoteGenerated = true
+          }
+        } catch (err) {
+          console.error('生成出货单失败', err)
+        }
+      }
+      nextTasks[draggedTask.id] = updatedTask
+      nextColumns = columns.map((col) => {
+        if (col.id === draggedTask.columnId) {
+          return {
+            ...col,
+            taskIds: col.taskIds.filter((id) => id !== draggedTask.id),
+          }
+        }
+        return col
+      })
+    }
+
     nextColumns = sortColumnsData(nextColumns, nextTasks)
     setTasks(nextTasks)
     setColumns(nextColumns)
@@ -520,6 +547,48 @@ export default function KanbanBoard() {
     }
     setDragOverColumn(null)
     setDropIndicatorIndex(null)
+    await saveBoard({ tasks: nextTasks, columns: nextColumns })
+  }
+
+  const handleAcceptPending = async (taskId: string) => {
+    const task = tasks[taskId]
+    if (!task) return
+    const updated: Task = {
+      ...(task as Task),
+      awaitingAcceptance: false,
+      previousColumnId: undefined,
+    }
+    const nextTasks = { ...tasks, [taskId]: updated } as Record<string, Task>
+    const nextColumns = columns.map((col) => {
+      if (col.id === updated.columnId) {
+        return { ...col, taskIds: [taskId, ...col.taskIds] }
+      }
+      return col
+    })
+    setTasks(nextTasks)
+    setColumns(nextColumns)
+    await saveBoard({ tasks: nextTasks, columns: nextColumns })
+  }
+
+  const handleDeclinePending = async (taskId: string) => {
+    const task = tasks[taskId]
+    if (!task) return
+    const prevCol = task.previousColumnId || START_COLUMN_ID
+    const updated: Task = {
+      ...(task as Task),
+      awaitingAcceptance: false,
+      previousColumnId: undefined,
+      columnId: prevCol,
+    }
+    const nextTasks = { ...tasks, [taskId]: updated } as Record<string, Task>
+    const nextColumns = columns.map((col) => {
+      if (col.id === prevCol) {
+        return { ...col, taskIds: [taskId, ...col.taskIds] }
+      }
+      return col
+    })
+    setTasks(nextTasks)
+    setColumns(nextColumns)
     await saveBoard({ tasks: nextTasks, columns: nextColumns })
   }
 
@@ -793,6 +862,9 @@ export default function KanbanBoard() {
             visibleColumns.map((column) => {
               const columnTasks = column.taskIds.map(id => tasks[id]).filter(Boolean)
               const isArchive = ['archive', 'archive2'].includes(column.id)
+              const awaitingTasks = Object.values(tasks).filter(
+                t => t.columnId === column.id && t.awaitingAcceptance
+              )
 
               return (
                 <div
@@ -813,12 +885,57 @@ export default function KanbanBoard() {
                         {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
                         <h2 className="text-sm font-medium text-gray-700">{column.title}</h2>
                       </div>
-                      <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                        {columnTasks.length}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                          {columnTasks.length}
+                        </span>
+                        {awaitingTasks.length > 0 && (
+                          <button
+                            onClick={() =>
+                              setOpenAwaitingColumn(
+                                openAwaitingColumn === column.id ? null : column.id,
+                              )
+                            }
+                            className="text-xs text-blue-600 underline"
+                          >
+                            待接受({awaitingTasks.length})
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  
+
+                  {openAwaitingColumn === column.id && awaitingTasks.length > 0 && (
+                    <div className="px-4 py-2 border-b border-gray-100 bg-yellow-50 space-y-2">
+                      {awaitingTasks.map(task => (
+                        <div
+                          key={task.id}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm truncate">
+                            {viewMode === 'business'
+                              ? task.customerName
+                              : getTaskDisplayName(task)}
+                          </span>
+                          <div className="space-x-2 flex-shrink-0">
+                            <button
+                              onClick={() => handleAcceptPending(task.id)}
+                              className="text-xs text-green-600"
+                            >
+                              接受
+                            </button>
+                            <button
+                              onClick={() => handleDeclinePending(task.id)}
+                              className="text-xs text-red-600"
+                            >
+                              拒绝
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="flex-1 overflow-y-auto p-3 min-h-0">
                     {columnTasks.length === 0 ? (
                       <div 
