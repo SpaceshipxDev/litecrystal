@@ -40,8 +40,7 @@ const createWindow = (): void => {
 
   // and load the index.html of the app.
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://192.168.5.107:3001';
-  const appUrl = process.env.RESTRICTED ? `${baseUrl}?restricted=1` : baseUrl;
-  mainWindow.loadURL(appUrl);
+  mainWindow.loadURL(baseUrl);
 
   // Open the DevTools automatically when running in development.
   if (!app.isPackaged) {

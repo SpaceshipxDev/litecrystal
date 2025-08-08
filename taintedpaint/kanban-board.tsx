@@ -4,7 +4,7 @@ import type React from "react"
 import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/types"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
-import { Archive, Lock, RotateCw, Check, Plus, Clock, Search, X } from "lucide-react"
+import { Archive, RotateCw, Check, Plus, Clock, Search, X } from "lucide-react"
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
 import TaskModal from "@/components/TaskModal"
 import AccountButton from "@/components/AccountButton"
@@ -42,15 +42,16 @@ import { formatTimeAgo } from "@/lib/utils"
 )
 
 export default function KanbanBoard() {
-  const restricted = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('restricted') === '1'
+  const stored = typeof window !== "undefined" ? localStorage.getItem("user") : null
+  const department = stored ? JSON.parse(stored).department : ""
+  const viewMode: 'business' | 'production' = ['商务', '检验'].includes(department)
+    ? 'business'
+    : 'production'
 
   const [tasks, setTasks] = useState<Record<string, TaskSummary & Partial<Task>>>(
     {},
   )
   const [columns, setColumns] = useState<Column[]>(baseColumns)
-  const [viewMode, setViewMode] = useState<'business' | 'production'>(
-    restricted ? 'production' : 'business',
-  )
   const [draggedTask, setDraggedTask] = useState<(TaskSummary & Partial<Task>) | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null)
@@ -693,32 +694,6 @@ export default function KanbanBoard() {
               <RotateCw className="w-4 h-4" />
             </button>
 
-            <div className="w-px h-5 bg-gray-200 mx-2" />
-            
-            <div className="flex items-center bg-white/60 backdrop-blur rounded-xl p-0.5 border apple-border-light">
-              <button
-                onClick={() => !restricted && setViewMode('business')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  viewMode === 'business' 
-                    ? 'bg-white text-gray-900 apple-shadow' 
-                    : 'text-gray-600 hover:text-gray-900'
-                } ${restricted ? 'cursor-not-allowed opacity-50' : ''}`}
-                disabled={restricted}
-              >
-                {restricted && <Lock className="inline-block w-3 h-3 mr-1" />}
-                商务
-              </button>
-              <button
-                onClick={() => setViewMode('production')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  viewMode === 'production' 
-                    ? 'bg-white text-gray-900 apple-shadow' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                生产
-              </button>
-            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -741,7 +716,7 @@ export default function KanbanBoard() {
       </header>
       
       <div className="relative flex-1 flex overflow-hidden">
-        {/* Board toolbar: refresh + view toggle + quick search */}
+        {/* Board toolbar: refresh + quick search */}
         <div className="absolute top-0 left-0 right-0 px-6 pt-4 z-20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -753,18 +728,6 @@ export default function KanbanBoard() {
               >
                 <RotateCw className="w-4 h-4" />
               </button>
-              <div className="w-px h-5 bg-gray-200" />
-              <div className="flex items-center bg-white/60 backdrop-blur rounded-xl p-0.5 border apple-border-light">
-                <button
-                  onClick={() => !restricted && setViewMode('business')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${viewMode === 'business' ? 'bg-white text-gray-900 apple-shadow' : 'text-gray-600 hover:text-gray-900'} ${restricted ? 'cursor-not-allowed opacity-50' : ''}`}
-                  disabled={restricted}
-                >商务</button>
-                <button
-                  onClick={() => setViewMode('production')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${viewMode === 'production' ? 'bg-white text-gray-900 apple-shadow' : 'text-gray-600 hover:text-gray-900'}`}
-                >生产</button>
-              </div>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative hidden sm:block">
