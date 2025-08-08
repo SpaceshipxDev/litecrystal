@@ -86,10 +86,10 @@ export default function KanbanColumn({
       onDragEnter={() => handleDragEnterColumn(column.id)}
       onDragLeave={handleDragLeaveColumn}
       onDrop={(e) => handleDrop(e, column.id, dropIndicatorIndex ?? undefined)}
-      className="relative flex-shrink-0 w-80 flex flex-col rounded-md border border-gray-200 bg-gray-50 overflow-hidden min-h-0"
+      className="relative flex-shrink-0 w-80 h-full flex flex-col rounded-md border border-gray-200 bg-gray-50 overflow-hidden min-h-0"
     >
       {/* Column Header */}
-      <div className="relative z-10 bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
           <h2 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">
