@@ -165,11 +165,25 @@ export default function KanbanBoard() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        searchInputRef.current?.focus()
+        const input = document.getElementById("board-search") as HTMLInputElement | null
+        input?.focus()
       }
     }
+    const onSearch = (e: Event) => {
+      const ce = e as unknown as CustomEvent<string>
+      setSearchQuery(ce.detail ?? "")
+    }
+    const onRefresh = async () => {
+      await handleRefresh()
+    }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener("board:search" as any, onSearch as any)
+    window.addEventListener("board:refresh" as any, onRefresh as any)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener("board:search" as any, onSearch as any)
+      window.removeEventListener("board:refresh" as any, onRefresh as any)
+    }
   }, [])
 
   useEffect(() => {
@@ -317,12 +331,14 @@ export default function KanbanBoard() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
+    try { window.dispatchEvent(new CustomEvent("board:refreshing", { detail: true })) } catch {}
     // Add a minimum delay to show the skeleton UI
     await Promise.all([
       fetchBoardSummary(true).then(() => fetchBoardFull(true)),
       new Promise(resolve => setTimeout(resolve, 500))
     ])
     setIsRefreshing(false)
+    try { window.dispatchEvent(new CustomEvent("board:refreshing", { detail: false })) } catch {}
   }
 
   useEffect(() => {
@@ -716,51 +732,13 @@ export default function KanbanBoard() {
       </header>
       
       <div className="relative flex-1 flex overflow-hidden">
-        {/* Board toolbar: refresh + quick search */}
-        <div className="absolute top-0 left-0 right-0 px-6 pt-4 z-20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefresh}
-                className={`p-1.5 text-gray-600 hover:text-gray-900 apple-glass rounded-md transition-all ${isRefreshing ? 'animate-spin' : ''}`}
-                disabled={isRefreshing}
-                title="刷新"
-              >
-                <RotateCw className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative hidden sm:block">
-                <input
-                  ref={searchInputRef}
-                  id="board-search"
-                  type="text"
-                  placeholder="搜索客户、负责人或ID…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-64 px-8 py-2 text-sm rounded-xl bg-white/60 backdrop-blur border apple-border-light focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <Search className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                {searchQuery && (
-                  <button
-                    onClick={() => { setSearchQuery("") }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/70"
-                    aria-label="清除"
-                  >
-                    <X className="w-3.5 h-3.5 text-gray-400" />
-                  </button>
-                )}
-              </div>
-              {/* Removed redundant new task button per request */}
-            </div>
-          </div>
-        </div>
+        {/* Space reserved for header height so content doesn't go under it */}
         {/* Global search via CommandPalette (⌘K) */}
 
         {/* Main Board */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 flex gap-4 overflow-x-auto p-6 pt-16 transition-all duration-300"
+          className="flex-1 flex gap-4 overflow-x-auto p-6 transition-all duration-300"
         >
           {handoffToast && (
             <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">

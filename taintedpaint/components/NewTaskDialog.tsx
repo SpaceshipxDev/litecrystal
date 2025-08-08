@@ -34,7 +34,7 @@ export default function NewTaskDialog({
     }
   }, [])
 
-  const openPicker = (ref: React.RefObject<HTMLInputElement>) => {
+  const openPicker = (ref: React.RefObject<HTMLInputElement | null>) => {
     const input = ref.current
     if (!input) return
     if ((input as any).showPicker) (input as any).showPicker()
