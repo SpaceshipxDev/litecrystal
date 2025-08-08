@@ -36,7 +36,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <header className="apple-glass apple-shadow sticky top-0 z-40 border-b border-transparent">
         <div className="w-full px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">

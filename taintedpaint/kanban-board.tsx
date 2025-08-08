@@ -769,7 +769,7 @@ export default function KanbanBoard() {
      - Column headers: sticky + bg + z-index + gradient mask
      ───────────────────────────────────────────────────────────────────────── */
   return (
-    <div className="h-full w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7]">
+    <div className="h-screen w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7]">
       {/* BOARD SCROLLER */}
       <div
         ref={scrollContainerRef}
