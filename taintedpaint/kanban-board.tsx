@@ -773,7 +773,7 @@ export default function KanbanBoard() {
       {/* BOARD SCROLLER */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 flex gap-4 overflow-x-auto overflow-y-hidden p-6 [scrollbar-gutter:stable] scroll-smooth overscroll-x-contain"
+        className="flex-1 min-h-0 flex gap-4 overflow-x-auto overflow-y-hidden p-6 [scrollbar-gutter:stable] scroll-smooth overscroll-x-contain"
       >
         {handoffToast && (
           <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">
