@@ -165,7 +165,7 @@ export default function ArchivePage() {
   // ⑥ JSX 渲染 --------------------------------------------------------------------
   return (
     <div
-      className="min-h-screen bg-white font-sans text-gray-900"
+      className="min-h-full bg-white font-sans text-gray-900"
       style={{ fontFamily: '"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif' }}
     >
       <div className="max-w-6xl mx-auto px-6 py-8">
