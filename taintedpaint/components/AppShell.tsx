@@ -38,7 +38,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="apple-glass apple-shadow sticky top-0 z-40 border-b border-transparent">
-        <div className="w-full max-w-screen-xl px-6 h-14 flex items-center justify-between mx-auto">
+        <div className="w-full px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="text-[15px] font-semibold tracking-tight text-gray-900">Estara</Link>
             {isBoard && (
@@ -79,7 +79,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-screen-xl mx-auto">
+      <main className="flex-1">
         {children}
       </main>
 
