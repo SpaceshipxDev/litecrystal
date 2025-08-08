@@ -38,6 +38,8 @@ interface KanbanColumnProps {
   animateAcceptPending: (taskId: string, columnId: string) => void;
   animateDeclinePending: (taskId: string, columnId: string) => void;
   getTaskDisplayName: (task: TaskSummary) => string;
+  acceptingPending: Record<string, boolean>;
+  decliningPending: Record<string, boolean>;
 }
 
 export default function KanbanColumn({
@@ -73,7 +75,10 @@ export default function KanbanColumn({
   animateAcceptPending,
   animateDeclinePending,
   getTaskDisplayName,
+  acceptingPending,
+  decliningPending,
 }: KanbanColumnProps) {
+  const todayStr = new Date().toISOString().slice(0, 10);
   return (
     <div
       data-col-id={column.id}
@@ -198,12 +203,24 @@ export default function KanbanColumn({
               </button>
             </div>
             <div className="space-y-1.5">
-              {pendingTasks.map((task) => (
+                {pendingTasks.map((task) => {
+                  const isDropHighlighted = highlightTaskId === task.id;
+                  const isAccepting = acceptingPending[task.id];
+                  const isDeclining = decliningPending[task.id];
+                  return (
                 <div
                   key={task.id}
-                  className="rounded-md border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-200"
+                  className={[
+                    "relative rounded-md border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-300",
+                    isDropHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
+                    isAccepting ? "transform scale-[0.98] opacity-80" : "",
+                    isDeclining ? "transform scale-95 opacity-0" : "",
+                  ].join(" ")}
                   onClick={(e) => handleTaskClick(task as Task, e)}
                 >
+                  {task.deliveryDate && task.deliveryDate < todayStr && (
+                    <div aria-hidden="true" className="absolute left-0 top-0 bottom-0 w-1 bg-[#F59E0B] rounded-l-md" />
+                  )}
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-medium text-gray-900 truncate">
@@ -235,7 +252,8 @@ export default function KanbanColumn({
                     </div>
                   </div>
                 </div>
-              ))}
+               );
+               })}
             </div>
           </div>
         )}

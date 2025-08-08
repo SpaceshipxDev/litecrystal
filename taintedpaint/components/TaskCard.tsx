@@ -45,9 +45,12 @@ export default function TaskCard({
         "relative cursor-move rounded-[3px] border bg-white p-3 transition-shadow",
         "border-gray-200 hover:shadow-md shadow-sm",
         "",
-        isHighlighted ? "ring-2 ring-blue-500/40" : "",
+        isHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
       ].join(" ")}
     >
+      {overdue && (
+        <div aria-hidden="true" className="absolute left-0 top-0 bottom-0 w-1 bg-[#F59E0B] rounded-l-[3px]" />
+      )}
       <h3 className="truncate text-[13px] leading-snug font-medium text-gray-900">{titleNode}</h3>
 
       <div className="mt-2 flex flex-wrap gap-1">
@@ -59,7 +62,7 @@ export default function TaskCard({
         <span
           className={[
             "px-2 py-0.5 rounded-full text-[11px] font-medium flex items-center gap-1",
-            overdue ? "bg-[#F59E0B]/10 text-[#F59E0B]" : "bg-gray-100 text-gray-700",
+            "bg-gray-100 text-gray-700",
           ].join(" ")}
         >
           <CalendarDays className="w-3 h-3" />

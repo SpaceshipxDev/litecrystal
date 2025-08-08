@@ -176,6 +176,9 @@ export default function KanbanBoard() {
         node.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 300);
     }
+    // Auto-clear highlight after a short while so the flash doesn't persist forever
+    const clearTimer = setTimeout(() => setHighlightTaskId(null), 6000);
+    return () => clearTimeout(clearTimer);
   }, [highlightTaskId]);
 
   // Display name differs by viewMode
@@ -521,8 +524,9 @@ export default function KanbanBoard() {
       const colTitle = columns.find((c) => c.id === targetColumnId)?.title || "";
       setHandoffToast({ message: `已移交到「${colTitle}」，由该环节负责人处理` });
       setHandoffToastVisible(true);
+      // Keep pending drawer open longer so user clearly sees where the card went
       setOpenPending((prev) => ({ ...prev, [targetColumnId]: true }));
-      setTimeout(() => setOpenPending((prev) => ({ ...prev, [targetColumnId]: false })), 1600);
+      setTimeout(() => setOpenPending((prev) => ({ ...prev, [targetColumnId]: false })), 4500);
       setTimeout(() => setHandoffToastVisible(false), 2200);
       setTimeout(() => setHandoffToast(null), 2600);
     }
@@ -566,6 +570,8 @@ export default function KanbanBoard() {
     nextColumns = sortColumnsData(nextColumns, nextTasks as any);
     setTasks(nextTasks);
     setColumns(nextColumns);
+    // Spotlight the newly accepted task directly in the main list
+    setHighlightTaskId(taskId);
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
@@ -674,7 +680,7 @@ export default function KanbanBoard() {
      - Add pb-16 to avoid overlap with the fixed mini-map.
      ───────────────────────────────────────────────────────────────────────── */
   return (
-    <div className="h-screen w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7] pb-16">
+    <div className="w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7] pb-16 flex-1 min-h-0">
       {/* Toast (handoff feedback) */}
       {handoffToast && (
         <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">
@@ -745,6 +751,8 @@ export default function KanbanBoard() {
                   animateAcceptPending={animateAcceptPending}
                   animateDeclinePending={animateDeclinePending}
                   getTaskDisplayName={getTaskDisplayName}
+                  acceptingPending={acceptingPending}
+                  decliningPending={decliningPending}
                 />
               );
           })
@@ -769,6 +777,24 @@ export default function KanbanBoard() {
       <style jsx global>{`
         .board-scroll {
           scrollbar-gutter: stable both-edges;
+        }
+        /* Flash glow for dropped/accepted tasks */
+        @keyframes dropFlash {
+          0% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+          12% { box-shadow: 0 0 0 3px rgba(59,130,246,0.55), 0 0 12px 2px rgba(59,130,246,0.35); }
+          28% { box-shadow: 0 0 0 2px rgba(59,130,246,0.45), 0 0 16px 3px rgba(59,130,246,0.3); }
+          100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+        }
+        .drop-flash {
+          animation: dropFlash 1600ms ease-out;
+        }
+        /* Gentle appear animation for new/just-moved cards */
+        @keyframes cardAppear {
+          0% { transform: scale(0.98); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .card-appear {
+          animation: cardAppear 280ms ease-out;
         }
       `}</style>
     </div>
