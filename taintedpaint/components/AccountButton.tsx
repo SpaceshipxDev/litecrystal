@@ -29,8 +29,8 @@ export default function AccountButton() {
 
   if (!user) {
     return (
-      <Link href="/login" className="p-2 hover:bg-gray-100 rounded-lg" title="登录">
-        <User className="w-5 h-5 text-gray-600" />
+      <Link href="/login" className="p-2 apple-glass rounded-xl hover:bg-white/70" title="登录">
+        <User className="w-5 h-5 text-gray-700" />
       </Link>
     )
   }
@@ -39,17 +39,17 @@ export default function AccountButton() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="p-2 hover:bg-gray-100 rounded-lg"
+        className="p-2 apple-glass rounded-xl hover:bg-white/70"
         title={user.name}
       >
-        <User className="w-5 h-5 text-gray-600" />
+        <User className="w-5 h-5 text-gray-700" />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded shadow-md z-50">
-          <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">{user.name}</div>
+        <div className="absolute right-0 mt-2 w-36 apple-glass border apple-border-light rounded-2xl apple-shadow z-50">
+          <div className="px-4 py-2 text-sm text-gray-800 border-b border-transparent">{user.name}</div>
           <button
             onClick={logout}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-white/70"
           >
             退出
           </button>

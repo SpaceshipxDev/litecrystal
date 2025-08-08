@@ -4,28 +4,24 @@ import type React from "react"
 import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/types"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
-import { Card } from "@/components/ui/card"
-import { Archive, Search, Lock, X, ChevronRight, RotateCw, Move, CalendarDays, Check, Plus, Clock } from "lucide-react"
+import { Archive, Lock, RotateCw, Check, Plus, Clock, Search, X } from "lucide-react"
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
 import TaskModal from "@/components/TaskModal"
 import AccountButton from "@/components/AccountButton"
 import { formatTimeAgo } from "@/lib/utils"
 
 // Skeleton component
-const TaskSkeleton = () => (
-  <div className="relative bg-white border border-gray-200 rounded-lg p-3 animate-pulse">
-    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gray-200 rounded-l-lg" />
-    <div className="pl-2">
-      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-      <div className="h-3 bg-gray-200 rounded w-1/2 mb-2" />
-      <div className="h-3 bg-gray-100 rounded w-2/3" />
-    </div>
+  const TaskSkeleton = () => (
+  <div className="apple-glass apple-border-light rounded-xl p-3 animate-pulse">
+    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+    <div className="h-3 bg-gray-200 rounded w-1/2 mb-2" />
+    <div className="h-3 bg-gray-100 rounded w-2/3" />
   </div>
 )
 
-const ColumnSkeleton = ({ title }: { title: string }) => (
-  <div className="flex-shrink-0 w-80 h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/50">
-    <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100">
+  const ColumnSkeleton = ({ title }: { title: string }) => (
+  <div className="flex-shrink-0 w-96 h-full flex flex-col apple-glass rounded-2xl apple-shadow border apple-border-light">
+    <div className="flex-shrink-0 px-4 py-3 border-b border-transparent">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-medium text-gray-700">{title}</h2>
@@ -66,25 +62,18 @@ export default function KanbanBoard() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [openPending, setOpenPending] = useState<Record<string, boolean>>({})
   const [addingColumnId, setAddingColumnId] = useState<string | null>(null)
+  const [isNewOpen, setIsNewOpen] = useState(false)
+  // Per-column add existing task picker state
+  const [addPickerOpenFor, setAddPickerOpenFor] = useState<string | null>(null)
+  const [addPickerQuery, setAddPickerQuery] = useState("")
+  // Pending interaction animations
+  const [acceptingPending, setAcceptingPending] = useState<Record<string, boolean>>({})
+  const [decliningPending, setDecliningPending] = useState<Record<string, boolean>>({})
+  // Transient handoff toast
+  const [handoffToast, setHandoffToast] = useState<{ message: string } | null>(null)
+  const [handoffToastVisible, setHandoffToastVisible] = useState(false)
 
-  const columnColors: Record<string, string> = {
-    create: 'bg-blue-500',
-    quote: 'bg-purple-500',
-    send: 'bg-teal-500',
-    sheet: 'bg-orange-500',
-    approval: 'bg-yellow-500',
-    outsourcing: 'bg-sky-500',
-    daohe: 'bg-emerald-500',
-    program: 'bg-indigo-500',
-    operate: 'bg-cyan-500',
-    manual: 'bg-pink-500',
-    batch: 'bg-fuchsia-500',
-    surface: 'bg-rose-500',
-    inspect: 'bg-lime-500',
-    ship: 'bg-green-500',
-    archive: 'bg-gray-400',
-    archive2: 'bg-gray-400',
-  }
+  // Removed task color strips for a cleaner, more minimal design
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [selectedTaskColumnTitle, setSelectedTaskColumnTitle] = useState<string | null>(null)
@@ -166,6 +155,17 @@ export default function KanbanBoard() {
     setTasks(nextTasks)
     setColumns(nextColumns)
     await saveBoard({ tasks: nextTasks, columns: nextColumns })
+  }
+
+  const toggleAddPicker = (columnId: string) => {
+    setAddPickerQuery("")
+    setAddPickerOpenFor(prev => (prev === columnId ? null : columnId))
+  }
+
+  const handleSelectAddTask = async (taskId: string, columnId: string) => {
+    await handleAddExistingTask(taskId, columnId)
+    setAddPickerOpenFor(null)
+    setAddPickerQuery("")
   }
 
   const handleSearchResultClick = (taskId: string) => {
@@ -590,6 +590,18 @@ export default function KanbanBoard() {
     }
     setDragOverColumn(null)
     setDropIndicatorIndex(null)
+    // Show transient handoff toast and briefly expand pending, then auto-collapse
+    if (!isArchive) {
+      const colTitle = columns.find(c => c.id === targetColumnId)?.title || ''
+      setHandoffToast({ message: `已移交到「${colTitle}」，由该环节负责人处理` })
+      setHandoffToastVisible(true)
+      setOpenPending(prev => ({ ...prev, [targetColumnId]: true }))
+      setTimeout(() => {
+        setOpenPending(prev => ({ ...prev, [targetColumnId]: false }))
+      }, 1600)
+      setTimeout(() => setHandoffToastVisible(false), 2200)
+      setTimeout(() => setHandoffToast(null), 2600)
+    }
     await saveBoard({ tasks: nextTasks, columns: nextColumns })
   }
 
@@ -652,6 +664,30 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks, columns: nextColumns })
   }
 
+  const animateAcceptPending = async (taskId: string, columnId: string) => {
+    setAcceptingPending(prev => ({ ...prev, [taskId]: true }))
+    setTimeout(async () => {
+      await handleAcceptTask(taskId, columnId)
+      setAcceptingPending(prev => {
+        const next = { ...prev }
+        delete next[taskId]
+        return next
+      })
+    }, 160)
+  }
+
+  const animateDeclinePending = async (taskId: string, columnId: string) => {
+    setDecliningPending(prev => ({ ...prev, [taskId]: true }))
+    setTimeout(async () => {
+      await handleDeclineTask(taskId, columnId)
+      setDecliningPending(prev => {
+        const next = { ...prev }
+        delete next[taskId]
+        return next
+      })
+    }, 160)
+  }
+
   const handleJobCreated = (newTask: Task) => {
     setTasks(prev => {
       const next = { ...prev, [newTask.id]: newTask }
@@ -704,12 +740,12 @@ export default function KanbanBoard() {
   }, [viewMode, columns])
 
   return (
-    <div className="h-screen w-full flex flex-col bg-gray-50 text-gray-900 overflow-hidden">
-      {/* Header */}
-      <header className="flex-shrink-0 h-14 px-6 bg-white/80 backdrop-blur-xl sticky top-0 z-30 border-b border-gray-200/50 flex items-center">
+    <div className="h-screen w-full flex flex-col text-gray-900 overflow-hidden">
+      {/* Header moved to AppShell */}
+      <header className="hidden">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-gray-900">Estara</h1>
+            <h1 className="text-lg font-semibold text-gray-900 tracking-tight">Estara</h1>
 
             <button
               onClick={handleRefresh}
@@ -723,12 +759,12 @@ export default function KanbanBoard() {
 
             <div className="w-px h-5 bg-gray-200 mx-2" />
             
-            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+            <div className="flex items-center bg-white/60 backdrop-blur rounded-xl p-0.5 border apple-border-light">
               <button
                 onClick={() => !restricted && setViewMode('business')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   viewMode === 'business' 
-                    ? 'bg-white text-gray-900 shadow-sm' 
+                    ? 'bg-white text-gray-900 apple-shadow' 
                     : 'text-gray-600 hover:text-gray-900'
                 } ${restricted ? 'cursor-not-allowed opacity-50' : ''}`}
                 disabled={restricted}
@@ -738,9 +774,9 @@ export default function KanbanBoard() {
               </button>
               <button
                 onClick={() => setViewMode('production')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   viewMode === 'production' 
-                    ? 'bg-white text-gray-900 shadow-sm' 
+                    ? 'bg-white text-gray-900 apple-shadow' 
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -755,7 +791,7 @@ export default function KanbanBoard() {
                 setIsSearchOpen(true)
                 setTimeout(() => searchInputRef.current?.focus(), 100)
               }}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-white/70 apple-glass rounded-xl transition-all"
             >
               <Search className="w-4 h-4" />
               <span>搜索</span>
@@ -770,118 +806,94 @@ export default function KanbanBoard() {
       </header>
       
       <div className="relative flex-1 flex overflow-hidden">
-        {/* Search Sidebar */}
-        <div className={`absolute top-0 left-0 h-full bg-white border-r border-gray-200 shadow-xl z-40 transition-all duration-300 ${
-          isSearchOpen ? 'w-80' : 'w-0'
-        } overflow-hidden`}>
-          <div className="p-4 border-b border-gray-100">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-medium text-gray-900">搜索任务</h2>
+        {/* Board toolbar: refresh + view toggle + quick search */}
+        <div className="absolute top-0 left-0 right-0 px-6 pt-4 z-20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  setIsSearchOpen(false)
-                  setSearchQuery("")
-                  setSearchStartDate("")
-                  setSearchEndDate("")
-                  setSelectedSearchResult(null)
-                  setAddingColumnId(null)
-                }}
-                className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={handleRefresh}
+                className={`p-1.5 text-gray-600 hover:text-gray-900 apple-glass rounded-md transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+                disabled={isRefreshing}
+                title="刷新"
               >
-                <X className="w-4 h-4 text-gray-500" />
+                <RotateCw className="w-4 h-4" />
               </button>
-            </div>
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="搜索客户、负责人或ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <div className="flex gap-2 mt-3">
-              <div className="relative flex-1">
-                <input
-                  readOnly
-                  placeholder="开始交期"
-                  value={searchStartDate}
-                  onClick={() => openSearchDatePicker(searchStartDateInputRef)}
-                  className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg pr-9 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <CalendarDays className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <input
-                  ref={searchStartDateInputRef}
-                  type="date"
-                  value={searchStartDate}
-                  onChange={(e) => setSearchStartDate(e.target.value)}
-                  className="sr-only"
-                />
-              </div>
-              <div className="relative flex-1">
-                <input
-                  readOnly
-                  placeholder="结束交期"
-                  value={searchEndDate}
-                  onClick={() => openSearchDatePicker(searchEndDateInputRef)}
-                  className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg pr-9 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <CalendarDays className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <input
-                  ref={searchEndDateInputRef}
-                  type="date"
-                  value={searchEndDate}
-                  onChange={(e) => setSearchEndDate(e.target.value)}
-                  className="sr-only"
-                />
+              <div className="w-px h-5 bg-gray-200" />
+              <div className="flex items-center bg-white/60 backdrop-blur rounded-xl p-0.5 border apple-border-light">
+                <button
+                  onClick={() => !restricted && setViewMode('business')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${viewMode === 'business' ? 'bg-white text-gray-900 apple-shadow' : 'text-gray-600 hover:text-gray-900'} ${restricted ? 'cursor-not-allowed opacity-50' : ''}`}
+                  disabled={restricted}
+                >商务</button>
+                <button
+                  onClick={() => setViewMode('production')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${viewMode === 'production' ? 'bg-white text-gray-900 apple-shadow' : 'text-gray-600 hover:text-gray-900'}`}
+                >生产</button>
               </div>
             </div>
-            <p className="mt-2 text-xs text-gray-400">如：海康 徐鹏</p>
-          </div>
-          
-          <div className="overflow-y-auto h-[calc(100%-88px)]">
-            {(searchQuery || searchStartDate || searchEndDate) && searchResults.length === 0 && (
-              <div className="p-8 text-center text-sm text-gray-500">
-                没有找到相关任务
-              </div>
-            )}
-            
-            {searchResults.map(({ task, column }) => (
-              <button
-                key={task.id}
-                onClick={() => handleSearchResultClick(task.id)}
-                className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 ${
-                  selectedSearchResult === task.id ? 'bg-blue-50' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className={`w-1 h-4 rounded-full ${columnColors[task.columnId]}`} />
-                      <h3 className="text-sm font-medium text-gray-900 truncate">
-                        {task.customerName}
-                      </h3>
-                    </div>
-                    <p className="text-xs text-gray-600 mb-0.5">{task.representative}</p>
-                    {task.ynmxId && (
-                      <p className="text-xs text-gray-500">{task.ynmxId}</p>
+            <div className="flex items-center gap-2">
+              <div className="relative hidden sm:block">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="搜索客户、负责人或ID…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchOpen(true)}
+                  className="w-64 px-8 py-2 text-sm rounded-xl bg-white/60 backdrop-blur border apple-border-light focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <Search className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                {searchQuery && (
+                  <button
+                    onClick={() => { setSearchQuery(""); setSelectedSearchResult(null) }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/70"
+                    aria-label="清除"
+                  >
+                    <X className="w-3.5 h-3.5 text-gray-400" />
+                  </button>
+                )}
+                {(isSearchOpen && searchQuery) && (
+                  <div className="absolute right-0 mt-2 w-[28rem] max-h-[50vh] overflow-auto apple-glass apple-shadow border apple-border-light rounded-2xl p-2">
+                    {searchResults.length === 0 ? (
+                      <div className="px-3 py-8 text-center text-sm text-gray-500">没有找到相关任务</div>
+                    ) : (
+                      searchResults.slice(0, 50).map(({ task, column }) => (
+                        <button
+                          key={task.id}
+                          onClick={() => handleSearchResultClick(task.id)}
+                          className={`w-full text-left px-3 py-2 rounded-lg hover:bg-white/70 transition-colors ${selectedSearchResult === task.id ? 'bg-blue-50' : ''}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate">{task.customerName} <span className="text-gray-500">· {task.representative}</span></div>
+                              {task.ynmxId && <div className="text-xs text-gray-500 truncate">{task.ynmxId}</div>}
+                            </div>
+                            <div className="ml-auto text-xs text-gray-500">{column?.title}</div>
+                          </div>
+                        </button>
+                      ))
                     )}
                   </div>
-                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                    <span className="text-xs text-gray-500">{column?.title}</span>
-                    <ChevronRight className="w-3 h-3 text-gray-400" />
-                  </div>
-                </div>
-              </button>
-            ))}
+                )}
+              </div>
+              {/* Removed redundant new task button per request */}
+            </div>
           </div>
         </div>
+        {/* Global search via CommandPalette (⌘K) */}
 
         {/* Main Board */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 flex gap-3 overflow-x-auto p-6 transition-all duration-300"
-          style={{ marginLeft: isSearchOpen ? '320px' : '0' }}
+          className="flex-1 flex gap-4 overflow-x-auto p-6 pt-16 transition-all duration-300"
         >
+          {handoffToast && (
+            <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">
+              <div className={`apple-glass apple-shadow border apple-border-light rounded-xl px-4 py-2 text-sm text-gray-800 transition-all duration-500 ${handoffToastVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}`}>
+                {handoffToast.message}
+              </div>
+            </div>
+          )}
           {viewMode === 'business' && !isRefreshing && (
             <CreateJobForm onJobCreated={handleJobCreated} />
           )}
@@ -889,8 +901,8 @@ export default function KanbanBoard() {
           {isRefreshing ? (
             <>
               {viewMode === 'business' && (
-                <div className="flex-shrink-0 w-80 h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/50 animate-pulse">
-                  <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100">
+                <div className="flex-shrink-0 w-80 h-full flex flex-col apple-glass rounded-2xl apple-shadow border apple-border-light animate-pulse">
+                  <div className="flex-shrink-0 px-4 py-3 border-b border-transparent">
                     <div className="h-4 bg-gray-200 rounded w-24" />
                   </div>
                   <div className="p-4">
@@ -919,47 +931,118 @@ export default function KanbanBoard() {
                   onDragEnter={() => handleDragEnterColumn(column.id)}
                   onDragLeave={handleDragLeaveColumn}
                   onDrop={(e) => handleDrop(e, column.id, dropIndicatorIndex ?? undefined)}
-                  className={`flex-shrink-0 w-80 h-full flex flex-col bg-white rounded-xl shadow-sm border transition-all duration-200 ${
+                  className={`flex-shrink-0 w-80 h-full flex flex-col apple-glass rounded-2xl apple-shadow border transition-all duration-200 ${
                     dragOverColumn === column.id 
                       ? 'border-blue-400 shadow-lg' 
-                      : 'border-gray-200/50'
+                      : 'apple-border-light'
                   }`}
                 >
-                  <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100">
+                  <div className="flex-1 overflow-y-auto min-h-0">
+                    <div className="sticky top-0 z-10 px-4 py-3 bg-white/70 dark:bg-zinc-900/60 backdrop-blur border-b apple-border-light">
                       <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
-                        <h2 className="text-sm font-medium text-gray-700">{column.title}</h2>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {pendingTasks.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
+                          <h2 className="text-sm font-medium text-gray-700">{column.title}</h2>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {pendingTasks.length > 0 && (
+                            <button
+                              onClick={() => togglePending(column.id)}
+                              className={`text-xs px-2 py-0.5 rounded-full border apple-border-light bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors`}
+                              title="待接受"
+                            >
+                              待接受 {pendingTasks.length}
+                            </button>
+                          )}
                           <button
-                            onClick={() => togglePending(column.id)}
-                            className="text-xs text-blue-600"
+                            onClick={() => toggleAddPicker(column.id)}
+                            className="p-1 hover:bg-white/70 rounded-md"
                           >
-                            待接受({pendingTasks.length})
+                            <Plus className="w-4 h-4 text-gray-500" />
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleAddTaskButton(column.id)}
-                          className="p-1 hover:bg-gray-100 rounded-md"
-                        >
-                          <Plus className="w-4 h-4 text-gray-500" />
-                        </button>
-                        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                          {columnTasks.length}
-                        </span>
+                          <span className="text-xs font-medium text-gray-600 bg-white/70 px-2 py-0.5 rounded-full border apple-border-light">
+                            {columnTasks.length}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex-1 overflow-y-auto p-3 min-h-0">
+                    <div className="p-3">
+                    {addPickerOpenFor === column.id && (
+                      <div className="mb-3 apple-glass apple-shadow border apple-border-light rounded-2xl p-2">
+                        <div className="flex items-center gap-2 px-1 pb-2">
+                          <Search className="w-4 h-4 text-gray-400" />
+                          <input
+                            id={`addpicker-input-${column.id}`}
+                            type="text"
+                            value={addPickerQuery}
+                            onChange={(e) => setAddPickerQuery(e.target.value)}
+                            placeholder="添加现有任务到此列…"
+                            className="w-full bg-transparent focus:outline-none text-sm placeholder:text-gray-400"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => { setAddPickerOpenFor(null); setAddPickerQuery("") }}
+                            className="p-1 rounded hover:bg-white/70"
+                            aria-label="关闭"
+                          >
+                            <X className="w-3.5 h-3.5 text-gray-400" />
+                          </button>
+                        </div>
+                        <div className="max-h-72 overflow-auto divide-y divide-gray-100/60">
+                          {(() => {
+                            const q = addPickerQuery.trim().toLowerCase()
+                            const list = Object.values(tasks)
+                              .filter(t => t && (t as any).id)
+                              .filter(t => {
+                                if (q === "") return true
+                                const text = `${t.customerName} ${t.representative} ${t.ynmxId || ''} ${t.notes || ''}`.toLowerCase()
+                                return text.includes(q)
+                              })
+                              .slice(0, 50)
+                            if (list.length === 0) {
+                              return (
+                                <div className="px-3 py-6 text-center text-sm text-gray-500">没有匹配的任务</div>
+                              )
+                            }
+                            return list.map(t => {
+                              const col = columns.find(c => c.id === t.columnId)
+                              return (
+                                <button
+                                  key={t.id}
+                                  onClick={() => handleSelectAddTask(t.id, column.id)}
+                                  className="w-full text-left px-3 py-2 hover:bg-white/70 rounded-lg transition-colors"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-medium text-gray-900 truncate">{t.customerName} <span className="text-gray-500">· {t.representative}</span></div>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                      {t.ynmxId && <span className="truncate">{t.ynmxId}</span>}
+                                      {col && <span className="px-1.5 py-0.5 rounded bg-gray-100 border apple-border-light">{col.title}</span>}
+                                    </div>
+                                  </div>
+                                </button>
+                              )
+                            })
+                          })()}
+                        </div>
+                      </div>
+                    )}
                     {openPending[column.id] && pendingTasks.length > 0 && (
-                      <div className="mb-4 space-y-2">
+                      <div className="mb-4 apple-glass apple-shadow border apple-border-light rounded-2xl p-2 transition-all duration-400 ease-out animate-in">
+                        <div className="flex items-center justify-between px-1 pb-2">
+                          <div className="text-xs font-medium text-gray-700">待接受</div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="text-xs px-2 py-0.5 rounded-md bg-white/70 border apple-border-light hover:bg-white"
+                              onClick={() => togglePending(column.id)}
+                            >收起</button>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5 transition-all">
                         {pendingTasks.map(task => (
-                          <div
+                           <div
                             key={task.id}
-                            className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 cursor-pointer"
+                             className={`bg-yellow-50 border border-yellow-200 rounded-xl p-2.5 cursor-pointer transition-all duration-200 ${acceptingPending[task.id] ? 'opacity-60 scale-[0.98]' : ''} ${decliningPending[task.id] ? 'opacity-40 translate-x-1' : ''}`}
                             onClick={(e) => handleTaskClick(task as Task, e)}
                           >
                             <div className="flex items-start justify-between">
@@ -971,14 +1054,14 @@ export default function KanbanBoard() {
                               </div>
                               <div className="flex gap-1 ml-2 flex-shrink-0">
                                 <button
-                                  className="p-1 rounded bg-green-100 text-green-600"
-                                  onClick={() => handleAcceptTask(task.id, column.id)}
+                                   className="p-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                                   onClick={() => animateAcceptPending(task.id, column.id)}
                                 >
                                   <Check className="w-3 h-3" />
                                 </button>
                                 <button
-                                  className="p-1 rounded bg-red-100 text-red-600"
-                                  onClick={() => handleDeclineTask(task.id, column.id)}
+                                   className="p-1 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                                   onClick={() => animateDeclinePending(task.id, column.id)}
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
@@ -986,10 +1069,11 @@ export default function KanbanBoard() {
                             </div>
                           </div>
                         ))}
+                        </div>
                       </div>
                     )}
                     {columnTasks.length === 0 ? (
-                      <div 
+                       <div 
                         className={`h-full flex items-center justify-center rounded-lg transition-all duration-200 ${
                           dragOverColumn === column.id 
                             ? 'bg-blue-50 border-2 border-dashed border-blue-300' 
@@ -1010,7 +1094,7 @@ export default function KanbanBoard() {
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-2 relative">
+                      <div className="space-y-1.5 relative">
                         {/* Drop indicator at top */}
                         {dragOverColumn === column.id && dropIndicatorIndex === 0 && (
                           <div className="h-0.5 bg-blue-500 rounded-full -mt-1 mb-2 animate-pulse" />
@@ -1028,7 +1112,7 @@ export default function KanbanBoard() {
                               onDragEnd={handleDragEnd}
                               onDragOver={(e) => handleDragOverTask(e, index, column.id)}
                               onClick={(e) => handleTaskClick(task, e)}
-                              className={`relative group bg-white border border-gray-200 rounded-lg p-3 cursor-move transition-all duration-200 hover:shadow-md hover:border-gray-300 ${
+                              className={`relative group apple-glass apple-border-light rounded-xl p-2.5 cursor-move transition-all duration-200 apple-hover ${
                                 selectedSearchResult === task.id
                                   ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md'
                                   : ''
@@ -1036,9 +1120,7 @@ export default function KanbanBoard() {
                                 highlightTaskId === task.id ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md' : ''
                               }`}
                             >
-                              <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${columnColors[task.columnId]} rounded-l-lg`} />
-                              
-                              <div className="pl-2">
+                              <div>
                                 {viewMode === 'business' ? (
                                   <>
                                     <h3 className="text-sm font-medium text-gray-900 mb-0.5">
@@ -1093,6 +1175,7 @@ export default function KanbanBoard() {
                         ))}
                       </div>
                     )}
+                    </div>
                   </div>
                 </div>
               )
@@ -1110,6 +1193,7 @@ export default function KanbanBoard() {
           onTaskUpdated={handleTaskUpdated}
           onTaskDeleted={handleTaskDeleted}
         />
+        {/* New task dialog currently unused */}
       </div>
     </div>
   )

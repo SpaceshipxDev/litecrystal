@@ -5,10 +5,12 @@
 import KanbanBoard from "@/kanban-board"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+ 
 
 export default function Page() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
+  
   useEffect(() => {
     const user = localStorage.getItem('user')
     if (!user) {

@@ -135,20 +135,20 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   }
 
   return (
-    <div className="flex-shrink-0 w-80 bg-white rounded-xl shadow-sm border border-gray-200/50 p-4">
+    <div className="flex-shrink-0 w-80 apple-glass rounded-2xl apple-shadow border apple-border-light p-4">
       <div className="flex items-center gap-2 mb-4">
-        <div className="p-1.5 bg-gray-100 rounded-lg">
-          <Plus className="w-4 h-4 text-gray-600" />
+        <div className="p-1.5 bg-white/70 rounded-xl">
+          <Plus className="w-4 h-4 text-gray-700" />
         </div>
-        <h2 className="text-sm font-medium text-gray-900">新建任务</h2>
+        <h2 className="text-sm font-medium text-gray-900 tracking-tight">新建任务</h2>
       </div>
 
       <div className="space-y-3">
         <label
           htmlFor="folderUpload"
-          className="flex items-center gap-3 w-full rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer px-3 py-2.5 group"
+          className="flex items-center gap-3 w-full rounded-xl bg-white/60 hover:bg-white/80 backdrop-blur border apple-border-light transition-colors cursor-pointer px-3 py-2.5 group"
         >
-          <Folder className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+          <Folder className="w-4 h-4 text-gray-500 group-hover:text-gray-700" />
           <span className={`text-sm flex-1 truncate ${
             selectedFiles ? "text-gray-900 font-medium" : "text-gray-500"
           }`}>
@@ -170,7 +170,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           placeholder="客户名称"
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
-          className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
+          className="h-9 text-sm"
         />
         <datalist id="customer-list">
           {customerOptions.map((c) => (
@@ -182,7 +182,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           placeholder="负责人"
           value={representative}
           onChange={(e) => setRepresentative(e.target.value)}
-          className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
+          className="h-9 text-sm"
         />
 
 
@@ -192,7 +192,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
             placeholder="询价日期"
             value={inquiryDate}
             onClick={openInquiryDatePicker}
-            className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500 pr-9 cursor-pointer"
+            className="h-9 text-sm pr-9 cursor-pointer"
           />
           <Calendar
             className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
@@ -212,7 +212,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
             placeholder="交货日期"
             value={deliveryDate}
             onClick={openDeliveryDatePicker}
-            className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500 pr-9 cursor-pointer"
+            className="h-9 text-sm pr-9 cursor-pointer"
           />
           <Calendar
             className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
@@ -230,19 +230,19 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           placeholder="生产编号"
           value={ynmxId}
           onChange={(e) => setYnmxId(e.target.value)}
-          className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
+          className="h-9 text-sm"
         />
 
         <Input
           placeholder="备注 (可选）"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="h-9 text-sm bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-blue-500"
+          className="h-9 text-sm"
         />
 
         <Button
           onClick={handleCreateJob}
-          className="w-full h-9 bg-gray-900 hover:bg-black text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50"
+          className="w-full h-9 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
           disabled={
             !selectedFiles ||
             selectedFiles.length === 0 ||
