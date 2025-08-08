@@ -83,7 +83,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <footer className="py-6 text-center text-xs text-gray-400">© {new Date().getFullYear()} Estara</footer>
     </div>
   )
 }

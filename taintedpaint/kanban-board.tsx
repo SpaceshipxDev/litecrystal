@@ -6,23 +6,20 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import CreateJobForm from "@/components/CreateJobForm"
 import {
   Archive,
-  RotateCw,
   Check,
   Plus,
   Clock,
   Search,
   X,
   CalendarDays,
-  User,
   Hash,
 } from "lucide-react"
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns"
 import TaskModal from "@/components/TaskModal"
-import AccountButton from "@/components/AccountButton"
 import { formatTimeAgo } from "@/lib/utils"
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Jira-like SKELETONS (loading shimmer)
+   Small skeletons used only while refreshing
    ─────────────────────────────────────────────────────────────────────────── */
 const TaskSkeleton = () => (
   <div className="rounded-[3px] border border-gray-200 bg-white p-3 shadow-sm animate-pulse">
@@ -33,12 +30,15 @@ const TaskSkeleton = () => (
 )
 
 const ColumnSkeleton = ({ title }: { title: string }) => (
-  <div className="flex-shrink-0 w-80 h-full flex flex-col rounded-md border border-gray-200 bg-gray-50">
-    <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+  <div className="flex-shrink-0 w-80 flex flex-col rounded-md border border-gray-200 bg-gray-50">
+    {/* sticky header stays visible while the BOARD scrolls */}
+    <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-gray-50 z-20">
       <h2 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">{title}</h2>
       <span className="text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">…</span>
+      {/* Gradient mask so cards never “show through” when scrolling */}
+      <div className="pointer-events-none absolute left-0 right-0 -bottom-0.5 h-3 bg-gradient-to-b from-gray-50 to-transparent" />
     </div>
-    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+    <div className="p-3 space-y-2">
       <TaskSkeleton />
       <TaskSkeleton />
       <TaskSkeleton />
@@ -47,12 +47,12 @@ const ColumnSkeleton = ({ title }: { title: string }) => (
 )
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Jira-like TASK CARD (visual-only; functionality unchanged)
+   Jira-like TASK CARD (visual only)
    ─────────────────────────────────────────────────────────────────────────── */
 function TaskCard({
   task,
   viewMode,
-  isRestricted, // ← NEW: tells card whether manufacturing view is restricted
+  isRestricted,
   searchRender,
   isHighlighted,
   onClick,
@@ -71,18 +71,14 @@ function TaskCard({
     onDragOver: (e: React.DragEvent) => void
   }
 }) {
-  // — title line stays single, subtle overdue style (left red bar)
   const todayStr = new Date().toISOString().slice(0, 10)
   const overdue = task.deliveryDate && task.deliveryDate < todayStr
 
-  // ——— Title logic
-  // business: show customer name (as before)
-  // production: if restricted => show ONLY ynmxId; else keep previous fallback.
   const titleNode =
     viewMode === "business"
-      ? searchRender(task.customerName) || "未命名客户" // simple: show the customer
+      ? searchRender(task.customerName) || "未命名客户"
       : isRestricted
-        ? searchRender(task.ynmxId || "—") // ← NEW: restricted manufacturing view = YNMX only
+        ? searchRender(task.ynmxId || "—")
         : searchRender(task.ynmxId || `${task.customerName || ""} - ${task.representative || ""}`)
 
   return (
@@ -96,13 +92,10 @@ function TaskCard({
         isHighlighted ? "ring-2 ring-blue-500/40" : "",
       ].join(" ")}
     >
-      {/* ─ Title (1 line) */}
       <h3 className="truncate text-[13px] leading-snug font-medium text-gray-900">
         {titleNode}
       </h3>
 
-      {/* ─ Tag pills row (rep, date)  */}
-      {/* REMOVED: the YNMX pill here because YNMX is already shown bottom-left */}
       <div className="mt-2 flex flex-wrap gap-1">
         {task.representative && (
           <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[11px] font-medium">
@@ -121,22 +114,17 @@ function TaskCard({
         </span>
       </div>
 
-      {/* ─ Notes (1 line faint) */}
       {task.notes && (
         <p className="mt-2 truncate text-[12px] leading-snug text-gray-500">
           {searchRender(task.notes)}
         </p>
       )}
 
-      {/* ─ Footer: bottom-left = YNMX ID (not internal id); bottom-right = updated (never wraps) */}
       <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-gray-500 flex-nowrap">
-        {/* left: ynmx id token (NEVER random id) */}
         <span className="inline-flex items-center gap-1 whitespace-nowrap">
           <Hash className="w-3 h-3" />
           {task.ynmxId ?? "—"}
         </span>
-
-        {/* right: updatedBy · timeAgo — forced single line, truncates if too long */}
         {task.updatedAt && (
           <span className="inline-flex items-center gap-1 whitespace-nowrap max-w-[55%] overflow-hidden truncate">
             <Clock className="w-3 h-3 shrink-0" />
@@ -152,21 +140,19 @@ function TaskCard({
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   MAIN BOARD — functionality preserved; UI reskinned like Jira
+   MAIN BOARD — **single** vertical scroller (Atlassian style)
+   - Board div has overflow-y-auto (vertical) + overflow-x-auto (horizontal)
+   - Columns DO NOT scroll vertically; their headers are sticky to the board top
+   - Sticky headers get bg + z-index + gradient mask to prevent “bleed”
    ─────────────────────────────────────────────────────────────────────────── */
 export default function KanbanBoard() {
-  // — Viewmode from localStorage (unchanged)
   const stored = typeof window !== "undefined" ? localStorage.getItem("user") : null
   const department = stored ? JSON.parse(stored).department : ""
   const viewMode: 'business' | 'production' = ['商务', '检验'].includes(department)
     ? 'business'
     : 'production'
-
-  // NEW: restricted flag read from localStorage user.restricted (truthy becomes true)
-  // This drives the "manufacturing restricted view" title behavior.
   const isRestricted = stored ? !!JSON.parse(stored).restricted : false
 
-  // — State (unchanged)
   const [tasks, setTasks] = useState<Record<string, (TaskSummary & Partial<Task>)>>({})
   const [columns, setColumns] = useState<Column[]>(baseColumns)
   const [draggedTask, setDraggedTask] = useState<(TaskSummary & Partial<Task>) | null>(null)
@@ -175,7 +161,6 @@ export default function KanbanBoard() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [openPending, setOpenPending] = useState<Record<string, boolean>>({})
-  const [addingColumnId, setAddingColumnId] = useState<string | null>(null)
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [addPickerOpenFor, setAddPickerOpenFor] = useState<string | null>(null)
   const [addPickerQuery, setAddPickerQuery] = useState("")
@@ -190,14 +175,12 @@ export default function KanbanBoard() {
   const [userName, setUserName] = useState("")
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(null)
 
-  // — Refs (unchanged)
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null) // board scroller
   const searchInputRef = useRef<HTMLInputElement>(null)
   const isSavingRef = useRef(false)
   const pendingBoardRef = useRef<BoardData | null>(null)
 
-  /* — Search helper (unchanged) */
   const doesTaskMatchQuery = useCallback((task: TaskSummary & Partial<Task>, q: string) => {
     const query = q.trim().toLowerCase()
     if (query === "") return true
@@ -205,7 +188,6 @@ export default function KanbanBoard() {
     return haystack.includes(query)
   }, [])
 
-  /* — Highlighted render helper (unchanged) */
   const renderHighlighted = useCallback((text: string | undefined, q: string) => {
     const value = text || ""
     const query = q.trim()
@@ -236,7 +218,6 @@ export default function KanbanBoard() {
     )
   }, [])
 
-  /* — Add existing task (unchanged) */
   const handleAddExistingTask = async (taskId: string, columnId: string) => {
     const original = tasks[taskId]
     if (!original) return
@@ -269,14 +250,12 @@ export default function KanbanBoard() {
     setAddPickerQuery("")
     setAddPickerOpenFor(prev => (prev === columnId ? null : columnId))
   }
-
   const handleSelectAddTask = async (taskId: string, columnId: string) => {
     await handleAddExistingTask(taskId, columnId)
     setAddPickerOpenFor(null)
     setAddPickerQuery("")
   }
 
-  /* — Global listeners (unchanged) */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -302,7 +281,6 @@ export default function KanbanBoard() {
     }
   }, [])
 
-  /* — Scroll highlight (unchanged) */
   useEffect(() => {
     if (!highlightTaskId) return
     const node = taskRefs.current.get(highlightTaskId)
@@ -321,7 +299,6 @@ export default function KanbanBoard() {
     }
   }, [highlightTaskId])
 
-  /* — Display name helper (unchanged) */
   const getTaskDisplayName = (task: TaskSummary) => {
     if (viewMode === 'production') {
       return task.ynmxId || `${task.customerName} - ${task.representative}`
@@ -329,7 +306,6 @@ export default function KanbanBoard() {
     return `${task.customerName} - ${task.representative}`
   }
 
-  /* — Sorters (unchanged) */
   const sortTaskIds = useCallback(
     (ids: string[], taskMap: Record<string, TaskSummary>) => {
       return [...ids].sort((a, b) => {
@@ -359,7 +335,6 @@ export default function KanbanBoard() {
     [sortTaskIds]
   )
 
-  /* — Merge with base (unchanged) */
   const mergeWithSkeleton = (saved: Column[]): Column[] => {
     const savedColumnsMap = new Map(saved.map((c) => [c.id, c]))
     return baseColumns.map(baseCol => {
@@ -373,7 +348,6 @@ export default function KanbanBoard() {
     })
   }
 
-  /* — Save board (unchanged) */
   const saveBoard = async (nextBoard: BoardData) => {
     pendingBoardRef.current = nextBoard
     if (isSavingRef.current) return
@@ -396,7 +370,6 @@ export default function KanbanBoard() {
     }
   }
 
-  /* — Fetch (unchanged) */
   const fetchBoardSummary = useCallback(async (force = false) => {
     if (isSavingRef.current && !force) return
     try {
@@ -451,7 +424,6 @@ export default function KanbanBoard() {
     }
   }, [])
 
-  /* — Refresh (unchanged) */
   const handleRefresh = async () => {
     setIsRefreshing(true)
     try { window.dispatchEvent(new CustomEvent("board:refreshing", { detail: true })) } catch {}
@@ -463,7 +435,6 @@ export default function KanbanBoard() {
     try { window.dispatchEvent(new CustomEvent("board:refreshing", { detail: false })) } catch {}
   }
 
-  /* — Init (unchanged) */
   useEffect(() => {
     fetchBoardSummary()
     fetchBoardFull()
@@ -471,7 +442,6 @@ export default function KanbanBoard() {
     return () => clearInterval(interval)
   }, [fetchBoardSummary, fetchBoardFull])
 
-  /* — User name (unchanged) */
   useEffect(() => {
     const stored = localStorage.getItem('user')
     if (stored) {
@@ -482,7 +452,6 @@ export default function KanbanBoard() {
     }
   }, [])
 
-  /* — Update/Delete handlers (unchanged) */
   const handleTaskUpdated = useCallback((updatedTask: Task) => {
     const withTime = {
       ...updatedTask,
@@ -520,7 +489,6 @@ export default function KanbanBoard() {
     [fetchBoardFull]
   )
 
-  /* — Drag & Drop (unchanged) */
   const handleDragStart = (e: React.DragEvent, task: TaskSummary) => {
     setDraggedTask(task)
     setHighlightTaskId(task.id)
@@ -581,7 +549,6 @@ export default function KanbanBoard() {
     const sourceColumnId = draggedTask.columnId
     const isArchive = targetColumnId === ARCHIVE_COLUMN_ID || targetColumnId === 'archive2'
 
-    // reorder within same column
     if (sourceColumnId === targetColumnId) {
       if (dropIndex === undefined) {
         setDragOverColumn(null)
@@ -604,7 +571,6 @@ export default function KanbanBoard() {
       return
     }
 
-    // move across columns
     const existingTask = tasks[draggedTask.id] as Task
     const moveTime = new Date().toISOString()
     let updatedTask: Task = {
@@ -668,7 +634,6 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns })
   }
 
-  /* — Pending (unchanged) */
   const togglePending = (columnId: string) => {
     setOpenPending(prev => ({ ...prev, [columnId]: !prev[columnId] }))
   }
@@ -746,7 +711,6 @@ export default function KanbanBoard() {
     }, 160)
   }
 
-  /* — New job (unchanged) */
   const handleJobCreated = (newTask: Task) => {
     setTasks(prev => {
       const next = { ...prev, [newTask.id]: newTask }
@@ -764,7 +728,6 @@ export default function KanbanBoard() {
     })
   }
 
-  /* — Modal open (unchanged) */
   const handleTaskClick = async (task: Task, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -792,7 +755,6 @@ export default function KanbanBoard() {
     }, 300)
   }
 
-  /* — Visible columns (unchanged) */
   const visibleColumns = useMemo(() => {
     if (viewMode === 'production') {
       return columns.filter(c => ['approval', 'outsourcing', 'daohe', 'program', 'operate', 'manual', 'batch', 'surface', 'inspect', 'ship', 'archive2'].includes(c.id))
@@ -801,14 +763,18 @@ export default function KanbanBoard() {
   }, [viewMode, columns])
 
   /* ──────────────────────────────────────────────────────────────────────────
-     RENDER — Jira-like visuals; NO extra header (you already have one)
+     RENDER
+     - Outer wrapper prevents body scroll
+     - BOARD has the only vertical scroll (and horizontal for many columns)
+     - Column headers: sticky + bg + z-index + gradient mask
      ───────────────────────────────────────────────────────────────────────── */
   return (
     <div className="h-screen w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7]">
-      {/* NOTE: header removed to avoid double-header. Your own header remains. */}
-
-      {/* Board content */}
-      <div ref={scrollContainerRef} className="flex-1 flex gap-4 overflow-x-auto p-6">
+      {/* BOARD SCROLLER */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 flex gap-4 overflow-x-auto overflow-y-hidden p-6 [scrollbar-gutter:stable] scroll-smooth overscroll-x-contain"
+      >
         {handoffToast && (
           <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">
             <div className={`rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 shadow-sm transition-all duration-500 ${handoffToastVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}`}>
@@ -843,10 +809,10 @@ export default function KanbanBoard() {
                 onDragEnter={() => handleDragEnterColumn(column.id)}
                 onDragLeave={handleDragLeaveColumn}
                 onDrop={(e) => handleDrop(e, column.id, dropIndicatorIndex ?? undefined)}
-                className="flex-shrink-0 w-80 h-full flex flex-col rounded-md border border-gray-200 bg-gray-50"
+                className="relative flex-shrink-0 w-80 flex flex-col rounded-md border border-gray-200 bg-gray-50 overflow-hidden min-h-0"
               >
-                {/* Column header (Jira-like) */}
-                <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-gray-50 z-10">
+                {/* Column Header (static within column); background ensures solid look */}
+                <div className="relative z-10 bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
                     <h2 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">{column.title}</h2>
@@ -854,7 +820,7 @@ export default function KanbanBoard() {
                   <div className="flex items-center gap-2">
                     {pendingTasks.length > 0 && (
                       <button
-                        onClick={() => togglePending(column.id)}
+                        onClick={() => setOpenPending(prev => ({ ...prev, [column.id]: !prev[column.id] }))}
                         className="text-[11px] px-2 py-0.5 rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition"
                         title="待接受"
                       >
@@ -862,7 +828,10 @@ export default function KanbanBoard() {
                       </button>
                     )}
                     <button
-                      onClick={() => toggleAddPicker(column.id)}
+                      onClick={() => {
+                        setAddPickerQuery("")
+                        setAddPickerOpenFor(prev => (prev === column.id ? null : column.id))
+                      }}
                       className="p-1 hover:bg-gray-100 rounded"
                       aria-label="添加现有任务"
                     >
@@ -874,9 +843,10 @@ export default function KanbanBoard() {
                   </div>
                 </div>
 
-                {/* Column body */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {/* Add-picker (flat) */}
+                {/* Column body: vertical scroll inside column; header stays put */}
+                <div className="flex-1 overflow-y-auto p-3 pb-6 space-y-2 [scrollbar-gutter:stable] scroll-smooth overscroll-y-contain">
+                  {/* Subtle top gradient (inside scroll area) so header content never looks clipped */}
+                  <div className="pointer-events-none sticky top-0 z-0 -mt-3 h-3 bg-gradient-to-b from-gray-50 to-transparent" />
                   {addPickerOpenFor === column.id && (
                     <div className="mb-3 rounded-md border border-gray-200 bg-white p-2 shadow-sm">
                       <div className="flex items-center gap-2 px-1 pb-2">
@@ -939,14 +909,13 @@ export default function KanbanBoard() {
                     </div>
                   )}
 
-                  {/* Pending (flat) */}
                   {openPending[column.id] && pendingTasks.length > 0 && (
                     <div className="mb-3 rounded-md border border-gray-200 bg-white p-2 shadow-sm">
                       <div className="flex items-center justify-between px-1 pb-2">
                         <div className="text-[11px] font-medium text-gray-700">待接受</div>
                         <button
                           className="text-[11px] px-2 py-0.5 rounded border border-gray-300 bg-white hover:bg-gray-100"
-                          onClick={() => togglePending(column.id)}
+                          onClick={() => setOpenPending(prev => ({ ...prev, [column.id]: !prev[column.id] }))}
                         >
                           收起
                         </button>
@@ -955,9 +924,7 @@ export default function KanbanBoard() {
                         {pendingTasks.map(task => (
                           <div
                             key={task.id}
-                            className={`rounded-md border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-200 ${
-                              acceptingPending[task.id] ? 'opacity-60 scale-[0.98]' : ''
-                            } ${decliningPending[task.id] ? 'opacity-40 translate-x-1' : ''}`}
+                            className="rounded-md border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-200"
                             onClick={(e) => handleTaskClick(task as Task, e)}
                           >
                             <div className="flex items-start justify-between">
@@ -988,9 +955,8 @@ export default function KanbanBoard() {
                     </div>
                   )}
 
-                  {/* Empty or List */}
                   {columnTasks.length === 0 ? (
-                    <div className="h-full flex items-center justify-center rounded-md">
+                    <div className="py-8 flex items-center justify-center rounded-md">
                       <div className="text-center">
                         {isArchive ? (
                           <>
@@ -1014,7 +980,7 @@ export default function KanbanBoard() {
                           <TaskCard
                             task={task as any}
                             viewMode={viewMode}
-                            isRestricted={isRestricted} // ← NEW: pass restricted flag into card
+                            isRestricted={isRestricted}
                             searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
                             isHighlighted={highlightTaskId === task.id}
                             onClick={(e) => handleTaskClick(task as Task, e)}
@@ -1033,13 +999,14 @@ export default function KanbanBoard() {
                     ))
                   )}
                 </div>
+
+                {/* Intentionally no bottom overlay to avoid any visual clipping */}
               </div>
             )
           })
         )}
       </div>
 
-      {/* Modal (unchanged) */}
       <TaskModal
         open={isModalOpen}
         task={selectedTask}
