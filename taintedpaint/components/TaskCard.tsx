@@ -42,13 +42,13 @@ export default function TaskCard({
       {...draggableProps}
       onClick={onClick}
       className={[
-        "relative cursor-move rounded-[3px] border bg-white p-3 xl:p-4 transition-shadow",
+        "relative cursor-move rounded-[3px] border bg-white p-3 transition-shadow",
         "border-gray-200 hover:shadow-md shadow-sm",
         "",
         isHighlighted ? "ring-2 ring-blue-500/40" : "",
       ].join(" ")}
     >
-      <h3 className="truncate text-[13px] xl:text-[14px] leading-snug font-medium text-gray-900">{titleNode}</h3>
+      <h3 className="truncate text-[13px] leading-snug font-medium text-gray-900">{titleNode}</h3>
 
       <div className="mt-2 flex flex-wrap gap-1">
         {task.representative && (
