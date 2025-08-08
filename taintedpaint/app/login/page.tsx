@@ -34,7 +34,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-full flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow w-full max-w-sm space-y-4">
         <h1 className="text-xl font-semibold text-center">登录</h1>
         {error && <p className="text-red-500 text-sm">{error}</p>}
