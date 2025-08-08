@@ -674,7 +674,7 @@ export default function KanbanBoard() {
      - Add pb-16 to avoid overlap with the fixed mini-map.
      ───────────────────────────────────────────────────────────────────────── */
   return (
-    <div className="h-screen w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7] pb-16">
+    <div className="h-screen w-full max-w-screen-xl mx-auto flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7] pb-16">
       {/* Toast (handoff feedback) */}
       {handoffToast && (
         <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">
