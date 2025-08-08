@@ -4,224 +4,12 @@ import type React from "react";
 import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/types";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import CreateJobForm from "@/components/CreateJobForm";
-import { Archive, Check, Plus, Search, X } from "lucide-react";
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns";
 import TaskModal from "@/components/TaskModal";
-import TaskCard from "@/components/TaskCard";
 import { ColumnSkeleton } from "@/components/Skeletons";
+import MiniMapNav from "@/components/MiniMapNav";
+import KanbanColumn from "@/components/KanbanColumn";
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   MiniMapNav — Jira-style bottom-right navigator (ALWAYS visible)
-   - Shows a tiny "map" of columns and a draggable viewport pill.
-   - Fixed in the bottom-right, so you never scroll to reach it.
-   - Click the track to jump; drag pill to scroll; wheel to nudge; arrows to page.
-   - Uses real DOM measurements from the board scroller via containerRef.
-   ─────────────────────────────────────────────────────────────────────────── */
-function MiniMapNav({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
-  // Board metrics (what's visible vs total)
-  const [metrics, setMetrics] = useState({
-    scrollLeft: 0,
-    scrollWidth: 0,
-    clientWidth: 0,
-  });
-
-  // Actual column segments (so the mini-map mirrors your board precisely)
-  const [segments, setSegments] = useState<Array<{ id: string; left: number; width: number }>>([]);
-
-  // Drag state for the viewport pill
-  const draggingRef = useRef<{ startX: number; startLeft: number } | null>(null);
-
-  const measure = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const scrollLeft = el.scrollLeft;
-    const scrollWidth = el.scrollWidth;
-    const clientWidth = el.clientWidth;
-
-    const cols = Array.from(el.querySelectorAll<HTMLElement>("[data-col-id]"));
-    const segs = cols.map((node) => ({
-      id: node.getAttribute("data-col-id") || "",
-      left: node.offsetLeft,
-      width: node.offsetWidth,
-    }));
-
-    setMetrics({ scrollLeft, scrollWidth, clientWidth });
-    setSegments(segs);
-  }, [containerRef]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const onScroll = () => {
-      setMetrics((m) => ({
-        ...m,
-        scrollLeft: el.scrollLeft,
-        scrollWidth: el.scrollWidth,
-        clientWidth: el.clientWidth,
-      }));
-    };
-
-    const ro = new ResizeObserver(() => measure());
-    ro.observe(el);
-
-    const mo = new MutationObserver(() => queueMicrotask(measure));
-    mo.observe(el, { childList: true, subtree: true });
-
-    measure();
-    el.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", measure);
-
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", measure);
-      ro.disconnect();
-      mo.disconnect();
-    };
-  }, [measure, containerRef]);
-
-  // Geometry for the mini-map
-  const PADDING = 8;
-  const MAP_W = 280;
-  const MAP_H = 40;
-  const trackW = MAP_W - PADDING * 2;
-
-  const { scrollLeft, scrollWidth, clientWidth } = metrics;
-  const maxScroll = Math.max(1, scrollWidth - clientWidth);
-  const viewportRatio = Math.max(0, Math.min(1, clientWidth / Math.max(1, scrollWidth)));
-  const handleW = Math.max(24, Math.round(trackW * viewportRatio));
-  const progress = Math.max(0, Math.min(1, scrollLeft / maxScroll));
-  const handleX = Math.round(progress * (trackW - handleW));
-  const hasOverflow = scrollWidth > clientWidth + 2;
-
-  const trackXToScrollLeft = (x: number) => {
-    const clamped = Math.max(0, Math.min(trackW - handleW, x));
-    const p = clamped / Math.max(1, trackW - handleW);
-    return Math.round(p * maxScroll);
-  };
-
-  const onMouseDownHandle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    draggingRef.current = { startX: e.clientX, startLeft: handleX };
-    const onMove = (me: MouseEvent) => {
-      if (!draggingRef.current) return;
-      const delta = me.clientX - draggingRef.current.startX;
-      const nextTrackX = draggingRef.current.startLeft + delta;
-      const el = containerRef.current;
-      if (el) el.scrollTo({ left: trackXToScrollLeft(nextTrackX), behavior: "auto" });
-    };
-    const onUp = () => {
-      draggingRef.current = null;
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    };
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-  };
-
-  const onTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const bounds = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-    const x = e.clientX - bounds.left - PADDING - handleW / 2;
-    const el = containerRef.current;
-    if (el) el.scrollTo({ left: trackXToScrollLeft(x), behavior: "smooth" });
-  };
-
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const el = containerRef.current;
-    if (!el) return;
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    el.scrollBy({ left: delta, behavior: "auto" });
-  };
-
-  const page = (dir: -1 | 1) => {
-    const el = containerRef.current;
-    if (!el) return;
-    const amount = Math.max(160, clientWidth - 80);
-    el.scrollBy({ left: dir * amount, behavior: "smooth" });
-  };
-
-  return (
-    <div
-      className="fixed bottom-4 right-4 z-50 select-none"
-      onWheel={onWheel}
-      aria-hidden={false}
-    >
-      <div
-        className={`rounded-2xl border shadow-sm backdrop-blur ${
-          hasOverflow ? "bg-white/90 border-gray-200" : "bg-white/70 border-gray-200/60"
-        }`}
-        title={hasOverflow ? "" : "没有更多内容可滚动"}
-      >
-        <div className="flex items-center gap-2 px-2 py-2">
-          {/* Left page button */}
-          <button
-            onClick={() => page(-1)}
-            className="h-7 w-7 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 active:scale-[0.98] transition disabled:opacity-40"
-            disabled={!hasOverflow}
-            aria-label="Scroll left"
-          >
-            ‹
-          </button>
-
-          {/* Track */}
-          <div className="relative h-8" style={{ width: MAP_W }} onMouseDown={onTrackClick}>
-            {/* Track background */}
-            <div className="absolute inset-0 px-2">
-              <div className="h-full w-full rounded-lg border border-gray-200 bg-gray-100" />
-            </div>
-
-            {/* Column segments */}
-            <div className="absolute inset-0" style={{ padding: PADDING }}>
-              <div className="relative h-full w-full">
-                {segments.map((seg) => {
-                  const x = (seg.left / Math.max(1, scrollWidth)) * trackW;
-                  const w = Math.max(2, (seg.width / Math.max(1, scrollWidth)) * trackW - 2);
-                  return (
-                    <div
-                      key={seg.id}
-                      className="absolute top-1/2 -translate-y-1/2 h-3 rounded-sm bg-gray-300/70"
-                      style={{ left: x, width: w }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Viewport pill */}
-            <div className="absolute inset-0" style={{ padding: PADDING }}>
-              <div
-                role="slider"
-                aria-label="Board viewport"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(progress * 100)}
-                className={`absolute top-1/2 -translate-y-1/2 h-5 rounded-md border bg-white shadow-sm ${
-                  hasOverflow
-                    ? "border-blue-300 cursor-grab active:cursor-grabbing"
-                    : "border-gray-300 cursor-not-allowed"
-                }`}
-                style={{ left: handleX, width: handleW }}
-                onMouseDown={hasOverflow ? onMouseDownHandle : undefined}
-              />
-            </div>
-          </div>
-
-          {/* Right page button */}
-          <button
-            onClick={() => page(1)}
-            className="h-7 w-7 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 active:scale-[0.98] transition disabled:opacity-40"
-            disabled={!hasOverflow}
-            aria-label="Scroll right"
-          >
-            ›
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ──────────────────────────────────────────────────────────────────────────────
    MAIN BOARD — single vertical scroller + horizontal columns
@@ -922,221 +710,43 @@ export default function KanbanBoard() {
             const pendingTasks = column.pendingTaskIds.map((id) => tasks[id]).filter(Boolean);
             const isArchive = ["archive", "archive2"].includes(column.id);
 
-            return (
-              <div
-                data-col-id={column.id} // ← for MiniMapNav measurement
-                key={column.id}
-                onDragOver={handleDragOver}
-                onDragEnter={() => handleDragEnterColumn(column.id)}
-                onDragLeave={handleDragLeaveColumn}
-                onDrop={(e) => handleDrop(e, column.id, dropIndicatorIndex ?? undefined)}
-                className="relative flex-shrink-0 w-80 flex flex-col rounded-md border border-gray-200 bg-gray-50 overflow-hidden min-h-0"
-              >
-                {/* Column Header */}
-                <div className="relative z-10 bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
-                    <h2 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">
-                      {column.title}
-                    </h2>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {pendingTasks.length > 0 && (
-                      <button
-                        onClick={() => setOpenPending((prev) => ({ ...prev, [column.id]: !prev[column.id] }))}
-                        className="text-[11px] px-2 py-0.5 rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition"
-                        title="待接受"
-                      >
-                        待接受 {pendingTasks.length}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        setAddPickerQuery("");
-                        setAddPickerOpenFor((prev) => (prev === column.id ? null : column.id));
-                      }}
-                      className="p-1 hover:bg-gray-100 rounded"
-                      aria-label="添加现有任务"
-                    >
-                      <Plus className="w-4 h-4 text-gray-600" />
-                    </button>
-                    <span className="text-[11px] font-medium text-gray-700 bg-white px-2 py-0.5 rounded-full border border-gray-300">
-                      {columnTasks.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Column body (vertical scroll) */}
-                <div className="flex-1 overflow-y-auto p-3 pb-6 space-y-2 [scrollbar-gutter:stable] scroll-smooth overscroll-y-contain">
-                  <div className="pointer-events-none sticky top-0 z-0 -mt-3 h-3 bg-gradient-to-b from-gray-50 to-transparent" />
-                  {addPickerOpenFor === column.id && (
-                    <div className="mb-3 rounded-md border border-gray-200 bg-white p-2 shadow-sm">
-                      <div className="flex items-center gap-2 px-1 pb-2">
-                        <Search className="w-4 h-4 text-gray-400" />
-                        <input
-                          id={`addpicker-input-${column.id}`}
-                          type="text"
-                          value={addPickerQuery}
-                          onChange={(e) => setAddPickerQuery(e.target.value)}
-                          placeholder="添加现有任务到此列…"
-                          className="w-full bg-transparent focus:outline-none text-sm placeholder:text-gray-400"
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => {
-                            setAddPickerOpenFor(null);
-                            setAddPickerQuery("");
-                          }}
-                          className="p-1 rounded hover:bg-gray-100"
-                          aria-label="关闭"
-                        >
-                          <X className="w-3.5 h-3.5 text-gray-400" />
-                        </button>
-                      </div>
-                      <div className="max-h-72 overflow-auto divide-y divide-gray-100">
-                        {(() => {
-                          const q = addPickerQuery.trim().toLowerCase();
-                          const list = Object.values(tasks)
-                            .filter((t) => t && (t as any).id)
-                            .filter((t) => {
-                              if (q === "") return true;
-                              const text = `${t.customerName} ${t.representative} ${t.ynmxId || ""} ${t.notes || ""}`.toLowerCase();
-                              return text.includes(q);
-                            })
-                            .slice(0, 50);
-                          if (list.length === 0) {
-                            return <div className="px-3 py-6 text-center text-sm text-gray-500">没有匹配的任务</div>;
-                          }
-                          return list.map((t) => {
-                            const col = columns.find((c) => c.id === t.columnId);
-                            return (
-                              <button
-                                key={(t as any).id}
-                                onClick={() => handleSelectAddTask((t as any).id, column.id)}
-                                className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-md transition-colors"
-                              >
-                                <div className="min-w-0">
-                                  <div className="text-sm font-medium text-gray-900 truncate">
-                                    {(t as any).customerName}{" "}
-                                    <span className="text-gray-500">· {(t as any).representative}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                                    {(t as any).ynmxId && <span className="truncate">{(t as any).ynmxId}</span>}
-                                    {col && (
-                                      <span className="px-1.5 py-0.5 rounded bg-gray-100 border border-gray-200">
-                                        {col.title}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          });
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {openPending[column.id] && pendingTasks.length > 0 && (
-                    <div className="mb-3 rounded-md border border-gray-200 bg-white p-2 shadow-sm">
-                      <div className="flex items-center justify-between px-1 pb-2">
-                        <div className="text-[11px] font-medium text-gray-700">待接受</div>
-                        <button
-                          className="text-[11px] px-2 py-0.5 rounded border border-gray-300 bg-white hover:bg-gray-100"
-                          onClick={() => setOpenPending((prev) => ({ ...prev, [column.id]: !prev[column.id] }))}
-                        >
-                          收起
-                        </button>
-                      </div>
-                      <div className="space-y-1.5">
-                        {pendingTasks.map((task) => (
-                          <div
-                            key={task.id}
-                            className="rounded-md border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-200"
-                            onClick={(e) => handleTaskClick(task as Task, e)}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="text-sm font-medium text-gray-900 truncate">
-                                  {getTaskDisplayName(task)}
-                                </h3>
-                                <p className="text-xs text-gray-600">{task.representative}</p>
-                              </div>
-                              <div className="flex gap-1 ml-2 flex-shrink-0">
-                                <button
-                                  className="p-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    animateAcceptPending(task.id, column.id);
-                                  }}
-                                >
-                                  <Check className="w-3 h-3" />
-                                </button>
-                                <button
-                                  className="p-1 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    animateDeclinePending(task.id, column.id);
-                                  }}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {columnTasks.length === 0 ? (
-                    <div className="py-8 flex items-center justify-center rounded-md">
-                      <div className="text-center">
-                        {isArchive ? (
-                          <>
-                            <Archive className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                            <p className="text-xs text-gray-400">拖拽任务到此处归档</p>
-                          </>
-                        ) : (
-                          <p className="text-xs text-gray-400">暂无任务</p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    columnTasks.map((task, index) => (
-                      <div key={task.id} className="relative">
-                        <div
-                          ref={(node) => {
-                            if (node) taskRefs.current.set(task.id, node);
-                            else taskRefs.current.delete(task.id);
-                          }}
-                        >
-                          <TaskCard
-                            task={task as any}
-                            viewMode={viewMode}
-                            isRestricted={isRestricted}
-                            searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
-                            isHighlighted={highlightTaskId === task.id}
-                            onClick={(e) => handleTaskClick(task as Task, e)}
-                            draggableProps={{
-                              draggable: true,
-                              onDragStart: (e) => handleDragStart(e, task as any),
-                              onDragEnd: handleDragEnd,
-                              onDragOver: (e) => handleDragOverTask(e, index, column.id),
-                            }}
-                          />
-                        </div>
-                        {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
-                          <div className="h-0.5 bg-blue-500 rounded-full mt-2 animate-pulse" />
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
+              return (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  columnTasks={columnTasks}
+                  pendingTasks={pendingTasks}
+                  isArchive={isArchive}
+                  taskRefs={taskRefs}
+                  viewMode={viewMode}
+                  isRestricted={isRestricted}
+                  searchQuery={searchQuery}
+                  renderHighlighted={renderHighlighted}
+                  highlightTaskId={highlightTaskId}
+                  handleTaskClick={handleTaskClick}
+                  handleDragStart={handleDragStart}
+                  handleDragEnd={handleDragEnd}
+                  handleDragOverTask={handleDragOverTask}
+                  handleDragOver={handleDragOver}
+                  handleDragEnterColumn={handleDragEnterColumn}
+                  handleDragLeaveColumn={handleDragLeaveColumn}
+                  handleDrop={handleDrop}
+                  dragOverColumn={dragOverColumn}
+                  dropIndicatorIndex={dropIndicatorIndex}
+                  addPickerOpenFor={addPickerOpenFor}
+                  setAddPickerOpenFor={setAddPickerOpenFor}
+                  addPickerQuery={addPickerQuery}
+                  setAddPickerQuery={setAddPickerQuery}
+                  handleSelectAddTask={handleSelectAddTask}
+                  columns={columns}
+                  tasks={tasks}
+                  openPending={openPending}
+                  setOpenPending={setOpenPending}
+                  animateAcceptPending={animateAcceptPending}
+                  animateDeclinePending={animateDeclinePending}
+                  getTaskDisplayName={getTaskDisplayName}
+                />
+              );
           })
         )}
       </div>
