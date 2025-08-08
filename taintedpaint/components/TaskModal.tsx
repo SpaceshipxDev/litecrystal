@@ -1,12 +1,10 @@
 "use client";
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   TaskModal — clean, consistent, non-redundant modal
-   - No shadcn Dialog; custom Portal modal
-   - Fixed size card (doesn’t grow/shrink with activity length)
-   - Header shows ONLY identity (no duplicate meta)
-   - Single sticky footer for all actions (no duplicate save buttons)
-   - Edit mode has Cancel (resets form) + Save; Delete kept left as destructive
+   TaskModal — cleaner, bigger affordances, no redundancy
+   - Larger, obvious “打开文件夹” button (not hidden)
+   - Delete moved to bottom-right next to Edit (view mode) / next to Save (edit mode)
+   - Still: fixed size, single sticky footer, no activity dots
    ─────────────────────────────────────────────────────────────────────────── */
 
 import type { Task } from "@/types";
@@ -292,7 +290,8 @@ export default function TaskModal({
               </div>
             ) : (
               /* READ MODE — single source of truth; no duplicate in header */
-              <div className="space-y-8">
+              <div className="space-y-6">
+                {/* meta grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-[15px]">
                   <div className="flex items-center gap-2 min-w-0">
                     <Building2 className="h-4 w-4 text-zinc-400" />
@@ -316,24 +315,22 @@ export default function TaskModal({
                   </div>
                 </div>
 
-                {/* Centerpiece Action — large, intuitive open-folder tile */}
+                {/* Bigger, still elegant open-folder action (visible, not hidden) */}
                 {task.taskFolderPath && (
-                  <div className="min-h-[20vh] hidden lg:flex items-center justify-center">
-                    <button
+                  <div>
+                    <Button
+                      variant="outline"
+                      size="default"
                       onClick={handleOpenFolder}
-                      className="group w-full max-w-xl rounded-2xl apple-glass apple-border-light apple-shadow p-6 flex items-center justify-center gap-4 hover:bg-white/70 transition"
+                      className="h-9 rounded-xl px-3 text-[14px] font-medium"
                     >
-                      <div className="rounded-2xl p-3 bg-gradient-to-b from-blue-50 to-blue-100 text-blue-700 ring-1 ring-blue-200/70">
-                        <Folder className="h-8 w-8" />
-                      </div>
-                      <div className="text-left">
-                        <div className="text-base font-semibold leading-tight">打开文件夹</div>
-                        <div className="text-xs text-zinc-500">在访达中查看任务文件</div>
-                      </div>
-                    </button>
+                      <Folder className="h-4 w-4 mr-1.5" />
+                      打开文件夹
+                    </Button>
                   </div>
                 )}
 
+                {/* notes */}
                 {task.notes ? (
                   <div className="space-y-2">
                     <div className="text-sm font-medium text-zinc-900">备注</div>
@@ -349,88 +346,87 @@ export default function TaskModal({
             )}
           </div>
 
-{/* RIGHT: Activity — fixed rail, own scroll; clean, no dots */}
-<aside className="lg:col-span-1">
-  <div className="bg-white border border-zinc-200 rounded-xl p-4 h-full max-h-[unset] overflow-hidden">
-    <div className="flex items-center justify-between">
-      <h3 className="text-sm font-medium tracking-tight">变更记录</h3>
-      {Array.isArray((task as any).history) && (task as any).history.length > 10 ? (
-        <button
-          className="text-xs text-blue-700 hover:underline"
-          onClick={() => setShowAllHistory((v) => !v)}
-        >
-          {showAllHistory ? "收起" : `展开全部(${(task as any).history.length})`}
-        </button>
-      ) : null}
-    </div>
-
-    {/* Inner scroller so the card height stays constant */}
-    <div className="h-[46vh] overflow-y-auto mt-4">
-      <ul className="space-y-2.5">
-        {(Array.isArray((task as any).history) ? (task as any).history : [])
-          .slice(showAllHistory ? 0 : -10)
-          .reverse()
-          .map((h: any, i: number) => (
-            <li key={i}>
-              <div className="flex items-baseline justify-between gap-3">
-                <div className="text-[13px] text-zinc-800">
-                  <span className="font-medium text-zinc-900 mr-1">{h.user}</span>
-                  <span className="text-zinc-600">{h.description}</span>
-                </div>
-                <div className="text-[11px] text-zinc-400 whitespace-nowrap">
-                  {formatTimeAgo(h.timestamp)}
-                </div>
+          {/* RIGHT: Activity — fixed rail, own scroll; NO dots; airy spacing */}
+          <aside className="lg:col-span-1">
+            <div className="bg-white border border-zinc-200 rounded-xl p-4 h-full overflow-hidden">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium tracking-tight">变更记录</h3>
+                {Array.isArray((task as any).history) && (task as any).history.length > 10 ? (
+                  <button
+                    className="text-xs text-blue-700 hover:underline"
+                    onClick={() => setShowAllHistory((v) => !v)}
+                  >
+                    {showAllHistory ? "收起" : `展开全部(${(task as any).history.length})`}
+                  </button>
+                ) : null}
               </div>
-            </li>
-          ))}
-      </ul>
 
-      {(!Array.isArray((task as any).history) || (task as any).history.length === 0) && (
-        <div className="text-sm text-zinc-500">暂无变更记录</div>
-      )}
-    </div>
-  </div>
-</aside>
+              {/* Inner scroller so the card height stays constant */}
+              <div className="h-[46vh] overflow-y-auto mt-4">
+                <ul className="space-y-2.5">
+                  {(Array.isArray((task as any).history) ? (task as any).history : [])
+                    .slice(showAllHistory ? 0 : -10)
+                    .reverse()
+                    .map((h: any, i: number) => (
+                      <li key={i}>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <div className="text-[13px] text-zinc-800">
+                            <span className="font-medium text-zinc-900 mr-1">{h.user}</span>
+                            <span className="text-zinc-600">{h.description}</span>
+                          </div>
+                          <div className="text-[11px] text-zinc-400 whitespace-nowrap">
+                            {formatTimeAgo(h.timestamp)}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                </ul>
 
-
-
+                {(!Array.isArray((task as any).history) || (task as any).history.length === 0) && (
+                  <div className="text-sm text-zinc-500">暂无变更记录</div>
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
 
         {/* ── Footer (single source of actions; sticky) ─────────────────────── */}
         <footer className="shrink-0 border-t border-zinc-200 bg-white/95 backdrop-blur px-6 py-3">
           <div className="flex items-center justify-between">
-            {/* left: destructive */}
-            <div>
-              <Button
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="rounded-xl"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                {isDeleting ? "删除中..." : "删除"}
-              </Button>
-            </div>
+            {/* left: (intentionally empty now; delete moved to right) */}
+            <div />
 
-            {/* right: context actions */}
+            {/* right: context actions (Edit + Delete together in view mode) */}
             <div className="flex items-center gap-2">
               {!isEditMode ? (
                 <>
-                  {task.taskFolderPath && (
-                    <Button variant="outline" onClick={handleOpenFolder} className="rounded-xl">
-                      <Folder className="h-4 w-4 mr-1" />
-                      打开文件夹
-                    </Button>
-                  )}
                   <Button onClick={() => setIsEditMode(true)} className="rounded-xl">
                     <Pencil className="h-4 w-4 mr-1" />
                     编辑
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="rounded-xl"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    {isDeleting ? "删除中..." : "删除"}
                   </Button>
                 </>
               ) : (
                 <>
                   <Button variant="outline" onClick={handleCancel} className="rounded-xl">
                     取消
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="rounded-xl"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    {isDeleting ? "删除中..." : "删除"}
                   </Button>
                   <Button onClick={handleSave} className="rounded-xl">
                     <Check className="h-4 w-4 mr-1" />
