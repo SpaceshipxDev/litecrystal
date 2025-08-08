@@ -86,10 +86,10 @@ export default function KanbanColumn({
       onDragEnter={() => handleDragEnterColumn(column.id)}
       onDragLeave={handleDragLeaveColumn}
       onDrop={(e) => handleDrop(e, column.id, dropIndicatorIndex ?? undefined)}
-      className="relative flex-shrink-0 w-80 flex flex-col rounded-md border border-gray-200 bg-gray-50 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable] scroll-smooth overscroll-y-contain min-h-0"
+      className="relative flex-shrink-0 w-80 flex flex-col rounded-md border border-gray-200 bg-gray-50 overflow-hidden min-h-0"
     >
       {/* Column Header */}
-      <div className="sticky top-0 z-10 bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+      <div className="relative z-10 bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
           <h2 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">
@@ -122,8 +122,8 @@ export default function KanbanColumn({
         </div>
       </div>
 
-      {/* Column body */}
-      <div className="flex-1 p-3 pb-6 space-y-2 [scrollbar-gutter:stable] scroll-smooth overscroll-y-contain">
+      {/* Column body (vertical scroll) */}
+      <div className="flex-1 overflow-y-auto p-3 pb-6 space-y-2 [scrollbar-gutter:stable] scroll-smooth overscroll-y-contain">
         <div className="pointer-events-none sticky top-0 z-0 -mt-3 h-3 bg-gradient-to-b from-gray-50 to-transparent" />
         {addPickerOpenFor === column.id && (
           <div className="mb-3 rounded-md border border-gray-200 bg-white p-2 shadow-sm">
