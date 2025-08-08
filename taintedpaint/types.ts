@@ -17,6 +17,8 @@ export interface Task {
   deliveryNoteGenerated?: boolean;
   /** Whether this task is waiting for acceptance in the target column */
   awaitingAcceptance?: boolean;
+  /** ISO timestamp when the task was created */
+  createdAt?: string;
   /** ISO timestamp of the last modification */
   updatedAt?: string;
   /** Name of the user who made the last modification */
@@ -44,6 +46,8 @@ export interface TaskSummary {
   ynmxId?: string;
   deliveryNoteGenerated?: boolean;
   awaitingAcceptance?: boolean;
+  /** ISO timestamp when the task was created */
+  createdAt?: string;
   /** ISO timestamp of the last modification */
   updatedAt?: string;
   /** Name of the user who made the last modification */
