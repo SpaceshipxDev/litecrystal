@@ -691,7 +691,7 @@ export default function KanbanBoard() {
       {/* Horizontal board scroller (this is what MiniMapNav controls) */}
       <div
         ref={scrollContainerRef}
-        className="board-scroll flex-1 min-h-0 flex gap-4 overflow-x-auto overflow-y-hidden p-6 [scrollbar-gutter:stable] scroll-smooth overscroll-x-contain"
+        className="board-scroll flex-1 min-h-0 flex gap-4 xl:gap-6 overflow-x-auto overflow-y-hidden p-6 [scrollbar-gutter:stable] scroll-smooth overscroll-x-contain snap-x snap-mandatory"
       >
         {viewMode === "business" && !isRefreshing && <CreateJobForm onJobCreated={handleJobCreated} />}
 
