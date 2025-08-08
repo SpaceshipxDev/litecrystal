@@ -17,7 +17,7 @@ import { ColumnSkeleton } from "@/components/Skeletons";
    - Click the track to jump; drag pill to scroll; wheel to nudge; arrows to page.
    - Uses real DOM measurements from the board scroller via containerRef.
    ─────────────────────────────────────────────────────────────────────────── */
-function MiniMapNav({ containerRef }: { containerRef: React.RefObject<HTMLDivElement> }) {
+function MiniMapNav({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
   // Board metrics (what's visible vs total)
   const [metrics, setMetrics] = useState({
     scrollLeft: 0,
