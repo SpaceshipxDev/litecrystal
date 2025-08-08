@@ -18,11 +18,11 @@ interface KanbanColumnProps {
   highlightTaskId: string | null;
   handleTaskClick: (task: Task, e: React.MouseEvent) => void;
   handleDragStart: (e: React.DragEvent, task: Task) => void;
-  handleDragEnd: (e: React.DragEvent) => void;
+  handleDragEnd: () => void;
   handleDragOverTask: (e: React.DragEvent, index: number, columnId: string) => void;
   handleDragOver: (e: React.DragEvent) => void;
   handleDragEnterColumn: (columnId: string) => void;
-  handleDragLeaveColumn: () => void;
+  handleDragLeaveColumn: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent, columnId: string, dropIndex?: number) => void;
   dragOverColumn: string | null;
   dropIndicatorIndex: number | null;
