@@ -4,318 +4,220 @@ import type React from "react";
 import type { Task, TaskSummary, Column, BoardData, BoardSummaryData } from "@/types";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import CreateJobForm from "@/components/CreateJobForm";
-import {
-  Archive,
-  Check,
-  Plus,
-  Clock,
-  Search,
-  X,
-  CalendarDays,
-  Hash,
-} from "lucide-react";
+import { Archive, Check, Plus, Search, X } from "lucide-react";
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from "@/lib/baseColumns";
 import TaskModal from "@/components/TaskModal";
-import { formatTimeAgo } from "@/lib/utils";
+import TaskCard from "@/components/TaskCard";
+import { ColumnSkeleton } from "@/components/Skeletons";
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Small skeletons used only while refreshing
+   MiniMapNav — Jira-style bottom-right navigator (ALWAYS visible)
+   - Shows a tiny "map" of columns and a draggable viewport pill.
+   - Fixed in the bottom-right, so you never scroll to reach it.
+   - Click the track to jump; drag pill to scroll; wheel to nudge; arrows to page.
+   - Uses real DOM measurements from the board scroller via containerRef.
    ─────────────────────────────────────────────────────────────────────────── */
-const TaskSkeleton = () => (
-  <div className="rounded-[3px] border border-gray-200 bg-white p-3 shadow-sm animate-pulse">
-    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-    <div className="h-3 bg-gray-200 rounded w-1/2 mb-2" />
-    <div className="h-3 bg-gray-100 rounded w-2/3" />
-  </div>
-);
+function MiniMapNav({ containerRef }: { containerRef: React.RefObject<HTMLDivElement> }) {
+  // Board metrics (what's visible vs total)
+  const [metrics, setMetrics] = useState({
+    scrollLeft: 0,
+    scrollWidth: 0,
+    clientWidth: 0,
+  });
 
-const ColumnSkeleton = ({ title }: { title: string }) => (
-  <div className="flex-shrink-0 w-80 flex flex-col rounded-md border border-gray-200 bg-gray-50">
-    {/* sticky header stays visible while the BOARD scrolls */}
-    <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-gray-50 z-20">
-      <h2 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">{title}</h2>
-      <span className="text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">…</span>
-      {/* Gradient mask so cards never “show through” when scrolling */}
-      <div className="pointer-events-none absolute left-0 right-0 -bottom-0.5 h-3 bg-gradient-to-b from-gray-50 to-transparent" />
-    </div>
-    <div className="p-3 space-y-2">
-      <TaskSkeleton />
-      <TaskSkeleton />
-      <TaskSkeleton />
-    </div>
-  </div>
-);
+  // Actual column segments (so the mini-map mirrors your board precisely)
+  const [segments, setSegments] = useState<Array<{ id: string; left: number; width: number }>>([]);
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Jira-like TASK CARD (visual only)
-   ─────────────────────────────────────────────────────────────────────────── */
-function TaskCard({
-  task,
-  viewMode,
-  isRestricted,
-  searchRender,
-  isHighlighted,
-  onClick,
-  draggableProps,
-}: {
-  task: TaskSummary & Partial<Task>;
-  viewMode: "business" | "production";
-  isRestricted: boolean;
-  searchRender: (text?: string) => React.ReactNode;
-  isHighlighted: boolean;
-  onClick: (e: React.MouseEvent) => void;
-  draggableProps: {
-    draggable: boolean;
-    onDragStart: (e: React.DragEvent) => void;
-    onDragEnd: () => void;
-    onDragOver: (e: React.DragEvent) => void;
-  };
-}) {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const overdue = task.deliveryDate && task.deliveryDate < todayStr;
+  // Drag state for the viewport pill
+  const draggingRef = useRef<{ startX: number; startLeft: number } | null>(null);
 
-  const titleNode =
-    viewMode === "business"
-      ? searchRender(task.customerName) || "未命名客户"
-      : isRestricted
-      ? searchRender(task.ynmxId || "—")
-      : searchRender(task.ynmxId || `${task.customerName || ""} - ${task.representative || ""}`);
-
-  return (
-    <div
-      {...draggableProps}
-      onClick={onClick}
-      className={[
-        "relative cursor-move rounded-[3px] border bg-white p-3 transition-shadow",
-        "border-gray-200 hover:shadow-md shadow-sm",
-        overdue ? "outline outline-0 border-l-4 border-l-red-500" : "",
-        isHighlighted ? "ring-2 ring-blue-500/40" : "",
-      ].join(" ")}
-    >
-      <h3 className="truncate text-[13px] leading-snug font-medium text-gray-900">
-        {titleNode}
-      </h3>
-
-      <div className="mt-2 flex flex-wrap gap-1">
-        {task.representative && (
-          <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[11px] font-medium">
-            {searchRender(task.representative)}
-          </span>
-        )}
-        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium flex items-center gap-1 bg-gray-100 text-gray-700">
-          <CalendarDays className={`w-3 h-3 ${overdue ? "text-red-700" : "text-gray-700"}`} />
-          {task.deliveryDate ? (
-            <span className={overdue ? "text-red-700 font-semibold" : "text-gray-700"}>
-              {task.deliveryDate}
-            </span>
-          ) : (
-            <span className="text-gray-500">无交期</span>
-          )}
-        </span>
-      </div>
-
-      {task.notes && (
-        <p className="mt-2 truncate text-[12px] leading-snug text-gray-500">
-          {searchRender(task.notes)}
-        </p>
-      )}
-
-      <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-gray-500 flex-nowrap">
-        <span className="inline-flex items-center gap-1 whitespace-nowrap">
-          <Hash className="w-3 h-3" />
-          {task.ynmxId ?? "—"}
-        </span>
-        {task.updatedAt && (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap max-w-[55%] overflow-hidden truncate">
-            <Clock className="w-3 h-3 shrink-0" />
-            <span className="truncate">
-              {task.updatedBy ? `${task.updatedBy} · ` : ""}
-              {formatTimeAgo(task.updatedAt)}
-            </span>
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ──────────────────────────────────────────────────────────────────────────────
-   PERSISTENT BOTTOM HORIZONTAL SCROLLBAR (custom)
-   - Fixed at bottom, always visible when horizontal overflow exists
-   - Drag thumb, click track, or wheel to scroll
-   - Apple-style minimal visuals
-   ─────────────────────────────────────────────────────────────────────────── */
-function BottomHScroll({
-  targetRef,
-  minThumbPx = 28,        // ensure usable thumb even for long boards
-  sidePadding = 24,        // line up with board p-6 (24px)
-  bottomOffset = 12,       // float slightly above window bottom
-}: {
-  targetRef: React.RefObject<HTMLElement>;
-  minThumbPx?: number;
-  sidePadding?: number;
-  bottomOffset?: number;
-}) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);   // hide bar if no horizontal overflow
-  const [thumbW, setThumbW] = useState(0);
-  const [thumbX, setThumbX] = useState(0);
-  const dragging = useRef<{
-    startMouseX: number;
-    startThumbX: number;
-    maxThumbX: number;
-    scrollMax: number;
-  } | null>(null);
-
-  const recalc = useCallback(() => {
-    const el = targetRef.current;
-    const track = trackRef.current;
-    if (!el || !track) return;
-
-    const hasOverflow = el.scrollWidth > el.clientWidth;
-    setVisible(hasOverflow);
-    if (!hasOverflow) return;
-
-    const trackW = track.clientWidth;
-    const ratio = el.clientWidth / el.scrollWidth;
-    const newThumbW = Math.max(minThumbPx, Math.round(trackW * ratio));
-    const maxThumbX = Math.max(0, trackW - newThumbW);
-    const scrollMax = Math.max(1, el.scrollWidth - el.clientWidth);
-    const newThumbX = Math.round((el.scrollLeft / scrollMax) * maxThumbX);
-
-    setThumbW(newThumbW);
-    setThumbX(newThumbX);
-  }, [minThumbPx, targetRef]);
-
-  useEffect(() => {
-    const el = targetRef.current;
+  const measure = useCallback(() => {
+    const el = containerRef.current;
     if (!el) return;
 
-    recalc();
-    const onScroll = () => recalc();
-    el.addEventListener("scroll", onScroll, { passive: true });
+    const scrollLeft = el.scrollLeft;
+    const scrollWidth = el.scrollWidth;
+    const clientWidth = el.clientWidth;
 
-    const ro = new ResizeObserver(recalc);
+    const cols = Array.from(el.querySelectorAll<HTMLElement>("[data-col-id]"));
+    const segs = cols.map((node) => ({
+      id: node.getAttribute("data-col-id") || "",
+      left: node.offsetLeft,
+      width: node.offsetWidth,
+    }));
+
+    setMetrics({ scrollLeft, scrollWidth, clientWidth });
+    setSegments(segs);
+  }, [containerRef]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      setMetrics((m) => ({
+        ...m,
+        scrollLeft: el.scrollLeft,
+        scrollWidth: el.scrollWidth,
+        clientWidth: el.clientWidth,
+      }));
+    };
+
+    const ro = new ResizeObserver(() => measure());
     ro.observe(el);
-    // Also observe documentElement so bar adjusts on viewport changes / zoom
-    ro.observe(document.documentElement);
+
+    const mo = new MutationObserver(() => queueMicrotask(measure));
+    mo.observe(el, { childList: true, subtree: true });
+
+    measure();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", measure);
 
     return () => {
       el.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", measure);
       ro.disconnect();
+      mo.disconnect();
     };
-  }, [recalc, targetRef]);
+  }, [measure, containerRef]);
 
-  const onThumbPointerDown = (e: React.PointerEvent) => {
-    const el = targetRef.current;
-    const track = trackRef.current;
-    if (!el || !track) return;
+  // Geometry for the mini-map
+  const PADDING = 8;
+  const MAP_W = 280;
+  const MAP_H = 40;
+  const trackW = MAP_W - PADDING * 2;
 
-    const maxThumbX = track.clientWidth - thumbW;
-    const scrollMax = Math.max(1, el.scrollWidth - el.clientWidth);
+  const { scrollLeft, scrollWidth, clientWidth } = metrics;
+  const maxScroll = Math.max(1, scrollWidth - clientWidth);
+  const viewportRatio = Math.max(0, Math.min(1, clientWidth / Math.max(1, scrollWidth)));
+  const handleW = Math.max(24, Math.round(trackW * viewportRatio));
+  const progress = Math.max(0, Math.min(1, scrollLeft / maxScroll));
+  const handleX = Math.round(progress * (trackW - handleW));
+  const hasOverflow = scrollWidth > clientWidth + 2;
 
-    dragging.current = {
-      startMouseX: e.clientX,
-      startThumbX: thumbX,
-      maxThumbX,
-      scrollMax,
+  const trackXToScrollLeft = (x: number) => {
+    const clamped = Math.max(0, Math.min(trackW - handleW, x));
+    const p = clamped / Math.max(1, trackW - handleW);
+    return Math.round(p * maxScroll);
+  };
+
+  const onMouseDownHandle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = { startX: e.clientX, startLeft: handleX };
+    const onMove = (me: MouseEvent) => {
+      if (!draggingRef.current) return;
+      const delta = me.clientX - draggingRef.current.startX;
+      const nextTrackX = draggingRef.current.startLeft + delta;
+      const el = containerRef.current;
+      if (el) el.scrollTo({ left: trackXToScrollLeft(nextTrackX), behavior: "auto" });
     };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const onUp = () => {
+      draggingRef.current = null;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   };
 
-  const onThumbPointerMove = (e: React.PointerEvent) => {
-    if (!dragging.current) return;
-    const el = targetRef.current;
-    if (!el) return;
-
-    const dx = e.clientX - dragging.current.startMouseX;
-    const newThumbX = Math.min(
-      dragging.current.maxThumbX,
-      Math.max(0, dragging.current.startThumbX + dx)
-    );
-    setThumbX(newThumbX);
-
-    const p = newThumbX / Math.max(1, dragging.current.maxThumbX);
-    el.scrollLeft = Math.round(p * dragging.current.scrollMax);
+  const onTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const bounds = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const x = e.clientX - bounds.left - PADDING - handleW / 2;
+    const el = containerRef.current;
+    if (el) el.scrollTo({ left: trackXToScrollLeft(x), behavior: "smooth" });
   };
 
-  const onThumbPointerUp = (e: React.PointerEvent) => {
-    if (dragging.current) {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    }
-    dragging.current = null;
-  };
-
-  const onTrackMouseDown = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      const el = targetRef.current;
-      const track = trackRef.current;
-      if (!el || !track) return;
-
-      const rect = track.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const maxThumbX = Math.max(0, rect.width - thumbW);
-      const scrollMax = Math.max(1, el.scrollWidth - el.clientWidth);
-
-      const targetThumbX = Math.min(Math.max(0, clickX - thumbW / 2), maxThumbX);
-      const p = targetThumbX / Math.max(1, maxThumbX);
-      el.scrollLeft = Math.round(p * scrollMax);
-    }
-  };
-
-  // Scroll wheel over the custom bar → horizontal scroll
   const onWheel = (e: React.WheelEvent) => {
-    const el = targetRef.current;
+    e.preventDefault();
+    const el = containerRef.current;
     if (!el) return;
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     el.scrollBy({ left: delta, behavior: "auto" });
   };
 
-  if (!visible) return null;
+  const page = (dir: -1 | 1) => {
+    const el = containerRef.current;
+    if (!el) return;
+    const amount = Math.max(160, clientWidth - 80);
+    el.scrollBy({ left: dir * amount, behavior: "smooth" });
+  };
 
   return (
     <div
-      role="presentation"
+      className="fixed bottom-4 right-4 z-50 select-none"
       onWheel={onWheel}
-      className="fixed left-0 right-0"
-      style={{
-        bottom: bottomOffset,
-        paddingLeft: sidePadding,
-        paddingRight: sidePadding,
-        zIndex: 50,
-      }}
+      aria-hidden={false}
     >
-      {/* Track */}
       <div
-        ref={trackRef}
-        onMouseDown={onTrackMouseDown}
-        className="
-          h-2 rounded-full
-          bg-neutral-200/90 border border-neutral-300
-          shadow-inner
-          backdrop-blur supports-[backdrop-filter]:bg-neutral-200/70
-          cursor-pointer
-        "
+        className={`rounded-2xl border shadow-sm backdrop-blur ${
+          hasOverflow ? "bg-white/90 border-gray-200" : "bg-white/70 border-gray-200/60"
+        }`}
+        title={hasOverflow ? "" : "没有更多内容可滚动"}
       >
-        {/* Thumb */}
-        <div
-          role="slider"
-          aria-label="Horizontal scroll"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={0}
-          onPointerDown={onThumbPointerDown}
-          onPointerMove={onThumbPointerMove}
-          onPointerUp={onThumbPointerUp}
-          style={{ width: thumbW, transform: `translateX(${thumbX}px)` }}
-          className="
-            h-2 rounded-full
-            bg-neutral-700/90 hover:bg-neutral-800
-            shadow
-            cursor-grab active:cursor-grabbing
-            transition-colors
-          "
-        />
+        <div className="flex items-center gap-2 px-2 py-2">
+          {/* Left page button */}
+          <button
+            onClick={() => page(-1)}
+            className="h-7 w-7 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 active:scale-[0.98] transition disabled:opacity-40"
+            disabled={!hasOverflow}
+            aria-label="Scroll left"
+          >
+            ‹
+          </button>
+
+          {/* Track */}
+          <div className="relative h-8" style={{ width: MAP_W }} onMouseDown={onTrackClick}>
+            {/* Track background */}
+            <div className="absolute inset-0 px-2">
+              <div className="h-full w-full rounded-lg border border-gray-200 bg-gray-100" />
+            </div>
+
+            {/* Column segments */}
+            <div className="absolute inset-0" style={{ padding: PADDING }}>
+              <div className="relative h-full w-full">
+                {segments.map((seg) => {
+                  const x = (seg.left / Math.max(1, scrollWidth)) * trackW;
+                  const w = Math.max(2, (seg.width / Math.max(1, scrollWidth)) * trackW - 2);
+                  return (
+                    <div
+                      key={seg.id}
+                      className="absolute top-1/2 -translate-y-1/2 h-3 rounded-sm bg-gray-300/70"
+                      style={{ left: x, width: w }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Viewport pill */}
+            <div className="absolute inset-0" style={{ padding: PADDING }}>
+              <div
+                role="slider"
+                aria-label="Board viewport"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(progress * 100)}
+                className={`absolute top-1/2 -translate-y-1/2 h-5 rounded-md border bg-white shadow-sm ${
+                  hasOverflow
+                    ? "border-blue-300 cursor-grab active:cursor-grabbing"
+                    : "border-gray-300 cursor-not-allowed"
+                }`}
+                style={{ left: handleX, width: handleW }}
+                onMouseDown={hasOverflow ? onMouseDownHandle : undefined}
+              />
+            </div>
+          </div>
+
+          {/* Right page button */}
+          <button
+            onClick={() => page(1)}
+            className="h-7 w-7 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 active:scale-[0.98] transition disabled:opacity-40"
+            disabled={!hasOverflow}
+            aria-label="Scroll right"
+          >
+            ›
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -323,8 +225,8 @@ function BottomHScroll({
 
 /* ──────────────────────────────────────────────────────────────────────────────
    MAIN BOARD — single vertical scroller + horizontal columns
-   - We add pb-14 so content doesn’t sit under the fixed bottom scrollbar
-   - We add class 'board-scroll' to hide native horizontal bar (see style tag)
+   - pb-16 keeps content from hiding behind the fixed mini-map (subtle safety).
+   - 'board-scroll' holds the horizontal scrollable area we map in MiniMapNav.
    ─────────────────────────────────────────────────────────────────────────── */
 export default function KanbanBoard() {
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -357,11 +259,12 @@ export default function KanbanBoard() {
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(null);
 
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
-  const scrollContainerRef = useRef<HTMLDivElement>(null); // board horizontal scroller
+  const scrollContainerRef = useRef<HTMLDivElement>(null); // horizontal scroller (the "board")
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isSavingRef = useRef(false);
   const pendingBoardRef = useRef<BoardData | null>(null);
 
+  // Search match helper (simple .includes across a few fields)
   const doesTaskMatchQuery = useCallback((task: TaskSummary & Partial<Task>, q: string) => {
     const query = q.trim().toLowerCase();
     if (query === "") return true;
@@ -369,6 +272,7 @@ export default function KanbanBoard() {
     return haystack.includes(query);
   }, []);
 
+  // Highlight matched text spans with <mark> (cheap visual)
   const renderHighlighted = useCallback((text: string | undefined, q: string) => {
     const value = text || "";
     const query = q.trim();
@@ -401,6 +305,7 @@ export default function KanbanBoard() {
     );
   }, []);
 
+  // Add an existing task to a column (quick copy)
   const handleAddExistingTask = async (taskId: string, columnId: string) => {
     const original = tasks[taskId];
     if (!original) return;
@@ -429,6 +334,7 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks, columns: nextColumns });
   };
 
+  // Toggle "Add existing task" picker
   const toggleAddPicker = (columnId: string) => {
     setAddPickerQuery("");
     setAddPickerOpenFor((prev) => (prev === columnId ? null : columnId));
@@ -439,6 +345,7 @@ export default function KanbanBoard() {
     setAddPickerQuery("");
   };
 
+  // Keyboard shortcuts + cross-component events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -464,6 +371,7 @@ export default function KanbanBoard() {
     };
   }, []);
 
+  // When we want to spotlight a task, auto-scroll horizontally to reveal it
   useEffect(() => {
     if (!highlightTaskId) return;
     const node = taskRefs.current.get(highlightTaskId);
@@ -482,6 +390,7 @@ export default function KanbanBoard() {
     }
   }, [highlightTaskId]);
 
+  // Display name differs by viewMode
   const getTaskDisplayName = (task: TaskSummary) => {
     if (viewMode === "production") {
       return task.ynmxId || `${task.customerName} - ${task.representative}`;
@@ -489,6 +398,7 @@ export default function KanbanBoard() {
     return `${task.customerName} - ${task.representative}`;
   };
 
+  // Sort helpers (date-forward)
   const sortTaskIds = useCallback((ids: string[], taskMap: Record<string, TaskSummary>) => {
     return [...ids].sort((a, b) => {
       const ta = taskMap[a];
@@ -515,6 +425,7 @@ export default function KanbanBoard() {
     [sortTaskIds]
   );
 
+  // Merge saved columns with base skeleton (guards against missing ids)
   const mergeWithSkeleton = (saved: Column[]): Column[] => {
     const savedColumnsMap = new Map(saved.map((c) => [c.id, c]));
     return baseColumns.map((baseCol) => {
@@ -528,6 +439,7 @@ export default function KanbanBoard() {
     });
   };
 
+  // Persist board (coalesces rapid updates)
   const saveBoard = async (nextBoard: BoardData) => {
     pendingBoardRef.current = nextBoard;
     if (isSavingRef.current) return;
@@ -550,6 +462,7 @@ export default function KanbanBoard() {
     }
   };
 
+  // Light fetch (summary)
   const fetchBoardSummary = useCallback(async (force = false) => {
     if (isSavingRef.current && !force) return;
     try {
@@ -577,6 +490,7 @@ export default function KanbanBoard() {
     }
   }, []);
 
+  // Full fetch (tasks + columns)
   const fetchBoardFull = useCallback(async (force = false) => {
     if (isSavingRef.current && !force) return;
     try {
@@ -604,6 +518,7 @@ export default function KanbanBoard() {
     }
   }, []);
 
+  // Manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -616,6 +531,7 @@ export default function KanbanBoard() {
     } catch {}
   };
 
+  // Initial data load + polling
   useEffect(() => {
     fetchBoardSummary();
     fetchBoardFull();
@@ -623,6 +539,7 @@ export default function KanbanBoard() {
     return () => clearInterval(interval);
   }, [fetchBoardSummary, fetchBoardFull]);
 
+  // Read user for attribution
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
@@ -633,6 +550,7 @@ export default function KanbanBoard() {
     }
   }, []);
 
+  // When an individual task is saved, keep UI in sync
   const handleTaskUpdated = useCallback((updatedTask: Task) => {
     const withTime = {
       ...updatedTask,
@@ -646,6 +564,7 @@ export default function KanbanBoard() {
     setSelectedTask(withTime);
   }, []);
 
+  // Deleting a task (from modal)
   const handleTaskDeleted = useCallback(
     async (taskId: string) => {
       setTasks((prev) => {
@@ -670,6 +589,7 @@ export default function KanbanBoard() {
     [fetchBoardFull]
   );
 
+  // Drag + Drop: start
   const handleDragStart = (e: React.DragEvent, task: TaskSummary) => {
     setDraggedTask(task);
     setHighlightTaskId(task.id);
@@ -686,17 +606,20 @@ export default function KanbanBoard() {
     }
   };
 
+  // Drag + Drop: end
   const handleDragEnd = () => {
     setDraggedTask(null);
     setDragOverColumn(null);
     setDropIndicatorIndex(null);
   };
 
+  // Allow drop
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
   };
 
+  // Drag over a given task index
   const handleDragOverTask = (e: React.DragEvent, index: number, columnId: string) => {
     e.preventDefault();
     if (!draggedTask) return;
@@ -708,10 +631,12 @@ export default function KanbanBoard() {
     setDragOverColumn(columnId);
   };
 
+  // Enter column
   const handleDragEnterColumn = (columnId: string) => {
     if (draggedTask) setDragOverColumn(columnId);
   };
 
+  // Leave column
   const handleDragLeaveColumn = (e: React.DragEvent) => {
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
@@ -719,6 +644,7 @@ export default function KanbanBoard() {
     }
   };
 
+  // Drop logic (reorder + move + archive)
   const handleDrop = async (e: React.DragEvent, targetColumnId: string, dropIndex?: number) => {
     e.preventDefault();
     e.stopPropagation();
@@ -815,10 +741,12 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
+  // Toggle "pending" drawer
   const togglePending = (columnId: string) => {
     setOpenPending((prev) => ({ ...prev, [columnId]: !prev[columnId] }));
   };
 
+  // Accept task from pending area
   const handleAcceptTask = async (taskId: string, columnId: string) => {
     const task = tasks[taskId];
     if (!task) return;
@@ -853,6 +781,7 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
+  // Decline task from pending area
   const handleDeclineTask = async (taskId: string, _columnId: string) => {
     if (!tasks[taskId]) return;
     const nextTasks = { ...tasks };
@@ -868,6 +797,7 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
+  // Tiny animations for accept/decline click
   const animateAcceptPending = async (taskId: string, columnId: string) => {
     setAcceptingPending((prev) => ({ ...prev, [taskId]: true }));
     setTimeout(async () => {
@@ -892,6 +822,7 @@ export default function KanbanBoard() {
     }, 160);
   };
 
+  // New job created from CreateJobForm
   const handleJobCreated = (newTask: Task) => {
     setTasks((prev) => {
       const next = { ...prev, [newTask.id]: newTask };
@@ -909,6 +840,7 @@ export default function KanbanBoard() {
     });
   };
 
+  // Open task modal
   const handleTaskClick = async (task: Task, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -936,6 +868,7 @@ export default function KanbanBoard() {
     }, 300);
   };
 
+  // Which columns are shown in production vs business mode
   const visibleColumns = useMemo(() => {
     if (viewMode === "production") {
       return columns.filter((c) =>
@@ -949,30 +882,29 @@ export default function KanbanBoard() {
 
   /* ──────────────────────────────────────────────────────────────────────────
      RENDER
-     - Outer wrapper prevents body scroll
-     - BOARD has horizontal overflow; we add pb-14 for the persistent bottom bar
-     - We pass scrollContainerRef to <BottomHScroll/>
-     - We hide the native H-scrollbar only for this board via styled-jsx below
+     - Prevent body scroll; board horizontally scrolls inside.
+     - Add pb-16 to avoid overlap with the fixed mini-map.
      ───────────────────────────────────────────────────────────────────────── */
   return (
-    <div className="h-screen w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7]">
-      {/* BOARD SCROLLER (horizontal) */}
+    <div className="h-screen w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7] pb-16">
+      {/* Toast (handoff feedback) */}
+      {handoffToast && (
+        <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">
+          <div
+            className={`rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 shadow-sm transition-all duration-500 ${
+              handoffToastVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
+            }`}
+          >
+            {handoffToast.message}
+          </div>
+        </div>
+      )}
+
+      {/* Horizontal board scroller (this is what MiniMapNav controls) */}
       <div
         ref={scrollContainerRef}
-        className="board-scroll flex-1 min-h-0 flex gap-4 overflow-x-auto overflow-y-hidden p-6 [scrollbar-gutter:stable] scroll-smooth overscroll-x-contain pb-14"
+        className="board-scroll flex-1 min-h-0 flex gap-4 overflow-x-auto overflow-y-hidden p-6 [scrollbar-gutter:stable] scroll-smooth overscroll-x-contain"
       >
-        {handoffToast && (
-          <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">
-            <div
-              className={`rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 shadow-sm transition-all duration-500 ${
-                handoffToastVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
-              }`}
-            >
-              {handoffToast.message}
-            </div>
-          </div>
-        )}
-
         {viewMode === "business" && !isRefreshing && <CreateJobForm onJobCreated={handleJobCreated} />}
 
         {isRefreshing ? (
@@ -992,6 +924,7 @@ export default function KanbanBoard() {
 
             return (
               <div
+                data-col-id={column.id} // ← for MiniMapNav measurement
                 key={column.id}
                 onDragOver={handleDragOver}
                 onDragEnter={() => handleDragEnterColumn(column.id)}
@@ -999,7 +932,7 @@ export default function KanbanBoard() {
                 onDrop={(e) => handleDrop(e, column.id, dropIndicatorIndex ?? undefined)}
                 className="relative flex-shrink-0 w-80 flex flex-col rounded-md border border-gray-200 bg-gray-50 overflow-hidden min-h-0"
               >
-                {/* Column Header (static within column); background ensures solid look */}
+                {/* Column Header */}
                 <div className="relative z-10 bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {isArchive && <Archive className="w-4 h-4 text-gray-400" />}
@@ -1010,9 +943,7 @@ export default function KanbanBoard() {
                   <div className="flex items-center gap-2">
                     {pendingTasks.length > 0 && (
                       <button
-                        onClick={() =>
-                          setOpenPending((prev) => ({ ...prev, [column.id]: !prev[column.id] }))
-                        }
+                        onClick={() => setOpenPending((prev) => ({ ...prev, [column.id]: !prev[column.id] }))}
                         className="text-[11px] px-2 py-0.5 rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition"
                         title="待接受"
                       >
@@ -1035,9 +966,8 @@ export default function KanbanBoard() {
                   </div>
                 </div>
 
-                {/* Column body: vertical scroll inside column; header stays put */}
+                {/* Column body (vertical scroll) */}
                 <div className="flex-1 overflow-y-auto p-3 pb-6 space-y-2 [scrollbar-gutter:stable] scroll-smooth overscroll-y-contain">
-                  {/* Subtle top gradient (inside scroll area) so header content never looks clipped */}
                   <div className="pointer-events-none sticky top-0 z-0 -mt-3 h-3 bg-gradient-to-b from-gray-50 to-transparent" />
                   {addPickerOpenFor === column.id && (
                     <div className="mb-3 rounded-md border border-gray-200 bg-white p-2 shadow-sm">
@@ -1211,9 +1141,7 @@ export default function KanbanBoard() {
         )}
       </div>
 
-      {/* Persistent custom bottom scrollbar that controls the board above */}
-      <BottomHScroll targetRef={scrollContainerRef} />
-
+      {/* Modal */}
       <TaskModal
         open={isModalOpen}
         task={selectedTask}
@@ -1225,12 +1153,10 @@ export default function KanbanBoard() {
         onTaskDeleted={handleTaskDeleted}
       />
 
-      {/* Hide native horizontal scrollbar just for this board so only the custom one shows */}
+      {/* ALWAYS visible Jira-style mini map (bottom-right fixed) */}
+      <MiniMapNav containerRef={scrollContainerRef} />
+
       <style jsx global>{`
-        .board-scroll::-webkit-scrollbar:horizontal {
-          height: 0 !important;
-        }
-        /* Firefox horizontal bar: */
         .board-scroll {
           scrollbar-gutter: stable both-edges;
         }
