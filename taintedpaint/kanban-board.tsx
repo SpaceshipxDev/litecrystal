@@ -151,7 +151,7 @@ function BottomHScroll({
   sidePadding = 24,        // line up with board p-6 (24px)
   bottomOffset = 12,       // float slightly above window bottom
 }: {
-  targetRef: React.RefObject<HTMLElement>;
+  targetRef: React.RefObject<HTMLDivElement | null>;
   minThumbPx?: number;
   sidePadding?: number;
   bottomOffset?: number;
