@@ -55,10 +55,6 @@ export default function KanbanBoard() {
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [searchStartDate, setSearchStartDate] = useState("")
-  const [searchEndDate, setSearchEndDate] = useState("")
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [selectedSearchResult, setSelectedSearchResult] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [openPending, setOpenPending] = useState<Record<string, boolean>>({})
   const [addingColumnId, setAddingColumnId] = useState<string | null>(null)
@@ -83,51 +79,8 @@ export default function KanbanBoard() {
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const searchStartDateInputRef = useRef<HTMLInputElement>(null)
-  const searchEndDateInputRef = useRef<HTMLInputElement>(null)
-  const openSearchDatePicker = (
-    ref: React.RefObject<HTMLInputElement | null>,
-  ) => {
-    const input = ref.current
-    if (!input) return
-    if ((input as any).showPicker) {
-      (input as any).showPicker()
-    } else {
-      input.focus()
-      input.click()
-    }
-  }
   const isSavingRef = useRef(false)
   const pendingBoardRef = useRef<BoardData | null>(null)
-
-  // Search functionality
-  const searchResults = useMemo(() => {
-    const hasQuery = searchQuery.trim() !== ''
-    const hasStart = searchStartDate.trim() !== ''
-    const hasEnd = searchEndDate.trim() !== ''
-    if (!hasQuery && !hasStart && !hasEnd) return []
-
-    const query = searchQuery.toLowerCase()
-    return Object.values(tasks)
-      .filter(task => {
-        if (task.columnId === ARCHIVE_COLUMN_ID || task.columnId === 'archive2') return false
-        const text = `${task.customerName} ${task.representative} ${task.ynmxId || ''} ${task.notes || ''}`.toLowerCase()
-        const matchesQuery = hasQuery ? text.includes(query) : true
-        let matchesDate = true
-        if (hasStart && hasEnd) {
-          matchesDate = (task.deliveryDate || '') >= searchStartDate && (task.deliveryDate || '') <= searchEndDate
-        } else if (hasStart) {
-          matchesDate = (task.deliveryDate || '') >= searchStartDate
-        } else if (hasEnd) {
-          matchesDate = (task.deliveryDate || '') <= searchEndDate
-        }
-        return matchesQuery && matchesDate
-      })
-      .map(task => {
-        const column = columns.find(col => col.id === task.columnId)
-        return { task, column }
-      })
-  }, [tasks, columns, searchQuery, searchStartDate, searchEndDate])
 
   const handleAddExistingTask = async (taskId: string, columnId: string) => {
     const original = tasks[taskId]
@@ -168,66 +121,35 @@ export default function KanbanBoard() {
     setAddPickerQuery("")
   }
 
-  const handleSearchResultClick = (taskId: string) => {
-    if (addingColumnId) {
-      handleAddExistingTask(taskId, addingColumnId)
-      setAddingColumnId(null)
-      setIsSearchOpen(false)
-      setSearchQuery("")
-      setSearchStartDate("")
-      setSearchEndDate("")
-      return
-    }
+  // Board-wide search helpers
+  const taskMatches = useCallback((task: TaskSummary & Partial<Task>) => {
+    if (!searchQuery.trim()) return true
+    const text = `${task.customerName} ${task.representative} ${task.ynmxId || ''} ${task.notes || ''}`.toLowerCase()
+    return text.includes(searchQuery.trim().toLowerCase())
+  }, [searchQuery])
 
-    setSelectedSearchResult(taskId)
-    const node = taskRefs.current.get(taskId)
-    const container = scrollContainerRef.current
-
-    if (node && container) {
-      // Calculate scroll position
-      const containerRect = container.getBoundingClientRect()
-      const nodeRect = node.getBoundingClientRect()
-      const scrollPadding = 100
-
-      // Horizontal scroll
-      if (nodeRect.left < containerRect.left || nodeRect.right > containerRect.right) {
-        const targetScrollLeft = node.offsetLeft - scrollPadding
-        container.scrollTo({
-          left: targetScrollLeft,
-          behavior: 'smooth',
-        })
-      }
-
-      // Vertical scroll into view
-      setTimeout(() => {
-        node.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        })
-      }, 300)
-    }
-  }
+  const highlightText = useCallback((text: string): React.ReactNode => {
+    if (!searchQuery.trim()) return text
+    const escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(`(${escaped})`, 'gi')
+    return text.split(regex).map((part, i) =>
+      part.toLowerCase() === searchQuery.toLowerCase()
+        ? <mark key={i} className="bg-yellow-200">{part}</mark>
+        : part
+    )
+  }, [searchQuery])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setIsSearchOpen(true)
         setTimeout(() => searchInputRef.current?.focus(), 100)
-      }
-      if (e.key === 'Escape' && isSearchOpen) {
-        setIsSearchOpen(false)
-        setSearchQuery("")
-        setSearchStartDate("")
-        setSearchEndDate("")
-        setSelectedSearchResult(null)
-        setAddingColumnId(null)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isSearchOpen])
+  }, [])
 
   useEffect(() => {
     if (!highlightTaskId) return
@@ -611,7 +533,6 @@ export default function KanbanBoard() {
 
   const handleAddTaskButton = (columnId: string) => {
     setAddingColumnId(columnId)
-    setIsSearchOpen(true)
     setTimeout(() => searchInputRef.current?.focus(), 100)
   }
 
@@ -786,20 +707,6 @@ export default function KanbanBoard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                setIsSearchOpen(true)
-                setTimeout(() => searchInputRef.current?.focus(), 100)
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-white/70 apple-glass rounded-xl transition-all"
-            >
-              <Search className="w-4 h-4" />
-              <span>搜索</span>
-              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs bg-gray-100 border border-gray-200 rounded">
-                ⌘K
-              </kbd>
-            </button>
-
             <AccountButton />
           </div>
         </div>
@@ -832,48 +739,24 @@ export default function KanbanBoard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="relative hidden sm:block">
+              <div className="relative">
                 <input
                   ref={searchInputRef}
                   type="text"
                   placeholder="搜索客户、负责人或ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setIsSearchOpen(true)}
                   className="w-64 px-8 py-2 text-sm rounded-xl bg-white/60 backdrop-blur border apple-border-light focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <Search className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 {searchQuery && (
                   <button
-                    onClick={() => { setSearchQuery(""); setSelectedSearchResult(null) }}
+                    onClick={() => setSearchQuery("")}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/70"
                     aria-label="清除"
                   >
                     <X className="w-3.5 h-3.5 text-gray-400" />
                   </button>
-                )}
-                {(isSearchOpen && searchQuery) && (
-                  <div className="absolute right-0 mt-2 w-[28rem] max-h-[50vh] overflow-auto apple-glass apple-shadow border apple-border-light rounded-2xl p-2">
-                    {searchResults.length === 0 ? (
-                      <div className="px-3 py-8 text-center text-sm text-gray-500">没有找到相关任务</div>
-                    ) : (
-                      searchResults.slice(0, 50).map(({ task, column }) => (
-                        <button
-                          key={task.id}
-                          onClick={() => handleSearchResultClick(task.id)}
-                          className={`w-full text-left px-3 py-2 rounded-lg hover:bg-white/70 transition-colors ${selectedSearchResult === task.id ? 'bg-blue-50' : ''}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium text-gray-900 truncate">{task.customerName} <span className="text-gray-500">· {task.representative}</span></div>
-                              {task.ynmxId && <div className="text-xs text-gray-500 truncate">{task.ynmxId}</div>}
-                            </div>
-                            <div className="ml-auto text-xs text-gray-500">{column?.title}</div>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </div>
                 )}
               </div>
               {/* Removed redundant new task button per request */}
@@ -920,8 +803,8 @@ export default function KanbanBoard() {
             </>
           ) : (
             visibleColumns.map((column) => {
-              const columnTasks = column.taskIds.map(id => tasks[id]).filter(Boolean)
-              const pendingTasks = column.pendingTaskIds.map(id => tasks[id]).filter(Boolean)
+              const columnTasks = column.taskIds.map(id => tasks[id]).filter(Boolean).filter(taskMatches)
+              const pendingTasks = column.pendingTaskIds.map(id => tasks[id]).filter(Boolean).filter(taskMatches)
               const isArchive = ['archive', 'archive2'].includes(column.id)
 
               return (
@@ -1113,10 +996,6 @@ export default function KanbanBoard() {
                               onDragOver={(e) => handleDragOverTask(e, index, column.id)}
                               onClick={(e) => handleTaskClick(task, e)}
                               className={`relative group apple-glass apple-border-light rounded-xl p-2.5 cursor-move transition-all duration-200 apple-hover ${
-                                selectedSearchResult === task.id
-                                  ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md'
-                                  : ''
-                              } ${
                                 highlightTaskId === task.id ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-md' : ''
                               }`}
                             >
@@ -1124,19 +1003,19 @@ export default function KanbanBoard() {
                                 {viewMode === 'business' ? (
                                   <>
                                     <h3 className="text-sm font-medium text-gray-900 mb-0.5">
-                                      {task.customerName}
+                                      {highlightText(task.customerName)}
                                     </h3>
-                                    <p className="text-xs text-gray-600">{task.representative}</p>
+                                    <p className="text-xs text-gray-600">{highlightText(task.representative)}</p>
                                     {task.ynmxId && (
-                                      <p className="text-xs text-gray-500 mt-0.5">{task.ynmxId}</p>
+                                      <p className="text-xs text-gray-500 mt-0.5">{highlightText(task.ynmxId)}</p>
                                     )}
                                   </>
                                 ) : (
                                   <h3 className="text-sm font-medium text-gray-900">
-                                    {getTaskDisplayName(task)}
+                                    {highlightText(getTaskDisplayName(task))}
                                   </h3>
                                 )}
-                                
+
                                 <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
                                   {task.deliveryDate ? (
                                     <span className="flex items-center gap-1">
@@ -1149,10 +1028,10 @@ export default function KanbanBoard() {
                                     <span>询价: {task.inquiryDate}</span>
                                   )}
                                 </div>
-                                
+
                                 {task.notes && (
                                   <p className="mt-1 text-xs text-gray-400 truncate">
-                                    {task.notes}
+                                    {highlightText(task.notes)}
                                   </p>
                                 )}
                               </div>
@@ -1166,7 +1045,7 @@ export default function KanbanBoard() {
                                 </div>
                               )}
                             </div>
-                            
+
                             {/* Drop indicator after this task */}
                             {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
                               <div className="h-0.5 bg-blue-500 rounded-full mt-2 animate-pulse" />
