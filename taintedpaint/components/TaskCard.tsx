@@ -59,7 +59,7 @@ export default function TaskCard({
         <span
           className={[
             "px-2 py-0.5 rounded-full text-[11px] font-medium flex items-center gap-1",
-            overdue ? "bg-red-100 text-[#D9534F]" : "bg-gray-100 text-gray-700",
+            overdue ? "bg-[#F59E0B]/10 text-[#F59E0B]" : "bg-gray-100 text-gray-700",
           ].join(" ")}
         >
           <CalendarDays className="w-3 h-3" />
