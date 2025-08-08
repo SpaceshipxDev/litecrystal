@@ -79,7 +79,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className={`flex-1 min-h-0 ${isBoard ? "overflow-hidden" : "overflow-auto"}`}>
+      <main className="flex-1">
         {children}
       </main>
 

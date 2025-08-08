@@ -9,6 +9,7 @@ import TaskModal from "@/components/TaskModal";
 import { ColumnSkeleton } from "@/components/Skeletons";
 import MiniMapNav from "@/components/MiniMapNav";
 import KanbanColumn from "@/components/KanbanColumn";
+import { Check } from "lucide-react";
 
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -45,6 +46,9 @@ export default function KanbanBoard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userName, setUserName] = useState("");
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<
+    null | "active" | "dueToday" | "overdue" | "awaiting" | "inactive8h"
+  >(null);
 
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null); // horizontal scroller (the "board")
@@ -180,6 +184,68 @@ export default function KanbanBoard() {
     const clearTimer = setTimeout(() => setHighlightTaskId(null), 6000);
     return () => clearTimeout(clearTimer);
   }, [highlightTaskId]);
+
+  // Lightweight board stats (Jira-style overview)
+  const boardStats = useMemo(() => {
+    const allTasks = Object.values(tasks || {});
+    const now = Date.now();
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const eightHoursMs = 8 * 60 * 60 * 1000;
+    let active = 0; // non-archived, accepted or not
+    let dueToday = 0;
+    let overdue = 0;
+    let awaiting = 0;
+    let inactive8h = 0;
+    for (const t of allTasks) {
+      if (!t) continue;
+      const col = t.columnId;
+      const isArchived = col === ARCHIVE_COLUMN_ID || col === "archive2";
+      const d = (t.deliveryDate || "").slice(0, 10);
+      if (!isArchived) {
+        active += 1;
+        if (t.awaitingAcceptance) awaiting += 1;
+        const lastActivityIso = (t.updatedAt || t.createdAt || "").toString();
+        if (lastActivityIso) {
+          const last = Date.parse(lastActivityIso);
+          if (!Number.isNaN(last) && now - last >= eightHoursMs) inactive8h += 1;
+        } else {
+          // No timestamps → consider stale
+          inactive8h += 1;
+        }
+        if (d) {
+          if (d === todayStr) dueToday += 1;
+          else if (d < todayStr) overdue += 1;
+        }
+      }
+    }
+    return { active, dueToday, overdue, awaiting, inactive8h };
+  }, [tasks]);
+
+  // Filter helper for status chips
+  const matchesStatFilter = useCallback(
+    (task: TaskSummary & Partial<Task>, filter: NonNullable<typeof activeFilter>) => {
+      const columnId = task.columnId;
+      const isArchived = columnId === ARCHIVE_COLUMN_ID || columnId === "archive2";
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const deliveryDateStr = (task.deliveryDate || "").slice(0, 10);
+      if (filter === "active") return !isArchived;
+      if (isArchived) return false;
+      if (filter === "dueToday") return !!deliveryDateStr && deliveryDateStr === todayStr;
+      if (filter === "overdue") return !!deliveryDateStr && deliveryDateStr < todayStr;
+      if (filter === "awaiting") return !!task.awaitingAcceptance;
+      if (filter === "inactive8h") {
+        const eightHoursMs = 8 * 60 * 60 * 1000;
+        const now = Date.now();
+        const lastIso = (task.updatedAt || task.createdAt || "").toString();
+        if (!lastIso) return true;
+        const last = Date.parse(lastIso);
+        if (Number.isNaN(last)) return true;
+        return now - last >= eightHoursMs;
+      }
+      return true;
+    },
+    []
+  );
 
   // Display name differs by viewMode
   const getTaskDisplayName = (task: TaskSummary) => {
@@ -680,12 +746,12 @@ export default function KanbanBoard() {
      - Add pb-16 to avoid overlap with the fixed mini-map.
      ───────────────────────────────────────────────────────────────────────── */
   return (
-    <div className="w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7] pb-16 flex-1 min-h-0">
+    <div className="h-screen w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7] pb-16">
       {/* Toast (handoff feedback) */}
       {handoffToast && (
         <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">
           <div
-            className={`rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 shadow-sm transition-all duration-500 ${
+            className={`rounded-[2px] border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 shadow-sm transition-all duration-500 ${
               handoffToastVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
             }`}
           >
@@ -693,6 +759,72 @@ export default function KanbanBoard() {
           </div>
         </div>
       )}
+
+      {/* Compact status bar (beneath header, above columns) */}
+      <div className="px-6 pt-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setActiveFilter((f) => (f === "active" ? null : "active"))}
+            aria-pressed={activeFilter === "active"}
+            className={`inline-flex items-center gap-2 rounded-[2px] border px-3 py-1.5 shadow-sm transition-colors ${
+              activeFilter === "active" ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white hover:bg-gray-50"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-gray-400" />
+            <span className="text-xs text-gray-600">今天进行中</span>
+            <span className="text-sm font-semibold text-gray-900 tabular-nums">{boardStats.active}</span>
+            <span className="ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-[2px] border border-gray-300 bg-white">
+              {activeFilter === "active" && <Check className="h-3 w-3 text-blue-600" />}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter((f) => (f === "dueToday" ? null : "dueToday"))}
+            aria-pressed={activeFilter === "dueToday"}
+            className={`inline-flex items-center gap-2 rounded-[2px] border px-3 py-1.5 shadow-sm transition-colors ${
+              activeFilter === "dueToday" ? "border-amber-300 bg-amber-50" : "border-gray-200 bg-white hover:bg-gray-50"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            <span className="text-xs text-gray-600">今日到期</span>
+            <span className="text-sm font-semibold text-gray-900 tabular-nums">{boardStats.dueToday}</span>
+            <span className="ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-[2px] border border-gray-300 bg-white">
+              {activeFilter === "dueToday" && <Check className="h-3 w-3 text-amber-600" />}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter((f) => (f === "overdue" ? null : "overdue"))}
+            aria-pressed={activeFilter === "overdue"}
+            className={`inline-flex items-center gap-2 rounded-[2px] border px-3 py-1.5 shadow-sm transition-colors ${
+              activeFilter === "overdue" ? "border-red-300 bg-red-50" : "border-gray-200 bg-white hover:bg-gray-50"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-red-400" />
+            <span className="text-xs text-gray-600">逾期</span>
+            <span className="text-sm font-semibold text-gray-900 tabular-nums">{boardStats.overdue}</span>
+            <span className="ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-[2px] border border-gray-300 bg-white">
+              {activeFilter === "overdue" && <Check className="h-3 w-3 text-red-600" />}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter((f) => (f === "inactive8h" ? null : "inactive8h"))}
+            aria-pressed={activeFilter === "inactive8h"}
+            className={`inline-flex items-center gap-2 rounded-[2px] border px-3 py-1.5 shadow-sm transition-colors ${
+              activeFilter === "inactive8h" ? "border-slate-300 bg-slate-50" : "border-gray-200 bg-white hover:bg-gray-50"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-slate-500" />
+            <span className="text-xs text-gray-600">8小时未活跃</span>
+            <span className="text-sm font-semibold text-gray-900 tabular-nums">{boardStats.inactive8h}</span>
+            <span className="ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-[2px] border border-gray-300 bg-white">
+              {activeFilter === "inactive8h" && <Check className="h-3 w-3 text-slate-700" />}
+            </span>
+          </button>
+        </div>
+      </div>
 
       {/* Horizontal board scroller (this is what MiniMapNav controls) */}
       <div
@@ -712,8 +844,12 @@ export default function KanbanBoard() {
             const columnTasks = column.taskIds
               .map((id) => tasks[id])
               .filter(Boolean)
-              .filter((t) => doesTaskMatchQuery(t as any, searchQuery));
-            const pendingTasks = column.pendingTaskIds.map((id) => tasks[id]).filter(Boolean);
+              .filter((t) => doesTaskMatchQuery(t as any, searchQuery))
+              .filter((t) => (activeFilter ? matchesStatFilter(t as any, activeFilter) : true));
+            const pendingTasks = column.pendingTaskIds
+              .map((id) => tasks[id])
+              .filter(Boolean)
+              .filter((t) => (activeFilter ? matchesStatFilter(t as any, activeFilter) : true));
             const isArchive = ["archive", "archive2"].includes(column.id);
 
               return (

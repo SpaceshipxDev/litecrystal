@@ -29,6 +29,8 @@ export default function TaskCard({
 }) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const overdue = task.deliveryDate && task.deliveryDate < todayStr;
+  const dueToday = task.deliveryDate && task.deliveryDate === todayStr;
+  const stripClass = overdue ? "bg-red-400" : dueToday ? "bg-amber-400" : "bg-gray-300";
 
   const titleNode =
     viewMode === "business"
@@ -42,26 +44,25 @@ export default function TaskCard({
       {...draggableProps}
       onClick={onClick}
       className={[
-        "relative cursor-move rounded-[3px] border bg-white p-3 transition-shadow",
-        "border-gray-200 hover:shadow-md shadow-sm",
+        "relative cursor-move rounded-[2px] border bg-white p-3 transition-shadow",
+        "border-gray-200 hover:shadow shadow-sm",
         "",
         isHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
       ].join(" ")}
     >
-      {overdue && (
-        <div aria-hidden="true" className="absolute left-0 top-0 bottom-0 w-1 bg-[#F59E0B] rounded-l-[3px]" />
-      )}
+      {/* Left status strip based on column */}
+      <div aria-hidden="true" className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[2px] ${stripClass}`} />
       <h3 className="truncate text-[13px] leading-snug font-medium text-gray-900">{titleNode}</h3>
 
       <div className="mt-2 flex flex-wrap gap-1">
         {task.representative && (
-          <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[11px] font-medium">
+          <span className="px-2 py-0.5 rounded-[2px] bg-gray-100 text-gray-700 text-[11px] font-medium">
             {searchRender(task.representative)}
           </span>
         )}
         <span
           className={[
-            "px-2 py-0.5 rounded-full text-[11px] font-medium flex items-center gap-1",
+            "px-2 py-0.5 rounded-[2px] text-[11px] font-medium flex items-center gap-1",
             "bg-gray-100 text-gray-700",
           ].join(" ")}
         >
