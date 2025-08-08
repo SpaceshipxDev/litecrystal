@@ -769,11 +769,11 @@ export default function KanbanBoard() {
      - Column headers: sticky + bg + z-index + gradient mask
      ───────────────────────────────────────────────────────────────────────── */
   return (
-    <div className="h-screen w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7]">
+    <div className="min-h-0 w-full flex flex-col text-gray-900 overflow-hidden bg-[#F4F5F7]">
       {/* BOARD SCROLLER */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 flex gap-4 overflow-x-auto overflow-y-hidden p-6 [scrollbar-gutter:stable] scroll-smooth overscroll-x-contain"
+        className="flex-1 min-h-0 flex gap-4 overflow-x-auto overflow-y-hidden p-6 [scrollbar-gutter:stable] scroll-smooth overscroll-x-contain"
       >
         {handoffToast && (
           <div className="fixed left-1/2 -translate-x-1/2 top-16 z-50">
