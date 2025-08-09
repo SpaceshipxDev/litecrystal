@@ -167,23 +167,32 @@ export default function KanbanBoard() {
   // When we want to spotlight a task, auto-scroll horizontally to reveal it
   useEffect(() => {
     if (!highlightTaskId) return;
-    const node = taskRefs.current.get(highlightTaskId);
     const container = scrollContainerRef.current;
-    if (node && container) {
-      const containerRect = container.getBoundingClientRect();
-      const nodeRect = node.getBoundingClientRect();
-      const scrollPadding = 100;
-      if (nodeRect.left < containerRect.left || nodeRect.right > containerRect.right) {
-        const targetScrollLeft = (node as any).offsetLeft - scrollPadding;
-        container.scrollTo({ left: targetScrollLeft, behavior: "smooth" });
+    let raf = 0;
+    const attemptScroll = () => {
+      const node = taskRefs.current.get(highlightTaskId);
+      if (node && container) {
+        const containerRect = container.getBoundingClientRect();
+        const nodeRect = node.getBoundingClientRect();
+        const scrollPadding = 100;
+        if (nodeRect.left < containerRect.left || nodeRect.right > containerRect.right) {
+          const targetScrollLeft = (node as any).offsetLeft - scrollPadding;
+          container.scrollTo({ left: targetScrollLeft, behavior: "smooth" });
+        }
+        setTimeout(() => {
+          node.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 300);
+      } else {
+        raf = requestAnimationFrame(attemptScroll);
       }
-      setTimeout(() => {
-        node.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 300);
-    }
+    };
+    attemptScroll();
     // Auto-clear highlight after a short while so the flash doesn't persist forever
     const clearTimer = setTimeout(() => setHighlightTaskId(null), 6000);
-    return () => clearTimeout(clearTimer);
+    return () => {
+      clearTimeout(clearTimer);
+      cancelAnimationFrame(raf);
+    };
   }, [highlightTaskId]);
 
   // Lightweight board stats (Jira-style overview)
