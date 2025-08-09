@@ -5,12 +5,12 @@ export interface Task {
   columnId: string; // <-- NEW
   /** Previous column when awaiting acceptance */
   previousColumnId?: string;
-  customerName: string;
-  representative: string;
-  inquiryDate: string;
+  customerName?: string;
+  representative?: string;
+  inquiryDate?: string;
   /** Required delivery date, editable in the Kanban drawer */
   deliveryDate?: string;
-  notes: string;
+  notes?: string;
   taskFolderPath?: string;
   files?: string[];
   ynmxId?: string; // Order ID provided by users
@@ -38,11 +38,11 @@ export interface TaskSummary {
   id: string;
   columnId: string;
   previousColumnId?: string;
-  customerName: string;
-  representative: string;
-  inquiryDate: string;
+  customerName?: string;
+  representative?: string;
+  inquiryDate?: string;
   deliveryDate?: string;
-  notes: string;
+  notes?: string;
   ynmxId?: string;
   deliveryNoteGenerated?: boolean;
   awaitingAcceptance?: boolean;
