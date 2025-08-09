@@ -30,14 +30,14 @@ const createWindow = (): void => {
   const baseWidth = 800;
   const baseHeight = 600;
 
-  // Default to base; upscale on Windows as requested (≈2.1x width, 1.8x height)
+  // Default to base; upscale on Windows as requested (≈2.1x width, 1.6x height)
   let targetWidth = baseWidth;
   let targetHeight = baseHeight;
 
   if (process.platform === 'win32') {
     const workArea = screen.getPrimaryDisplay().workAreaSize;
     const requestedWidth = Math.round(baseWidth * 2.1); // ~1680
-    const requestedHeight = Math.round(baseHeight * 1.8); // ~1080
+    const requestedHeight = Math.round(baseHeight * 1.6); // ~960
     // Clamp to 95% of available work area to avoid oversizing on smaller displays
     targetWidth = Math.min(requestedWidth, Math.round(workArea.width * 0.95));
     targetHeight = Math.min(requestedHeight, Math.round(workArea.height * 0.95));
