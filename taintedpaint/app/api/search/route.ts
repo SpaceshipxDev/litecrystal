@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const results = Object.values(data.tasks as Record<string, Task>)
       .filter((task) => {
         if (task.columnId === 'archive' || task.columnId === 'archive2') return false;
-        const text = `${task.customerName} ${task.representative} ${task.ynmxId ?? ''} ${task.notes ?? ''}`.toLowerCase();
+        const text = `${task.customerName ?? ''} ${task.representative ?? ''} ${task.ynmxId ?? ''} ${task.notes ?? ''}`.toLowerCase();
         return text.includes(query);
       })
       .slice(0, 3)
