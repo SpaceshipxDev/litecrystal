@@ -17,7 +17,7 @@ interface KanbanColumnProps {
   renderHighlighted: (text: string | undefined, q: string) => React.ReactNode;
   highlightTaskId: string | null;
   handleTaskClick: (task: Task, e: React.MouseEvent) => void;
-  handleDragStart: (e: React.DragEvent, task: Task) => void;
+  handleDragStart: (e: React.DragEvent, task: Task, sourceColumnId: string) => void;
   handleDragEnd: () => void;
   handleDragOverTask: (e: React.DragEvent, index: number, columnId: string) => void;
   handleDragOver: (e: React.DragEvent) => void;
@@ -36,10 +36,8 @@ interface KanbanColumnProps {
   openPending: Record<string, boolean>;
   setOpenPending: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   animateAcceptPending: (taskId: string, columnId: string) => void;
-  animateDeclinePending: (taskId: string, columnId: string) => void;
   getTaskDisplayName: (task: TaskSummary) => string;
   acceptingPending: Record<string, boolean>;
-  decliningPending: Record<string, boolean>;
 }
 
 export default function KanbanColumn({
@@ -73,10 +71,8 @@ export default function KanbanColumn({
   openPending,
   setOpenPending,
   animateAcceptPending,
-  animateDeclinePending,
   getTaskDisplayName,
   acceptingPending,
-  decliningPending,
 }: KanbanColumnProps) {
   const todayStr = new Date().toISOString().slice(0, 10);
   return (
@@ -100,10 +96,14 @@ export default function KanbanColumn({
           {pendingTasks.length > 0 && (
             <button
               onClick={() => setOpenPending((prev) => ({ ...prev, [column.id]: !prev[column.id] }))}
-              className="text-[11px] px-2 py-0.5 rounded-[2px] border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 transition"
-              title="待接受"
+              className="inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1 rounded-[2px] border border-gray-200 bg-white text-gray-800 hover:bg-gray-100 transition"
+              title="待接收"
             >
-              待接受 {pendingTasks.length}
+              <span aria-hidden className="h-2 w-2 rounded-full bg-slate-500" />
+              <span>待接收</span>
+              <span className="ml-0.5 inline-flex items-center justify-center rounded-[2px] border border-gray-300 bg-white px-1.5 py-0.5 text-[11px] tabular-nums">
+                {pendingTasks.length}
+              </span>
             </button>
           )}
           <button
@@ -154,6 +154,8 @@ export default function KanbanColumn({
                 const q = addPickerQuery.trim().toLowerCase();
                 const list = Object.values(tasks)
                   .filter((t) => t && (t as any).id)
+                  // Hide tasks already present in this column to avoid no-op selections
+                  .filter((t) => !column.taskIds.includes((t as any).id))
                   .filter((t) => {
                     if (q === "") return true;
                     const text = `${t.customerName} ${t.representative} ${t.ynmxId || ""} ${t.notes || ""}`.toLowerCase();
@@ -194,7 +196,7 @@ export default function KanbanColumn({
         {openPending[column.id] && pendingTasks.length > 0 && (
           <div className="mb-3 rounded-[2px] border border-gray-200 bg-white p-2 shadow-sm">
             <div className="flex items-center justify-between px-1 pb-2">
-              <div className="text-[11px] font-medium text-gray-700">待接受</div>
+              <div className="text-[11px] font-medium text-gray-700">待接收</div>
               <button
                 className="text-[11px] px-2 py-0.5 rounded-[2px] border border-gray-200 bg-white hover:bg-gray-100"
                 onClick={() => setOpenPending((prev) => ({ ...prev, [column.id]: !prev[column.id] }))}
@@ -206,7 +208,6 @@ export default function KanbanColumn({
                 {pendingTasks.map((task) => {
                   const isDropHighlighted = highlightTaskId === task.id;
                   const isAccepting = acceptingPending[task.id];
-                  const isDeclining = decliningPending[task.id];
                   return (
                 <div
                   key={task.id}
@@ -214,7 +215,6 @@ export default function KanbanColumn({
                     "relative rounded-[2px] border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-300",
                     isDropHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
                     isAccepting ? "transform scale-[0.98] opacity-80" : "",
-                    isDeclining ? "transform scale-95 opacity-0" : "",
                   ].join(" ")}
                   onClick={(e) => handleTaskClick(task as Task, e)}
                 >
@@ -244,16 +244,6 @@ export default function KanbanColumn({
                         }}
                       >
                         <Check className="w-3 h-3" />
-                      </button>
-                      <button
-                        className="p-1 rounded-[2px] bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          animateDeclinePending(task.id, column.id);
-                        }}
-                      >
-                        <X className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
@@ -295,7 +285,7 @@ export default function KanbanColumn({
                   onClick={(e) => handleTaskClick(task as Task, e)}
                   draggableProps={{
                     draggable: true,
-                    onDragStart: (e) => handleDragStart(e, task as any),
+                    onDragStart: (e) => handleDragStart(e, task as any, column.id),
                     onDragEnd: handleDragEnd,
                     onDragOver: (e) => handleDragOverTask(e, index, column.id),
                   }}

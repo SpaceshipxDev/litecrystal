@@ -28,6 +28,7 @@ export default function KanbanBoard() {
   const [tasks, setTasks] = useState<Record<string, (TaskSummary & Partial<Task>)>>({});
   const [columns, setColumns] = useState<Column[]>(baseColumns);
   const [draggedTask, setDraggedTask] = useState<(TaskSummary & Partial<Task>) | null>(null);
+  const [dragSourceColumnId, setDragSourceColumnId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,33 +98,33 @@ export default function KanbanBoard() {
     );
   }, []);
 
-  // Add an existing task to a column (quick copy)
+  // Add an existing task ID to a column as a reference (no duplication)
   const handleAddExistingTask = async (taskId: string, columnId: string) => {
     const original = tasks[taskId];
     if (!original) return;
-    const newId = `${taskId}-${Date.now()}`;
+    const targetColumn = columns.find((c) => c.id === columnId);
+    if (!targetColumn) return;
+    // Prevent duplicate references within the same column
+    if (targetColumn.taskIds.includes(taskId)) return;
     const time = new Date().toISOString();
-    const newTask: TaskSummary & Partial<Task> = {
+    // Optionally record history that this task is referenced in another column
+    const updatedTask: TaskSummary & Partial<Task> = {
       ...original,
-      id: newId,
-      columnId,
-      awaitingAcceptance: false,
-      previousColumnId: undefined,
-      updatedAt: time,
-      updatedBy: userName,
       history: [
         ...(original.history || []),
-        { user: userName, timestamp: time, description: `复制到${columns.find((c) => c.id === columnId)?.title || ""}` },
+        { user: userName, timestamp: time, description: `添加到${columns.find((c) => c.id === columnId)?.title || ""}（引用）` },
       ],
+      updatedAt: time,
+      updatedBy: userName,
     };
-    const nextTasks = { ...tasks, [newId]: newTask };
+    const nextTasks = { ...tasks, [taskId]: updatedTask };
     let nextColumns = columns.map((col) =>
-      col.id === columnId ? { ...col, taskIds: [newId, ...col.taskIds] } : col
+      col.id === columnId ? { ...col, taskIds: [taskId, ...col.taskIds] } : col
     );
-    nextColumns = sortColumnsData(nextColumns, nextTasks);
+    nextColumns = sortColumnsData(nextColumns, nextTasks as any);
     setTasks(nextTasks);
     setColumns(nextColumns);
-    await saveBoard({ tasks: nextTasks, columns: nextColumns });
+    await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
   // Toggle "Add existing task" picker
@@ -447,8 +448,9 @@ export default function KanbanBoard() {
   );
 
   // Drag + Drop: start
-  const handleDragStart = (e: React.DragEvent, task: TaskSummary) => {
+  const handleDragStart = (e: React.DragEvent, task: TaskSummary, sourceColumnId: string) => {
     setDraggedTask(task);
+    setDragSourceColumnId(sourceColumnId);
     setHighlightTaskId(task.id);
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = "move";
@@ -468,6 +470,7 @@ export default function KanbanBoard() {
     setDraggedTask(null);
     setDragOverColumn(null);
     setDropIndicatorIndex(null);
+    setDragSourceColumnId(null);
   };
 
   // Allow drop
@@ -510,7 +513,7 @@ export default function KanbanBoard() {
       setDropIndicatorIndex(null);
       return;
     }
-    const sourceColumnId = draggedTask.columnId;
+    const sourceColumnId = dragSourceColumnId || draggedTask.columnId;
     const isArchive = targetColumnId === ARCHIVE_COLUMN_ID || targetColumnId === "archive2";
 
     if (sourceColumnId === targetColumnId) {
@@ -885,10 +888,8 @@ export default function KanbanBoard() {
                   openPending={openPending}
                   setOpenPending={setOpenPending}
                   animateAcceptPending={animateAcceptPending}
-                  animateDeclinePending={animateDeclinePending}
                   getTaskDisplayName={getTaskDisplayName}
                   acceptingPending={acceptingPending}
-                  decliningPending={decliningPending}
                 />
               );
           })
