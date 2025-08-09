@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Archive, Plus, Search, X, Check } from "lucide-react";
 import TaskCard from "@/components/TaskCard";
 import type { Task, TaskSummary, Column } from "@/types";
@@ -75,6 +75,13 @@ export default function KanbanColumn({
   acceptingPending,
 }: KanbanColumnProps) {
   const todayStr = new Date().toISOString().slice(0, 10);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (openPending[column.id]) {
+      bodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [openPending[column.id]]);
   return (
     <div
       data-col-id={column.id}
@@ -123,7 +130,10 @@ export default function KanbanColumn({
       </div>
 
       {/* Column body (vertical scroll) */}
-      <div className="flex-1 overflow-y-auto p-3 pb-6 space-y-2 [scrollbar-gutter:stable] scroll-smooth overscroll-y-contain bg-gray-50">
+      <div
+        ref={bodyRef}
+        className="flex-1 overflow-y-auto p-3 pb-6 space-y-2 [scrollbar-gutter:stable] scroll-smooth overscroll-y-contain bg-gray-50"
+      >
         <div className="pointer-events-none sticky top-0 z-0 -mt-3 h-3 bg-gradient-to-b from-gray-50 to-transparent" />
         {addPickerOpenFor === column.id && (
           <div className="mb-3 rounded-[2px] border border-gray-200 bg-white p-2 shadow-sm">
@@ -215,19 +225,23 @@ export default function KanbanColumn({
               </button>
             </div>
             <div className="space-y-1.5">
-                {pendingTasks.map((task) => {
-                  const isDropHighlighted = highlightTaskId === task.id;
-                  const isAccepting = acceptingPending[task.id];
-                  return (
-                <div
-                  key={task.id}
-                  className={[
-                    "relative rounded-[2px] border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-300",
-                    isDropHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
-                    isAccepting ? "transform scale-[0.98] opacity-80" : "",
-                  ].join(" ")}
-                  onClick={(e) => handleTaskClick(task as Task, e)}
-                >
+              {pendingTasks.map((task) => {
+                const isDropHighlighted = highlightTaskId === task.id;
+                const isAccepting = acceptingPending[task.id];
+                return (
+                  <div
+                    key={task.id}
+                    ref={(node) => {
+                      if (node) taskRefs.current.set(task.id, node);
+                      else taskRefs.current.delete(task.id);
+                    }}
+                    className={[
+                      "relative rounded-[2px] border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-300",
+                      isDropHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
+                      isAccepting ? "transform scale-[0.98] opacity-80" : "",
+                    ].join(" ")}
+                    onClick={(e) => handleTaskClick(task as Task, e)}
+                  >
                   {/* Left status strip for pending tasks as well */}
                   {(() => {
                     const dueToday = task.deliveryDate && task.deliveryDate === todayStr;
@@ -260,8 +274,8 @@ export default function KanbanColumn({
                     </div>
                   </div>
                 </div>
-               );
-               })}
+                );
+              })}
             </div>
           </div>
         )}
