@@ -42,20 +42,22 @@ export default function NewTaskDialog({
   }
 
   const handleCreate = async () => {
+    if (!customerName.trim() || !representative.trim() || !inquiryDate.trim()) return
     setIsCreating(true)
     try {
-      const formData = new FormData()
-      formData.append("customerName", customerName.trim())
-      formData.append("representative", representative.trim())
-      formData.append("inquiryDate", inquiryDate.trim())
-      formData.append("deliveryDate", deliveryDate.trim())
-      formData.append("ynmxId", ynmxId.trim())
-      formData.append("notes", notes.trim())
-      formData.append("updatedBy", userName)
-
       const res = await fetch("/api/jobs", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: customerName.trim(),
+          representative: representative.trim(),
+          inquiryDate: inquiryDate.trim(),
+          deliveryDate: deliveryDate.trim(),
+          ynmxId: ynmxId.trim(),
+          notes: notes.trim(),
+          updatedBy: userName,
+          noFiles: true,
+        })
       })
       if (!res.ok) throw new Error("服务端错误")
       const task: Task = await res.json()
@@ -93,7 +95,7 @@ export default function NewTaskDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-          <Button onClick={handleCreate} disabled={isCreating}>{isCreating ? '创建中...' : '创建'}</Button>
+          <Button onClick={handleCreate} disabled={!customerName || !representative || !inquiryDate || isCreating}>{isCreating ? '创建中...' : '创建'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

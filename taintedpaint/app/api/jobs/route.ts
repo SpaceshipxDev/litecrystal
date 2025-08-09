@@ -112,16 +112,30 @@ export async function POST(req: NextRequest) {
       folderName = '',
       updatedBy = '',
     } = fields;
+
+    if (
+      tempFiles.length === 0 ||
+      !customerName ||
+      !representative ||
+      !inquiryDate ||
+      !folderName
+    ) {
+      return NextResponse.json(
+        { error: 'Missing required fields or folder' },
+        { status: 400 }
+      );
+    }
+
     const taskId = Date.now().toString();
     const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
     await fs.mkdir(taskDirectoryPath, { recursive: true });
 
-    const rootPrefix = folderName ? folderName.replace(/[/\\]+$/, '') + '/' : '';
+    const rootPrefix = folderName.replace(/[/\\]+$/, '') + '/';
 
     for (let i = 0; i < tempFiles.length; i++) {
       const rawPath = filePaths[i];
       if (!rawPath) continue;
-      const relativePath = rootPrefix && rawPath.startsWith(rootPrefix)
+      const relativePath = rawPath.startsWith(rootPrefix)
         ? rawPath.slice(rootPrefix.length)
         : rawPath;
       const safeRelativePath = path
@@ -137,16 +151,16 @@ export async function POST(req: NextRequest) {
     const newTask: Task = {
       id: taskId,
       columnId: START_COLUMN_ID,
-      customerName: customerName.trim() || undefined,
-      representative: representative.trim() || undefined,
-      inquiryDate: inquiryDate.trim() || undefined,
+      customerName: customerName.trim(),
+      representative: representative.trim(),
+      inquiryDate: inquiryDate.trim(),
       deliveryDate: deliveryDate.trim() || undefined,
-      notes: notes.trim() || undefined,
+      notes: notes.trim(),
       ynmxId: ynmxId.trim() || undefined,
       // Store the relative path inside the SMB share so clients can resolve it
       // using their own mounted location.
       taskFolderPath: `${TASKS_DIR_NAME}/${taskId}`,
-      files: folderName ? [folderName] : [],
+      files: [folderName],
       deliveryNoteGenerated: false,
       awaitingAcceptance: false,
       updatedAt: now,
