@@ -97,8 +97,19 @@ export default function ArchivePage() {
       .map(t => ({ ...t, status: getStatus(t) }))
   , [tasks]);
 
-  const customers = useMemo(() => Array.from(new Set(jobs.map(j => j.customerName))), [jobs]);
-  const months    = useMemo(() => Array.from(new Set(jobs.map(j => dayjs(j.inquiryDate).format("YYYY-MM")))), [jobs]);
+  const customers = useMemo(() => {
+    const names = jobs
+      .map(j => j.customerName)
+      .filter((n): n is string => Boolean(n));
+    return Array.from(new Set(names));
+  }, [jobs]);
+  const months    = useMemo(() => {
+    const formatted = jobs
+      .map(j => j.inquiryDate)
+      .filter((d): d is string => Boolean(d))
+      .map(d => dayjs(d).format("YYYY-MM"));
+    return Array.from(new Set(formatted));
+  }, [jobs]);
 
   // ② 组件状态 --------------------------------------------------------------------
   const [activeCustomer, setActiveCustomer] = useState<string>('All');
@@ -129,11 +140,16 @@ export default function ArchivePage() {
   const filtered = jobs
     .filter(j => {
       const okCustomer = activeCustomer === "All" || j.customerName === activeCustomer;
-      const okMonth = activeMonth === "All" || dayjs(j.inquiryDate).format("YYYY-MM") === activeMonth;
-      const okSearch = q === "" || j.representative.toLowerCase().includes(q.toLowerCase());
+      const okMonth =
+        activeMonth === "All" ||
+        (j.inquiryDate ? dayjs(j.inquiryDate).format("YYYY-MM") === activeMonth : false);
+      const okSearch =
+        q === "" || (j.representative || "").toLowerCase().includes(q.toLowerCase());
       return okCustomer && okMonth && okSearch;
     })
-    .sort((a, b) => dayjs(b.inquiryDate).valueOf() - dayjs(a.inquiryDate).valueOf());
+    .sort(
+      (a, b) => dayjs(b.inquiryDate || '').valueOf() - dayjs(a.inquiryDate || '').valueOf()
+    );
 
   // ④ 指标计算 --------------------------------------------------------------------
   const working  = filtered.filter(j => j.status === 'Working').length;
@@ -142,7 +158,7 @@ export default function ArchivePage() {
   const denom    = quoted + finished;                        // 已报价 + 已完成
   const hitRate  = denom === 0 ? 0 : Math.round((finished / denom) * 100);
   const byDay = filtered.reduce<Record<string, Job[]>>((acc, job) => {
-    const d = dayjs(job.inquiryDate).format("MMM DD");
+    const d = dayjs(job.inquiryDate || '').format("MMM DD");
     (acc[d] = acc[d] || []).push(job);
     return acc;
   }, {});
@@ -302,7 +318,7 @@ function JobCard({ job, onClick }: { job: Job; onClick: () => void }) {
           </span>
         </div>
 
-        <p className="text-xs text-gray-400 mb-3 font-mono tracking-wide">{dayjs(job.inquiryDate).format('YYYY-MM-DD')}</p>
+        <p className="text-xs text-gray-400 mb-3 font-mono tracking-wide">{dayjs(job.inquiryDate || '').format('YYYY-MM-DD')}</p>
 
         <div className="flex items-center gap-3 text-xs text-gray-600">
           {job.value ? (

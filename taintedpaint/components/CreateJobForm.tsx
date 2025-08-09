@@ -54,7 +54,13 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
         if (res.ok) {
           const data = await res.json()
           const taskValues = Object.values(data.tasks || {}) as Task[]
-          const names = Array.from(new Set(taskValues.map((t) => t.customerName)))
+          const names = Array.from(
+            new Set(
+              taskValues
+                .map((t) => t.customerName)
+                .filter((name): name is string => Boolean(name))
+            )
+          )
           setCustomerOptions(names)
         }
       } catch {}
