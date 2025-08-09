@@ -55,7 +55,7 @@ export default function TaskCard({
       <h3 className="truncate text-[13px] leading-snug font-medium text-gray-900">{titleNode}</h3>
 
       <div className="mt-2 flex flex-wrap gap-1">
-        {task.representative && (
+        {task.representative && !isRestricted && (
           <span className="px-2 py-0.5 rounded-[2px] bg-gray-100 text-gray-700 text-[11px] font-medium">
             {searchRender(task.representative)}
           </span>
@@ -75,7 +75,7 @@ export default function TaskCard({
         </span>
       </div>
 
-      {task.notes && (
+      {task.notes && !isRestricted && (
         <p className="mt-2 truncate text-[12px] leading-snug text-gray-500">{searchRender(task.notes)}</p>
       )}
 

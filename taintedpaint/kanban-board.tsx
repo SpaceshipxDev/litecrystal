@@ -250,6 +250,9 @@ export default function KanbanBoard() {
 
   // Display name differs by viewMode
   const getTaskDisplayName = (task: TaskSummary) => {
+    if (isRestricted) {
+      return task.ynmxId || "—";
+    }
     if (viewMode === "production") {
       return task.ynmxId || `${task.customerName} - ${task.representative}`;
     }

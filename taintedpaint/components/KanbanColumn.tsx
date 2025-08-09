@@ -158,7 +158,9 @@ export default function KanbanColumn({
                   .filter((t) => !column.taskIds.includes((t as any).id))
                   .filter((t) => {
                     if (q === "") return true;
-                    const text = `${t.customerName} ${t.representative} ${t.ynmxId || ""} ${t.notes || ""}`.toLowerCase();
+                    const text = isRestricted
+                      ? `${t.ynmxId || ""}`.toLowerCase()
+                      : `${t.customerName} ${t.representative} ${t.ynmxId || ""} ${t.notes || ""}`.toLowerCase();
                     return text.includes(q);
                   })
                   .slice(0, 50);
@@ -174,16 +176,24 @@ export default function KanbanColumn({
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-[2px] transition-colors"
                     >
                       <div className="min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">
-                          {(t as any).customerName}{" "}
-                          <span className="text-gray-500">· {(t as any).representative}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          {(t as any).ynmxId && <span className="truncate">{(t as any).ynmxId}</span>}
-                          {col && (
-                            <span className="px-1.5 py-0.5 rounded-[2px] bg-gray-100 border border-gray-200">{col.title}</span>
-                          )}
-                        </div>
+                        {isRestricted ? (
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {(t as any).ynmxId || "—"}
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {(t as any).customerName}{" "}
+                              <span className="text-gray-500">· {(t as any).representative}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              {(t as any).ynmxId && <span className="truncate">{(t as any).ynmxId}</span>}
+                              {col && (
+                                <span className="px-1.5 py-0.5 rounded-[2px] bg-gray-100 border border-gray-200">{col.title}</span>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </button>
                   );
@@ -232,7 +242,9 @@ export default function KanbanColumn({
                       <h3 className="text-sm font-medium text-gray-900 truncate">
                         {getTaskDisplayName(task)}
                       </h3>
-                      <p className="text-xs text-gray-600">{task.representative}</p>
+                      {!isRestricted && (
+                        <p className="text-xs text-gray-600">{task.representative}</p>
+                      )}
                     </div>
                     <div className="flex gap-1 ml-2 flex-shrink-0">
                       <button
