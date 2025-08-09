@@ -11,7 +11,7 @@ import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
 import { readBoardData, updateBoardData } from "@/lib/boardDataStore";
 import { invalidateFilesCache } from "@/lib/filesCache";
-import { STORAGE_ROOT, TASKS_STORAGE_DIR, TASKS_DIR_NAME } from "@/lib/storagePaths";
+import { TASKS_STORAGE_DIR, TASKS_DIR_NAME } from "@/lib/storagePaths";
 
 // --- Path Definitions ---
 // Files are stored on a shared network disk. Configure the root path with the
@@ -113,24 +113,11 @@ export async function POST(req: NextRequest) {
       updatedBy = '',
     } = fields;
 
-    if (
-      tempFiles.length === 0 ||
-      !customerName ||
-      !representative ||
-      !inquiryDate ||
-      !folderName
-    ) {
-      return NextResponse.json(
-        { error: 'Missing required fields or folder' },
-        { status: 400 }
-      );
-    }
-
     const taskId = Date.now().toString();
     const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
     await fs.mkdir(taskDirectoryPath, { recursive: true });
 
-    const rootPrefix = folderName.replace(/[/\\]+$/, '') + '/';
+    const rootPrefix = folderName ? folderName.replace(/[/\\]+$/, '') + '/' : '';
 
     for (let i = 0; i < tempFiles.length; i++) {
       const rawPath = filePaths[i];
@@ -151,21 +138,23 @@ export async function POST(req: NextRequest) {
     const newTask: Task = {
       id: taskId,
       columnId: START_COLUMN_ID,
-      customerName: customerName.trim(),
-      representative: representative.trim(),
-      inquiryDate: inquiryDate.trim(),
+      customerName: customerName.trim() || undefined,
+      representative: representative.trim() || undefined,
+      inquiryDate: inquiryDate.trim() || undefined,
       deliveryDate: deliveryDate.trim() || undefined,
-      notes: notes.trim(),
+      notes: notes.trim() || undefined,
       ynmxId: ynmxId.trim() || undefined,
       // Store the relative path inside the SMB share so clients can resolve it
       // using their own mounted location.
       taskFolderPath: `${TASKS_DIR_NAME}/${taskId}`,
-      files: [folderName],
+      files: folderName ? [folderName] : undefined,
       deliveryNoteGenerated: false,
       awaitingAcceptance: false,
       updatedAt: now,
       updatedBy: updatedBy.trim() || undefined,
-      history: updatedBy ? [{ user: updatedBy, timestamp: now, description: '创建任务' }] : [],
+      history: updatedBy
+        ? [{ user: updatedBy.trim(), timestamp: now, description: '创建任务' }]
+        : undefined,
     };
 
     await updateBoardData(async (boardData) => {
