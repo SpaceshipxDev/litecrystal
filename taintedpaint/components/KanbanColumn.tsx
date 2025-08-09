@@ -36,8 +36,11 @@ interface KanbanColumnProps {
   openPending: Record<string, boolean>;
   setOpenPending: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   animateAcceptPending: (taskId: string, columnId: string) => void;
+  animateDeclinePending: (taskId: string, columnId: string) => void;
+  handleRemoveTask: (taskId: string, columnId: string) => void;
   getTaskDisplayName: (task: TaskSummary) => string;
   acceptingPending: Record<string, boolean>;
+  decliningPending: Record<string, boolean>;
 }
 
 export default function KanbanColumn({
@@ -71,8 +74,11 @@ export default function KanbanColumn({
   openPending,
   setOpenPending,
   animateAcceptPending,
+  animateDeclinePending,
+  handleRemoveTask,
   getTaskDisplayName,
   acceptingPending,
+  decliningPending,
 }: KanbanColumnProps) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -228,6 +234,7 @@ export default function KanbanColumn({
               {pendingTasks.map((task) => {
                 const isDropHighlighted = highlightTaskId === task.id;
                 const isAccepting = acceptingPending[task.id];
+                const isDeclining = decliningPending[task.id];
                 return (
                   <div
                     key={task.id}
@@ -238,7 +245,7 @@ export default function KanbanColumn({
                     className={[
                       "relative rounded-[2px] border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-300",
                       isDropHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
-                      isAccepting ? "transform scale-[0.98] opacity-80" : "",
+                      isAccepting || isDeclining ? "transform scale-[0.98] opacity-80" : "",
                     ].join(" ")}
                     onClick={(e) => handleTaskClick(task as Task, e)}
                   >
@@ -271,6 +278,16 @@ export default function KanbanColumn({
                       >
                         <Check className="w-3 h-3" />
                       </button>
+                      <button
+                        className="p-1 rounded-[2px] bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          animateDeclinePending(task.id, column.id);
+                        }}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -295,7 +312,7 @@ export default function KanbanColumn({
           </div>
         ) : (
           columnTasks.map((task, index) => (
-            <div key={task.id} className="relative">
+            <div key={task.id} className="relative group">
               <div
                 ref={(node) => {
                   if (node) taskRefs.current.set(task.id, node);
@@ -317,6 +334,15 @@ export default function KanbanColumn({
                   }}
                 />
               </div>
+              <button
+                className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveTask(task.id, column.id);
+                }}
+              >
+                <X className="w-3 h-3" />
+              </button>
               {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
                 <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
               )}

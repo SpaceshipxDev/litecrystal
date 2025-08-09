@@ -900,8 +900,11 @@ export default function KanbanBoard() {
                   openPending={openPending}
                   setOpenPending={setOpenPending}
                   animateAcceptPending={animateAcceptPending}
+                  animateDeclinePending={animateDeclinePending}
+                  handleRemoveTask={handleDeclineTask}
                   getTaskDisplayName={getTaskDisplayName}
                   acceptingPending={acceptingPending}
+                  decliningPending={decliningPending}
                 />
               );
           })
