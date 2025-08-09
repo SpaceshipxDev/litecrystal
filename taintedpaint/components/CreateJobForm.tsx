@@ -80,31 +80,24 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   }
 
   const handleCreateJob = async () => {
-    if (
-      !selectedFiles ||
-      selectedFiles.length === 0 ||
-      !customerName.trim() ||
-      !representative.trim() ||
-      !inquiryDate.trim()
-    )
-      return
-
     setIsCreating(true)
     try {
       const formData = new FormData()
-      
-      for (const file of Array.from(selectedFiles)) {
-        formData.append("files", file)
-        formData.append("filePaths", (file as any).webkitRelativePath)
+
+      if (selectedFiles) {
+        for (const file of Array.from(selectedFiles)) {
+          formData.append("files", file)
+          formData.append("filePaths", (file as any).webkitRelativePath)
+        }
+        formData.append("folderName", getFolderName())
       }
-      
+
       formData.append("customerName", customerName.trim())
       formData.append("representative", representative.trim())
       formData.append("inquiryDate", inquiryDate.trim())
       formData.append("deliveryDate", deliveryDate.trim())
       formData.append("ynmxId", ynmxId.trim())
       formData.append("notes", notes.trim())
-      formData.append("folderName", getFolderName())
       formData.append("updatedBy", userName)
 
       const res = await fetch("/api/jobs", {
@@ -243,14 +236,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
         <Button
           onClick={handleCreateJob}
           className="w-full h-9 text-white text-sm font-medium rounded-[2px] transition-all disabled:opacity-50"
-          disabled={
-            !selectedFiles ||
-            selectedFiles.length === 0 ||
-            !customerName ||
-            !representative ||
-            !inquiryDate ||
-            isCreating
-          }
+          disabled={isCreating}
         >
           {isCreating ? (
             <Loader2 className="w-4 h-4 animate-spin" />
