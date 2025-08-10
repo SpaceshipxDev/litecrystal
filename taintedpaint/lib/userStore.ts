@@ -1,10 +1,10 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import { LOCAL_STORAGE_ROOT } from './storagePaths'
+import { STORAGE_ROOT } from './storagePaths'
 import type { User } from '@/types'
 
-const USERS_PATH = path.join(LOCAL_STORAGE_ROOT, 'users.json')
+const USERS_PATH = path.join(STORAGE_ROOT, 'users.json')
 
 async function readUsers(): Promise<User[]> {
   try {

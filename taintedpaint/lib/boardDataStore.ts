@@ -1,12 +1,12 @@
 import { mkdirSync } from 'fs'
-import { BOARD_DB_PATH, LOCAL_STORAGE_ROOT } from './storagePaths'
+import { BOARD_DB_PATH, STORAGE_ROOT } from './storagePaths'
 import Database from 'better-sqlite3'
 import { baseColumns, START_COLUMN_ID, ARCHIVE_COLUMN_ID } from './baseColumns'
 import type { BoardData } from '@/types'
 
-// Store dynamic data outside of the public directory so it remains
-// accessible when running `npm run build && npm run start`.
-const STORAGE_DIR = LOCAL_STORAGE_ROOT
+// Store dynamic data on the network share so it remains accessible
+// to all clients and avoids writing to the local server disk.
+const STORAGE_DIR = STORAGE_ROOT
 const DB_PATH = BOARD_DB_PATH
 
 mkdirSync(STORAGE_DIR, { recursive: true })
