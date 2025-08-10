@@ -17,7 +17,9 @@ export const mainConfig: Configuration = {
   plugins: [
     ...plugins,
     new webpack.EnvironmentPlugin({
-      SMB_CLIENT_ROOT: process.env.SMB_CLIENT_ROOT || '\\FWQ88\\Estara',
+      // Ensure the default UNC path retains its double leading slashes
+      SMB_CLIENT_ROOT:
+        process.env.SMB_CLIENT_ROOT || '\\\\FWQ88\\Estara',
     }),
   ],
   resolve: {
