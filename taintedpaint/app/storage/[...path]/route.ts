@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { STORAGE_ROOT } from '@/lib/storagePaths'
 
-// Serve files from the root-level storage directory
-const STORAGE_DIR = path.join(process.cwd(), '..', 'storage')
+// Serve files from the SMB storage root so clients always access the
+// network share rather than the local server disk.
+const STORAGE_DIR = STORAGE_ROOT
 
 export async function GET(
   _req: NextRequest,

@@ -15,9 +15,8 @@ import { STORAGE_ROOT, TASKS_STORAGE_DIR, TASKS_DIR_NAME } from "@/lib/storagePa
 
 // --- Path Definitions ---
 // Files are stored on a shared network disk. Configure the root path with the
-// SMB_ROOT environment variable. Defaults to the local `storage` folder for
-// development.
-// `TASKS_STORAGE_DIR` is exported from `lib/storagePaths`.
+// SMB_ROOT environment variable. `TASKS_STORAGE_DIR` is exported from
+// `lib/storagePaths`.
 // ------------------------
 
 // Legacy helper removed in favour of boardDataStore
