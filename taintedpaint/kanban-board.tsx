@@ -56,6 +56,7 @@ export default function KanbanBoard() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isSavingRef = useRef(false);
   const pendingBoardRef = useRef<BoardData | null>(null);
+  const latestFetchRef = useRef(0);
 
   // Search match helper (simple .includes across a few fields)
   const doesTaskMatchQuery = useCallback((task: TaskSummary & Partial<Task>, q: string) => {
@@ -335,10 +336,12 @@ export default function KanbanBoard() {
   // Light fetch (summary)
   const fetchBoardSummary = useCallback(async (force = false) => {
     if (isSavingRef.current && !force) return;
+    const fetchId = ++latestFetchRef.current;
     try {
       const res = await fetch("/api/jobs?summary=1");
       if (res.ok) {
         const data: BoardSummaryData = await res.json();
+        if (fetchId !== latestFetchRef.current) return;
         const tasksData = data.tasks || {};
         let merged = mergeWithSkeleton(data.columns || []);
         const colIds = new Set(merged.map((c) => c.id));
@@ -355,6 +358,7 @@ export default function KanbanBoard() {
       }
     } catch (e) {
       console.warn("metadata.json 不存在或无效，已重置");
+      if (fetchId !== latestFetchRef.current) return;
       setTasks({});
       setColumns(baseColumns);
     }
@@ -363,10 +367,12 @@ export default function KanbanBoard() {
   // Full fetch (tasks + columns)
   const fetchBoardFull = useCallback(async (force = false) => {
     if (isSavingRef.current && !force) return;
+    const fetchId = ++latestFetchRef.current;
     try {
       const res = await fetch("/api/jobs");
       if (res.ok) {
         const data: BoardData = await res.json();
+        if (fetchId !== latestFetchRef.current) return;
         const tasksData = data.tasks || {};
         let merged = mergeWithSkeleton(data.columns || []);
         const colIds = new Set(merged.map((c) => c.id));
@@ -383,6 +389,7 @@ export default function KanbanBoard() {
       }
     } catch (e) {
       console.warn("metadata.json 不存在或无效，已重置");
+      if (fetchId !== latestFetchRef.current) return;
       setTasks({});
       setColumns(baseColumns);
     }
