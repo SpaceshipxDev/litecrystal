@@ -57,7 +57,7 @@ app.on('ready', () => {
   // This is our new "backend" logic
   ipcMain.handle('open-task-folder', async (_, relativePath: string) => {
     try {
-      const DEFAULT_SMB_ROOT = "\\\\FWQ88\\Estara";
+      const DEFAULT_SMB_ROOT = "\\\\FWQ888\\Estara";
       const smbRoot = process.env.SMB_CLIENT_ROOT || DEFAULT_SMB_ROOT;
       const fullPath = path.join(smbRoot, relativePath);
       const openError = await shell.openPath(fullPath);

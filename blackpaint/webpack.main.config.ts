@@ -17,7 +17,7 @@ export const mainConfig: Configuration = {
   plugins: [
     ...plugins,
     new webpack.EnvironmentPlugin({
-      SMB_CLIENT_ROOT: process.env.SMB_CLIENT_ROOT || '\\FWQ88\\Estara',
+      SMB_CLIENT_ROOT: process.env.SMB_CLIENT_ROOT || '\\FWQ888\\Estara',
     }),
   ],
   resolve: {
