@@ -12,6 +12,13 @@ export async function POST(req: NextRequest) {
     const user = await addUser(name, department, password)
     return NextResponse.json({ user })
   } catch (err) {
-    return NextResponse.json({ error: 'User exists' }, { status: 400 })
+    if (err instanceof Error && err.message === 'User exists') {
+      return NextResponse.json({ error: err.message }, { status: 400 })
+    }
+    console.error(err)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
