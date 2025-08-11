@@ -5,7 +5,6 @@ import { useState, useRef, useEffect } from "react"
 import { Folder, Plus, Loader2, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import path from "path"
 
 interface CreateJobFormProps {
   onJobCreated: (task: Task) => void
@@ -89,26 +88,15 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const handleCreateJob = async () => {
     setIsCreating(true)
     try {
-      const formData = new FormData()
+    const formData = new FormData()
 
-      if (selectedFiles && selectedFiles.length > 0) {
-        const first: any = selectedFiles[0]
-        const abs: string | undefined = first.path
-        const rel: string = first.webkitRelativePath || ""
-        if (abs) {
-          const base = abs.slice(0, abs.length - rel.length)
-          const fullFolder = path.join(base, getFolderName())
-          formData.append("folderPath", fullFolder)
-        }
-      }
-
-      formData.append("customerName", customerName.trim())
-      formData.append("representative", representative.trim())
-      formData.append("inquiryDate", inquiryDate.trim())
-      formData.append("deliveryDate", deliveryDate.trim())
-      formData.append("ynmxId", ynmxId.trim())
-      formData.append("notes", notes.trim())
-      formData.append("updatedBy", userName)
+    formData.append("customerName", customerName.trim())
+    formData.append("representative", representative.trim())
+    formData.append("inquiryDate", inquiryDate.trim())
+    formData.append("deliveryDate", deliveryDate.trim())
+    formData.append("ynmxId", ynmxId.trim())
+    formData.append("notes", notes.trim())
+    formData.append("updatedBy", userName)
 
       const res = await fetch("/api/jobs", {
         method: "POST",
@@ -117,7 +105,24 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
 
       if (!res.ok) throw new Error("服务端错误")
 
-      const newTask: Task = await res.json()
+      let newTask: Task = await res.json()
+
+      if (selectedFiles && selectedFiles.length > 0) {
+        const uploadData = new FormData()
+        Array.from(selectedFiles).forEach(f => {
+          const rel = (f as any).webkitRelativePath || f.name
+          uploadData.append("files", f, rel)
+        })
+        uploadData.append("updatedBy", userName)
+        const uploadRes = await fetch(`/api/jobs/${newTask.id}/upload`, {
+          method: "POST",
+          body: uploadData,
+        })
+        if (uploadRes.ok) {
+          newTask = await uploadRes.json()
+        }
+      }
+
       onJobCreated(newTask)
 
       setSelectedFiles(null)

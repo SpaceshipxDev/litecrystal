@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
+import { promises as fs } from "fs";
 import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
 import { readBoardData, updateBoardData } from "@/lib/boardDataStore";
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(boardData);
 }
 
-// POST: Creates a new job by referencing an existing folder on the SMB share
+// POST: Creates a new job and provisions a folder on the SMB share
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,25 +61,13 @@ export async function POST(req: NextRequest) {
     const ynmxId = (formData.get("ynmxId") as string | null) || "";
     const notes = (formData.get("notes") as string | null) || "";
     const updatedBy = (formData.get("updatedBy") as string | null) || "";
-    const folderPath = (formData.get("folderPath") as string | null) || "";
 
     const taskId = Date.now().toString();
+    const taskFolderPath = taskId; // store relative to SMB root
 
-    // If an absolute path within the SMB root is provided, store it relative to
-    // the root so clients can resolve it with their own mounts.
-    let taskFolderPath: string | undefined = undefined;
-    if (folderPath) {
-      const normalisedRoot = path.normalize(STORAGE_ROOT);
-      const normalisedFolder = path.normalize(folderPath);
-      if (
-        path.isAbsolute(normalisedFolder) &&
-        normalisedFolder.startsWith(normalisedRoot)
-      ) {
-        taskFolderPath = path.relative(normalisedRoot, normalisedFolder);
-      } else {
-        taskFolderPath = folderPath;
-      }
-    }
+    // Ensure the task directory exists on the shared drive
+    const absoluteTaskPath = path.join(STORAGE_ROOT, taskFolderPath);
+    await fs.mkdir(absoluteTaskPath, { recursive: true });
 
     const now = new Date().toISOString();
     const newTask: Task = {

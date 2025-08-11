@@ -1,12 +1,15 @@
 // src/app/api/jobs/[taskId]/upload/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { promises as fs } from "fs";
+import path from "path";
 import type { BoardData } from "@/types";
 import { updateBoardData, readBoardData } from "@/lib/boardDataStore";
 import { invalidateFilesCache } from "@/lib/filesCache";
+import { STORAGE_ROOT } from "@/lib/storagePaths";
 
-// Files are referenced directly from the shared SMB disk. No file data is
-// uploaded; we only record the provided paths in the task metadata.
+// Accepts uploaded files and writes them to the SMB share. Paths stored in the
+// task metadata are relative to `STORAGE_ROOT`.
 
 export async function POST(
   req: NextRequest,
@@ -19,16 +22,30 @@ export async function POST(
 
   try {
     const formData = await req.formData();
-    const paths = formData.getAll("paths") as string[];
+    const files = formData.getAll("files") as File[];
     const updatedBy = formData.get("updatedBy") as string | null;
 
     const boardData = await readBoardData();
-    if (!boardData.tasks[taskId]) {
+    const task = boardData.tasks[taskId];
+    if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    if (!paths || paths.length === 0) {
-      return NextResponse.json({ error: "No paths provided" }, { status: 400 });
+    if (!files || files.length === 0) {
+      return NextResponse.json({ error: "No files provided" }, { status: 400 });
+    }
+
+    const taskDir = path.join(STORAGE_ROOT, task.taskFolderPath || taskId);
+    await fs.mkdir(taskDir, { recursive: true });
+
+    const relativePaths: string[] = [];
+    for (const file of files) {
+      const relative = file.name;
+      const dest = path.join(taskDir, relative);
+      await fs.mkdir(path.dirname(dest), { recursive: true });
+      const arrayBuffer = await file.arrayBuffer();
+      await fs.writeFile(dest, Buffer.from(arrayBuffer));
+      relativePaths.push(relative);
     }
 
     let updatedTask: BoardData["tasks"][string] | undefined;
@@ -36,14 +53,12 @@ export async function POST(
       const t = data.tasks[taskId];
       if (!t) throw new Error("Task not found in metadata");
 
-      if (!t.files) {
-        t.files = [];
-      }
-      t.files.push(...paths);
+      t.taskFolderPath = t.taskFolderPath || taskId;
+      t.files = [...(t.files || []), ...relativePaths];
       t.updatedAt = new Date().toISOString();
       if (updatedBy) {
         t.updatedBy = updatedBy;
-        const entry = { user: updatedBy, timestamp: t.updatedAt, description: '引用文件' };
+        const entry = { user: updatedBy, timestamp: t.updatedAt, description: '上传文件' };
         t.history = [...(t.history || []), entry];
       }
       updatedTask = t;
