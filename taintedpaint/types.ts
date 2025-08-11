@@ -43,6 +43,7 @@ export interface TaskSummary {
   inquiryDate?: string;
   deliveryDate?: string;
   notes?: string;
+  taskFolderPath?: string;
   ynmxId?: string;
   deliveryNoteGenerated?: boolean;
   awaitingAcceptance?: boolean;
