@@ -5,9 +5,9 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 export const ELECTRON_API = {
-  // Open a folder located on the shared SMB disk
-  openTaskFolder: (relativePath: string) =>
-    ipcRenderer.invoke('open-task-folder', relativePath),
+  // Open a path located on the shared SMB disk
+  openTask: (relativePath: string) =>
+    ipcRenderer.invoke('open-task', relativePath),
 };
 
 // Expose it securely
