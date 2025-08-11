@@ -19,7 +19,7 @@ export const mainConfig: Configuration = {
     new webpack.EnvironmentPlugin({
       // Ensure the default UNC path retains its double leading slashes
       SMB_CLIENT_ROOT:
-        process.env.SMB_CLIENT_ROOT || '\\\\FWQ888\\Estara',
+        process.env.SMB_CLIENT_ROOT || String.raw`\\192.168.5.21\d\Estara\Tasks`,
     }),
   ],
   resolve: {
