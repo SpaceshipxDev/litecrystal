@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateBoardData } from '@/lib/boardDataStore';
+import path from 'path';
+import { promises as fs } from 'fs';
+import { readBoardData, updateBoardData } from '@/lib/boardDataStore';
 import { invalidateFilesCache } from '@/lib/filesCache';
+import { STORAGE_ROOT } from '@/lib/storagePaths';
 
 export async function POST(
   _req: NextRequest,
@@ -12,6 +15,9 @@ export async function POST(
   }
 
   try {
+    const board = await readBoardData();
+    const folderRel = board.tasks[taskId]?.taskFolderPath;
+
     await updateBoardData(async data => {
       delete data.tasks[taskId];
       for (const col of data.columns) {
@@ -19,6 +25,11 @@ export async function POST(
         if (idx !== -1) col.taskIds.splice(idx, 1);
       }
     });
+
+    if (folderRel) {
+      const folderPath = path.join(STORAGE_ROOT, folderRel);
+      await fs.rm(folderPath, { recursive: true, force: true });
+    }
 
     invalidateFilesCache(taskId);
 
