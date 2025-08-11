@@ -43,8 +43,8 @@ The project is split into two directories:
    `storage/metadata.json` at the repository root.
 2. **Board loading** – The `KanbanBoard` component fetches this file through
    `/api/jobs` and keeps the board state in React.
-3. **Creating jobs** – `CreateJobForm` uploads a folder of files and creates a
-   new task entry via `POST /api/jobs`.
+3. **Creating jobs** – `CreateJobForm` records the path to an existing folder on
+   the SMB share and creates a new task entry via `POST /api/jobs`.
 4. **Drag & drop** – Moving cards between columns updates the board state and
    saves it with `PUT /api/jobs`.
 5. **Task details** – Clicking a card opens `KanbanDrawer` where users can view
@@ -57,8 +57,9 @@ to local file operations.
 
 ## SMB Network Share Setup
 
-CrystalPaint now stores all task files on a shared network disk. The web server
-and every Electron client must have access to this SMB share.
+CrystalPaint now references task folders that already exist on a shared network
+disk. The web server and every Electron client must have access to this SMB
+share.
 
 ### Windows server
 
@@ -88,6 +89,6 @@ and every Electron client must have access to this SMB share.
    npm run start
    ```
 
-When a task is created, files are uploaded to the shared disk. Opening a task
-simply launches the folder from the SMB location, so all edits are instantly
-visible to other clients.
+When a task is created, only the folder path is stored—no files are copied.
+Opening a task simply launches that folder from the SMB location, so all edits
+are instantly visible to other clients.

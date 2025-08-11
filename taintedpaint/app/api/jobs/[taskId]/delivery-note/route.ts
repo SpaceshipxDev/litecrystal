@@ -16,7 +16,9 @@ export async function POST(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    const folderPath = path.join(STORAGE_ROOT, task.taskFolderPath);
+    const folderPath = path.isAbsolute(task.taskFolderPath)
+      ? task.taskFolderPath
+      : path.join(STORAGE_ROOT, task.taskFolderPath);
     const scriptPath = path.join(process.cwd(), 'scripts', 'generate_delivery_note.py');
 
     await new Promise<void>((resolve, reject) => {

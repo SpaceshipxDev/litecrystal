@@ -59,8 +59,10 @@ app.on('ready', () => {
     try {
       const DEFAULT_SMB_ROOT = "\\\\FWQ888\\Estara";
       const smbRoot = process.env.SMB_CLIENT_ROOT || DEFAULT_SMB_ROOT;
-      const fullPath = path.join(smbRoot, relativePath);
-      const openError = await shell.openPath(fullPath);
+      const targetPath = path.isAbsolute(relativePath)
+        ? relativePath
+        : path.join(smbRoot, relativePath);
+      const openError = await shell.openPath(targetPath);
       if (openError) {
         throw new Error(openError);
       }

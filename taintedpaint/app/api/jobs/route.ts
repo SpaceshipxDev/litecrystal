@@ -1,22 +1,16 @@
 // file: api/jobs/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs, createWriteStream } from "fs";
-import { Readable } from "stream";
-import Busboy from "busboy";
-import { renameWithFallback } from "@/lib/fileUtils";
-import os from "os";
 import path from "path";
 import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
 import { readBoardData, updateBoardData } from "@/lib/boardDataStore";
 import { invalidateFilesCache } from "@/lib/filesCache";
-import { STORAGE_ROOT, TASKS_STORAGE_DIR, TASKS_DIR_NAME } from "@/lib/storagePaths";
+import { STORAGE_ROOT } from "@/lib/storagePaths";
 
 // --- Path Definitions ---
-// Files are stored on a shared network disk. Configure the root path with the
-// SMB_ROOT environment variable. `TASKS_STORAGE_DIR` is exported from
-// `lib/storagePaths`.
+// Files live on a shared network disk. Configure the root path with the
+// SMB_ROOT environment variable.
 // ------------------------
 
 // Legacy helper removed in favour of boardDataStore
@@ -53,83 +47,37 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(boardData);
 }
 
-// POST: Creates a new job with folder support
+// POST: Creates a new job by referencing an existing folder on the SMB share
 
 export async function POST(req: NextRequest) {
   try {
-    const headers: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      headers[key.toLowerCase()] = value;
-    });
+    const formData = await req.formData();
 
-    const busboy = Busboy({ headers });
+    const customerName = (formData.get("customerName") as string | null) || "";
+    const representative = (formData.get("representative") as string | null) || "";
+    const inquiryDate = (formData.get("inquiryDate") as string | null) || "";
+    const deliveryDate = (formData.get("deliveryDate") as string | null) || "";
+    const ynmxId = (formData.get("ynmxId") as string | null) || "";
+    const notes = (formData.get("notes") as string | null) || "";
+    const updatedBy = (formData.get("updatedBy") as string | null) || "";
+    const folderPath = (formData.get("folderPath") as string | null) || "";
 
-    const tempFiles: string[] = [];
-    const pendingWrites: Promise<void>[] = [];
-    const filePaths: string[] = [];
-    const fields: Record<string, string> = {};
-
-    busboy.on('file', (_name: string, file: NodeJS.ReadableStream) => {
-      const tempPath = path.join(
-        os.tmpdir(),
-        `upload-${Date.now()}-${tempFiles.length}`
-      );
-      const writer = createWriteStream(tempPath);
-      tempFiles.push(tempPath);
-      pendingWrites.push(
-        new Promise<void>((resolve, reject) => {
-          file.pipe(writer);
-          file.on('error', reject);
-          writer.on('finish', resolve);
-          writer.on('error', reject);
-        })
-      );
-    });
-
-    busboy.on('field', (name: string, val: string) => {
-      if (name === 'filePaths') {
-        filePaths.push(val);
-      } else {
-        fields[name] = val;
-      }
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      busboy.on('finish', resolve);
-      busboy.on('error', reject);
-      Readable.fromWeb(req.body as any).pipe(busboy);
-    });
-    await Promise.all(pendingWrites);
-
-    const {
-      customerName = '',
-      representative = '',
-      inquiryDate = '',
-      deliveryDate = '',
-      ynmxId = '',
-      notes = '',
-      folderName = '',
-      updatedBy = '',
-    } = fields;
     const taskId = Date.now().toString();
-    const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
-    await fs.mkdir(taskDirectoryPath, { recursive: true });
 
-    const rootPrefix = folderName ? folderName.replace(/[/\\]+$/, '') + '/' : '';
-
-    for (let i = 0; i < tempFiles.length; i++) {
-      const rawPath = filePaths[i];
-      if (!rawPath) continue;
-      const relativePath = rootPrefix && rawPath.startsWith(rootPrefix)
-        ? rawPath.slice(rootPrefix.length)
-        : rawPath;
-      const safeRelativePath = path
-        .normalize(relativePath)
-        .replace(/^(\.\.[\/\\])+/, '');
-      if (safeRelativePath.includes('..')) continue;
-      const destinationPath = path.join(taskDirectoryPath, safeRelativePath);
-      await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-      await renameWithFallback(tempFiles[i], destinationPath);
+    // If an absolute path within the SMB root is provided, store it relative to
+    // the root so clients can resolve it with their own mounts.
+    let taskFolderPath: string | undefined = undefined;
+    if (folderPath) {
+      const normalisedRoot = path.normalize(STORAGE_ROOT);
+      const normalisedFolder = path.normalize(folderPath);
+      if (
+        path.isAbsolute(normalisedFolder) &&
+        normalisedFolder.startsWith(normalisedRoot)
+      ) {
+        taskFolderPath = path.relative(normalisedRoot, normalisedFolder);
+      } else {
+        taskFolderPath = folderPath;
+      }
     }
 
     const now = new Date().toISOString();
@@ -142,15 +90,15 @@ export async function POST(req: NextRequest) {
       deliveryDate: deliveryDate.trim() || undefined,
       notes: notes.trim() || undefined,
       ynmxId: ynmxId.trim() || undefined,
-      // Store the relative path inside the SMB share so clients can resolve it
-      // using their own mounted location.
-      taskFolderPath: `${TASKS_DIR_NAME}/${taskId}`,
-      files: folderName ? [folderName] : [],
+      taskFolderPath,
+      files: [],
       deliveryNoteGenerated: false,
       awaitingAcceptance: false,
       updatedAt: now,
       updatedBy: updatedBy.trim() || undefined,
-      history: updatedBy ? [{ user: updatedBy, timestamp: now, description: '创建任务' }] : [],
+      history: updatedBy
+        ? [{ user: updatedBy, timestamp: now, description: '创建任务' }]
+        : [],
     };
 
     await updateBoardData(async (boardData) => {
