@@ -207,12 +207,15 @@ export default function TaskModal({
             </h2>
 
             <div className="flex items-center gap-2">
-              {task.taskFolderPath && (
-                <ActionButton onClick={handleOpenTask} variant="neutral" title="打开任务">
-                  <Folder className="h-4 w-4" />
-                  打开任务
-                </ActionButton>
-              )}
+              <ActionButton
+                onClick={handleOpenTask}
+                variant="neutral"
+                title="打开文件夹"
+                disabled={!task.taskFolderPath}
+              >
+                <Folder className="h-4 w-4" />
+                打开文件夹
+              </ActionButton>
               <ActionButton onClick={() => onOpenChange(false)} variant="subtle" title="关闭">
                 <X className="h-4 w-4" />
               </ActionButton>
