@@ -68,12 +68,13 @@ share.
 3. Enable **Share this folder** and set a share name (for example `CrystalData`).
 4. Click **Permissions** and grant **Read/Write** access to the users that will
    connect (or `Everyone` on a trusted local network).
-5. Note the UNC path of the share, e.g. `\\YOUR-SERVER\CrystalData`.
+5. Note the UNC path to the folder that holds your task directories,
+   e.g. `\\YOUR-SERVER\CrystalData\Estara\Tasks`.
 6. Set the environment variable `SMB_ROOT` to this UNC path when starting the
    Next.js server:
 
    ```cmd
-   set SMB_ROOT=\\YOUR-SERVER\CrystalData
+   set SMB_ROOT=\\YOUR-SERVER\CrystalData\Estara\Tasks
    npm run build && npm run start
    ```
 
@@ -81,11 +82,11 @@ share.
 
 1. Make sure the same share is accessible from each workstation. You can map it
    to a drive letter or access it directly via the UNC path.
-2. Set the environment variable `SMB_CLIENT_ROOT` to the UNC path before
+2. Set the environment variable `SMB_CLIENT_ROOT` to the same UNC path before
    launching the Electron app:
 
    ```cmd
-   set SMB_CLIENT_ROOT=\\YOUR-SERVER\CrystalData
+   set SMB_CLIENT_ROOT=\\YOUR-SERVER\CrystalData\Estara\Tasks
    npm run start
    ```
 

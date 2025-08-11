@@ -4,7 +4,7 @@ import path from 'path'
 // organisation. Can be overridden by setting the `SMB_ROOT` environment
 // variable on the server.
 export const STORAGE_ROOT =
-  process.env.SMB_ROOT || "\\\\192.168.5.21\\d\\Estara\\Tasks"
+  process.env.SMB_ROOT || String.raw`\\192.168.5.21\d\Estara\Tasks`
 
 // Keep the SQLite board on the server's persistent data volume
 export const LOCAL_STORAGE_ROOT = process.env.LOCAL_STORAGE_ROOT || '/data'
