@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { getCachedFiles, setCachedFiles } from "@/lib/filesCache";
-import { TASKS_STORAGE_DIR } from "@/lib/storagePaths";
+import { readBoardData } from "@/lib/boardDataStore";
+import { STORAGE_ROOT } from "@/lib/storagePaths";
 
 // Files are served from the shared disk defined by `SMB_ROOT`.
 // A list of common system and temporary files to ignore
@@ -21,29 +22,31 @@ type FileInfo = {
   isDir?: boolean;
 };
 
-async function getFilesRecursively(directory: string, basePath: string, baseUrl: string): Promise<FileInfo[]> {
+async function getFilesRecursively(
+  directory: string,
+  basePath: string,
+  rootRelative: string,
+  baseUrl: string
+): Promise<FileInfo[]> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   let fileList: FileInfo[] = [];
 
   for (const entry of entries) {
     if (ignoredFiles.includes(entry.name)) continue;
     const fullPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      const subFiles = await getFilesRecursively(fullPath, basePath, baseUrl);
-      fileList = fileList.concat(subFiles);
-    } else if (entry.isFile()) {
+      if (entry.isDirectory()) {
+        const subFiles = await getFilesRecursively(fullPath, basePath, rootRelative, baseUrl);
+        fileList = fileList.concat(subFiles);
+      } else if (entry.isFile()) {
       const ext = path.extname(entry.name).toLowerCase();
       if (ignoredExtensions.includes(ext)) continue;
       const relativePath = path.relative(basePath, fullPath);
       const stats = await fs.stat(fullPath);
 
-      // --- PROACTIVE IMPROVEMENT ---
-      // To handle all special characters (like #, ?, etc.) safely in URLs,
-      // we should encode each part of the path separately.
-      const urlPathParts = relativePath.split(path.sep).map(part => encodeURIComponent(part));
-      const encodedRelativePath = urlPathParts.join('/');
-      
-      const url = `${baseUrl}/storage/项目/${path.basename(basePath)}/${encodedRelativePath}`;
+      // Encode each path segment to produce a safe URL rooted at the SMB share.
+      const combined = path.join(rootRelative, relativePath);
+      const urlPathParts = combined.split(path.sep).map(part => encodeURIComponent(part));
+      const url = `${baseUrl}/storage/${urlPathParts.join('/')}`;
 
       fileList.push({
         filename: entry.name,
@@ -68,7 +71,22 @@ export async function GET(
   }
 
   try {
-    const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
+    const board = await readBoardData();
+    const task = board.tasks[taskId];
+    if (!task || !task.taskFolderPath) {
+      return NextResponse.json({ error: 'Task files missing' }, { status: 404 });
+    }
+
+    const rootPath = path.normalize(STORAGE_ROOT);
+    const taskPath = path.normalize(
+      path.isAbsolute(task.taskFolderPath)
+        ? task.taskFolderPath
+        : path.join(STORAGE_ROOT, task.taskFolderPath)
+    );
+
+    if (!taskPath.startsWith(rootPath)) {
+      return NextResponse.json({ error: 'Task files missing' }, { status: 404 });
+    }
 
     const cached = getCachedFiles(taskId);
     if (cached) {
@@ -81,9 +99,12 @@ export async function GET(
       ? `${urlFromRequest.protocol}//${host}`
       : process.env.NEXT_PUBLIC_APP_URL || urlFromRequest.origin;
 
+    const relativeRoot = path.relative(rootPath, taskPath);
+
     const files = await getFilesRecursively(
-      taskDirectoryPath,
-      taskDirectoryPath,
+      taskPath,
+      taskPath,
+      relativeRoot,
       baseUrl
     );
 

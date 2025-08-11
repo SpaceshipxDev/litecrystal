@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import { Folder, Plus, Loader2, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import path from "path"
 
 interface CreateJobFormProps {
   onJobCreated: (task: Task) => void
@@ -90,12 +91,15 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
     try {
       const formData = new FormData()
 
-      if (selectedFiles) {
-        for (const file of Array.from(selectedFiles)) {
-          formData.append("files", file)
-          formData.append("filePaths", (file as any).webkitRelativePath)
+      if (selectedFiles && selectedFiles.length > 0) {
+        const first: any = selectedFiles[0]
+        const abs: string | undefined = first.path
+        const rel: string = first.webkitRelativePath || ""
+        if (abs) {
+          const base = abs.slice(0, abs.length - rel.length)
+          const fullFolder = path.join(base, getFolderName())
+          formData.append("folderPath", fullFolder)
         }
-        formData.append("folderName", getFolderName())
       }
 
       formData.append("customerName", customerName.trim())

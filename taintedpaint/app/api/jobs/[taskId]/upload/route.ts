@@ -1,17 +1,12 @@
 // src/app/api/jobs/[taskId]/upload/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import type { BoardData } from "@/types";
 import { updateBoardData, readBoardData } from "@/lib/boardDataStore";
 import { invalidateFilesCache } from "@/lib/filesCache";
-import { TASKS_STORAGE_DIR } from "@/lib/storagePaths";
 
-// --- Path Definitions ---
-// Files are stored on a shared network disk. `TASKS_STORAGE_DIR` comes from
-// `lib/storagePaths` and respects the SMB_ROOT environment variable.
-// ------------------------
+// Files are referenced directly from the shared SMB disk. No file data is
+// uploaded; we only record the provided paths in the task metadata.
 
 export async function POST(
   req: NextRequest,
@@ -24,7 +19,6 @@ export async function POST(
 
   try {
     const formData = await req.formData();
-    const files = formData.getAll("files") as File[];
     const paths = formData.getAll("paths") as string[];
     const updatedBy = formData.get("updatedBy") as string | null;
 
@@ -33,48 +27,26 @@ export async function POST(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    if (!files || files.length === 0) {
-      return NextResponse.json({ error: "No files provided" }, { status: 400 });
-    }
-
-    const taskDirectoryPath = path.join(TASKS_STORAGE_DIR, taskId);
-    await fs.mkdir(taskDirectoryPath, { recursive: true });
-
-    const newlyAddedFiles: string[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const relPathRaw = paths[i] || file.name;
-      const relPath = relPathRaw;
-
-      if (path.isAbsolute(relPath)) {
-        return NextResponse.json({ error: "Paths must be relative" }, { status: 400 });
-      }
-
-      const safeRelPath = path.normalize(relPath).replace(/^(\.\.[\/\\])+/, '');
-      const filePath = path.join(taskDirectoryPath, safeRelPath);
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      const buf = Buffer.from(await file.arrayBuffer());
-      await fs.writeFile(filePath, buf);
-      newlyAddedFiles.push(safeRelPath);
+    if (!paths || paths.length === 0) {
+      return NextResponse.json({ error: "No paths provided" }, { status: 400 });
     }
 
     let updatedTask: BoardData["tasks"][string] | undefined;
-    await updateBoardData(async (boardData) => {
-      const taskToUpdate = boardData.tasks[taskId];
-      if (!taskToUpdate) throw new Error("Task not found in metadata");
+    await updateBoardData(async (data) => {
+      const t = data.tasks[taskId];
+      if (!t) throw new Error("Task not found in metadata");
 
-      if (!taskToUpdate.files) {
-        taskToUpdate.files = [];
+      if (!t.files) {
+        t.files = [];
       }
-      taskToUpdate.files.push(...newlyAddedFiles);
-      taskToUpdate.updatedAt = new Date().toISOString();
+      t.files.push(...paths);
+      t.updatedAt = new Date().toISOString();
       if (updatedBy) {
-        taskToUpdate.updatedBy = updatedBy;
-        const entry = { user: updatedBy, timestamp: taskToUpdate.updatedAt, description: '上传文件' };
-        taskToUpdate.history = [...(taskToUpdate.history || []), entry];
+        t.updatedBy = updatedBy;
+        const entry = { user: updatedBy, timestamp: t.updatedAt, description: '引用文件' };
+        t.history = [...(t.history || []), entry];
       }
-      updatedTask = taskToUpdate;
+      updatedTask = t;
     });
 
     invalidateFilesCache(taskId);

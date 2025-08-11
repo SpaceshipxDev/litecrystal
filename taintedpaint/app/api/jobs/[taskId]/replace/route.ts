@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
 import path from 'path';
 import { updateBoardData } from '@/lib/boardDataStore';
 import { invalidateFilesCache } from '@/lib/filesCache';
-import { TASKS_STORAGE_DIR } from '@/lib/storagePaths';
+import { STORAGE_ROOT } from '@/lib/storagePaths';
 
 export async function POST(
   req: NextRequest,
@@ -16,43 +15,31 @@ export async function POST(
 
   try {
     const formData = await req.formData();
-    const files = formData.getAll('files') as File[];
-    const paths = formData.getAll('paths') as string[];
-    const folderName = formData.get('folderName') as string | null;
+    const folderPath = formData.get('folderPath') as string | null;
     const updatedBy = formData.get('updatedBy') as string | null;
 
-    if (!files || files.length === 0) {
-      return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+    if (!folderPath) {
+      return NextResponse.json({ error: 'No folder path provided' }, { status: 400 });
     }
 
-    const taskDir = path.join(TASKS_STORAGE_DIR, taskId);
-    await fs.rm(taskDir, { recursive: true, force: true });
-    await fs.mkdir(taskDir, { recursive: true });
-
-    const rootPrefix = folderName ? folderName.replace(/[/\\]+$/, '') + '/' : '';
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const relPathRaw = paths[i] || file.name;
-      const rel = rootPrefix && relPathRaw.startsWith(rootPrefix)
-        ? relPathRaw.slice(rootPrefix.length)
-        : relPathRaw;
-      const safeRelPath = path.normalize(rel).replace(/^(\.\.[/\\])+/, '');
-      const filePath = path.join(taskDir, safeRelPath);
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      const buf = Buffer.from(await file.arrayBuffer());
-      await fs.writeFile(filePath, buf);
-    }
+    // Normalise path relative to SMB root if possible
+    const normalisedRoot = path.normalize(STORAGE_ROOT);
+    const normalisedFolder = path.normalize(folderPath);
+    const relativePath =
+      path.isAbsolute(normalisedFolder) && normalisedFolder.startsWith(normalisedRoot)
+        ? path.relative(normalisedRoot, normalisedFolder)
+        : folderPath;
 
     let updatedTask: any;
     await updateBoardData(async data => {
       const t = data.tasks[taskId];
       if (!t) throw new Error('Task not found');
-      t.files = folderName ? [folderName] : [];
+      t.taskFolderPath = relativePath;
+      t.files = [];
       t.updatedAt = new Date().toISOString();
       if (updatedBy) {
         t.updatedBy = updatedBy;
-        const entry = { user: updatedBy, timestamp: t.updatedAt, description: '替换文件' };
+        const entry = { user: updatedBy, timestamp: t.updatedAt, description: '替换文件夹' };
         t.history = [...(t.history || []), entry];
       }
       updatedTask = t;
