@@ -16,7 +16,7 @@ export const rendererConfig: Configuration = {
   plugins: [
     ...plugins,
     new webpack.EnvironmentPlugin({
-      SMB_CLIENT_ROOT: process.env.SMB_CLIENT_ROOT || '\\FWQ888\\Estara',
+      SMB_CLIENT_ROOT: process.env.SMB_CLIENT_ROOT || "\\\\192.168.5.21\\d\\Estara\\Tasks",
     }),
   ],
   resolve: {
