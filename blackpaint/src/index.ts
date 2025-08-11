@@ -57,7 +57,7 @@ app.on('ready', () => {
   // This is our new "backend" logic
   ipcMain.handle('open-task', async (_, relativePath: string) => {
     try {
-      const DEFAULT_SMB_ROOT = "\\\\192.168.5.107\\d\\Estara\\Tasks";
+      const DEFAULT_SMB_ROOT = "\\\\192.168.5.21\\d\\Estara\\Tasks";
       const smbRoot = process.env.SMB_CLIENT_ROOT || DEFAULT_SMB_ROOT;
       const targetPath = path.isAbsolute(relativePath)
         ? relativePath
