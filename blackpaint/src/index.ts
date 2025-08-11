@@ -55,7 +55,7 @@ const createWindow = (): void => {
 app.on('ready', () => {
 
   // This is our new "backend" logic
-  ipcMain.handle('open-task-folder', async (_, relativePath: string) => {
+  ipcMain.handle('open-task', async (_, relativePath: string) => {
     try {
       const DEFAULT_SMB_ROOT = "\\\\FWQ888\\Estara";
       const smbRoot = process.env.SMB_CLIENT_ROOT || DEFAULT_SMB_ROOT;
@@ -67,7 +67,7 @@ app.on('ready', () => {
         throw new Error(openError);
       }
     } catch (err) {
-      console.error('open-task-folder failed:', err);
+      console.error('open-task failed:', err);
       throw err;
     }
   });

@@ -2,8 +2,8 @@
 
 // This interface must match the object exposed in preload.ts
 export interface ElectronAPI {
-  // Opens a folder on the SMB share. The path is relative to the share root
-  openTaskFolder: (relativePath: string) => Promise<void>;
+  // Opens a path on the SMB share. The path is relative to the share root
+  openTask: (relativePath: string) => Promise<void>;
 }
 
 declare global {

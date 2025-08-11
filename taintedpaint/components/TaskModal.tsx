@@ -180,15 +180,15 @@ export default function TaskModal({
     }
   }, [task, onTaskDeleted, onOpenChange])
 
-  /* — open folder (electron only) — */
-  const handleOpenFolder = useCallback(async () => {
+  /* — open task (electron only) — */
+  const handleOpenTask = useCallback(async () => {
     if (!task?.taskFolderPath) return
     const electronAPI: ElectronAPI | undefined = (window as any).electronAPI
     if (!electronAPI) {
       alert("此功能仅在桌面应用中可用。")
       return
     }
-    await electronAPI.openTaskFolder(task.taskFolderPath)
+    await electronAPI.openTask(task.taskFolderPath)
   }, [task])
 
   if (!task) return null
@@ -208,9 +208,9 @@ export default function TaskModal({
 
             <div className="flex items-center gap-2">
               {task.taskFolderPath && (
-                <ActionButton onClick={handleOpenFolder} variant="neutral" title="打开文件夹">
+                <ActionButton onClick={handleOpenTask} variant="neutral" title="打开任务">
                   <Folder className="h-4 w-4" />
-                  打开文件夹
+                  打开任务
                 </ActionButton>
               )}
               <ActionButton onClick={() => onOpenChange(false)} variant="subtle" title="关闭">
