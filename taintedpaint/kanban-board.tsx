@@ -105,32 +105,62 @@ export default function KanbanBoard() {
     );
   }, []);
 
-  // Add an existing task ID to a column as a reference (no duplication)
+  // Add an existing task to a column as a pending handoff
   const handleAddExistingTask = async (taskId: string, columnId: string) => {
     const original = tasks[taskId];
     if (!original) return;
     const targetColumn = columns.find((c) => c.id === columnId);
     if (!targetColumn) return;
-    // Prevent duplicate references within the same column
-    if (targetColumn.taskIds.includes(taskId)) return;
+
+    const isArchive = columnId === ARCHIVE_COLUMN_ID || columnId === "archive2";
+
+    // Prevent duplicates in either accepted or pending lists
+    if (
+      targetColumn.taskIds.includes(taskId) ||
+      targetColumn.pendingTaskIds.includes(taskId)
+    )
+      return;
+
     const time = new Date().toISOString();
-    // Optionally record history that this task is referenced in another column
     const updatedTask: TaskSummary & Partial<Task> = {
       ...original,
+      columnId,
+      awaitingAcceptance: !isArchive,
       history: [
         ...(original.history || []),
-        { user: userName, timestamp: time, description: `添加到${columns.find((c) => c.id === columnId)?.title || ""}（引用）` },
+        {
+          user: userName,
+          timestamp: time,
+          description: `添加到${targetColumn.title}（待接收）`,
+        },
       ],
       updatedAt: time,
       updatedBy: userName,
     };
+
     const nextTasks = { ...tasks, [taskId]: updatedTask };
-    let nextColumns = columns.map((col) =>
-      col.id === columnId ? { ...col, taskIds: [taskId, ...col.taskIds] } : col
-    );
+
+    let nextColumns = columns.map((col) => {
+      if (col.id === original.columnId) {
+        return {
+          ...col,
+          taskIds: col.taskIds.filter((id) => id !== taskId),
+          pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId),
+        };
+      }
+      if (col.id === columnId) {
+        return isArchive
+          ? { ...col, taskIds: [taskId, ...col.taskIds] }
+          : { ...col, pendingTaskIds: [taskId, ...col.pendingTaskIds] };
+      }
+      return col;
+    });
+
     nextColumns = sortColumnsData(nextColumns, nextTasks as any);
     setTasks(nextTasks);
     setColumns(nextColumns);
+    setOpenPending((prev) => ({ ...prev, [columnId]: true }));
+    setHighlightTaskId(isArchive ? null : taskId);
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
