@@ -676,15 +676,15 @@ export default function KanbanBoard() {
   };
 
   // Decline task from pending area
-  const handleDeclineTask = async (taskId: string, _columnId: string) => {
-    if (!tasks[taskId]) return;
-    const nextTasks = { ...tasks };
-    delete nextTasks[taskId];
-    let nextColumns = columns.map((col) => ({
-      ...col,
-      taskIds: col.taskIds.filter((id) => id !== taskId),
-      pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId),
-    }));
+  const handleDeclineTask = async (taskId: string, columnId: string) => {
+    const task = tasks[taskId];
+    if (!task) return;
+    const nextTasks = { ...tasks, [taskId]: { ...task, previousColumnId: undefined } };
+    let nextColumns = columns.map((col) =>
+      col.id === columnId
+        ? { ...col, pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId) }
+        : col
+    );
     nextColumns = sortColumnsData(nextColumns, nextTasks as any);
     setTasks(nextTasks);
     setColumns(nextColumns);
