@@ -99,9 +99,9 @@ export default function ArchivePage() {
 
   const jobs = useMemo<Job[]>(() =>
     Object.values(tasks)
-      .filter(t => !t.awaitingAcceptance)
+      .filter(t => columns.some(c => c.taskIds.includes(t.id)))
       .map(t => ({ ...t, status: getStatus(t) }))
-  , [tasks]);
+  , [tasks, columns]);
 
   const customers = useMemo(() => {
     if (viewMode !== 'business') return [];

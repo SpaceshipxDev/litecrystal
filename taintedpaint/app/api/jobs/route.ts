@@ -37,7 +37,6 @@ export async function GET(req: NextRequest) {
           notes: t.notes,
           ynmxId: t.ynmxId,
           deliveryNoteGenerated: t.deliveryNoteGenerated,
-          awaitingAcceptance: t.awaitingAcceptance,
           updatedAt: t.updatedAt,
           updatedBy: t.updatedBy,
         },
@@ -82,7 +81,6 @@ export async function POST(req: NextRequest) {
       taskFolderPath,
       files: [],
       deliveryNoteGenerated: false,
-      awaitingAcceptance: false,
       updatedAt: now,
       updatedBy: updatedBy.trim() || undefined,
       history: updatedBy
