@@ -272,28 +272,36 @@ export default function KanbanBoard() {
     return `${task.customerName} - ${task.representative}`;
   };
 
-  // Sort helpers (date-forward)
-  const sortTaskIds = useCallback((ids: string[], taskMap: Record<string, TaskSummary>) => {
-    return [...ids].sort((a, b) => {
-      const ta = taskMap[a];
-      const tb = taskMap[b];
-      const hasDa = ta?.deliveryDate;
-      const hasDb = tb?.deliveryDate;
-      if (hasDa && !hasDb) return -1;
-      if (!hasDa && hasDb) return 1;
-      if (hasDa && hasDb) {
-        return (ta.deliveryDate || "").localeCompare(tb.deliveryDate || "");
-      }
-      return (ta?.inquiryDate || "").localeCompare(tb?.inquiryDate || "");
-    });
-  }, []);
+  // Sort helpers (date-forward; archive columns by last update desc)
+  const sortTaskIds = useCallback(
+    (ids: string[], taskMap: Record<string, TaskSummary>, columnId?: string) => {
+      return [...ids].sort((a, b) => {
+        const ta = taskMap[a];
+        const tb = taskMap[b];
+        if (columnId === ARCHIVE_COLUMN_ID || columnId === "archive2") {
+          const da = ta?.updatedAt || ta?.createdAt || "";
+          const db = tb?.updatedAt || tb?.createdAt || "";
+          return db.localeCompare(da);
+        }
+        const hasDa = ta?.deliveryDate;
+        const hasDb = tb?.deliveryDate;
+        if (hasDa && !hasDb) return -1;
+        if (!hasDa && hasDb) return 1;
+        if (hasDa && hasDb) {
+          return (ta.deliveryDate || "").localeCompare(tb.deliveryDate || "");
+        }
+        return (ta?.inquiryDate || "").localeCompare(tb?.inquiryDate || "");
+      });
+    },
+    []
+  );
 
   const sortColumnsData = useCallback(
     (cols: Column[], taskMap: Record<string, TaskSummary>) => {
       return cols.map((c) => ({
         ...c,
-        taskIds: sortTaskIds(c.taskIds, taskMap),
-        pendingTaskIds: sortTaskIds(c.pendingTaskIds, taskMap),
+        taskIds: sortTaskIds(c.taskIds, taskMap, c.id),
+        pendingTaskIds: sortTaskIds(c.pendingTaskIds, taskMap, c.id),
       }));
     },
     [sortTaskIds]
