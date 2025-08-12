@@ -21,8 +21,6 @@ export interface Task {
   createdAt?: string;
   /** ISO timestamp of the last modification */
   updatedAt?: string;
-  /** ISO timestamp when the task was archived */
-  archivedAt?: string;
   /** Name of the user who made the last modification */
   updatedBy?: string;
   /** Activity history entries */
@@ -52,8 +50,6 @@ export interface TaskSummary {
   createdAt?: string;
   /** ISO timestamp of the last modification */
   updatedAt?: string;
-  /** ISO timestamp when the task was archived */
-  archivedAt?: string;
   /** Name of the user who made the last modification */
   updatedBy?: string;
 }

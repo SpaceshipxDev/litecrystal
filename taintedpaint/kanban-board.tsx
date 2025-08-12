@@ -562,7 +562,6 @@ export default function KanbanBoard() {
 
     const existingTask = tasks[draggedTask.id] as Task;
     const moveTime = new Date().toISOString();
-    const targetTitle = columns.find((c) => c.id === targetColumnId)?.title || "";
     let updatedTask: Task = {
       ...existingTask,
       ...draggedTask,
@@ -571,15 +570,10 @@ export default function KanbanBoard() {
       deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
       awaitingAcceptance: !isArchive,
       updatedAt: moveTime,
-      archivedAt: isArchive ? moveTime : undefined,
       updatedBy: userName,
       history: [
         ...(existingTask?.history || []),
-        {
-          user: userName,
-          timestamp: moveTime,
-          description: `${isArchive ? "归档到" : "移动到"}${targetTitle}`,
-        },
+        { user: userName, timestamp: moveTime, description: `移动到${columns.find((c) => c.id === targetColumnId)?.title || ""}` },
       ],
     };
     if (targetColumnId === "ship") {
@@ -591,16 +585,19 @@ export default function KanbanBoard() {
       }
     }
 
-    const nextTasks = { ...tasks, [draggedTask.id]: updatedTask };
+    const nextTasks = { ...tasks };
+    if (isArchive) {
+      delete nextTasks[draggedTask.id];
+    } else {
+      nextTasks[draggedTask.id] = updatedTask;
+    }
 
     let nextColumns = columns.map((col) => {
       if (col.id === sourceColumnId) {
         return { ...col, taskIds: col.taskIds.filter((id) => id !== draggedTask.id) };
       }
       if (col.id === targetColumnId) {
-        if (isArchive) {
-          return { ...col, taskIds: [draggedTask.id, ...col.taskIds] };
-        }
+        if (isArchive) return col;
         return { ...col, pendingTaskIds: [draggedTask.id, ...col.pendingTaskIds] };
       }
       return col;
@@ -610,6 +607,7 @@ export default function KanbanBoard() {
     setTasks(nextTasks);
     setColumns(nextColumns);
     setHighlightTaskId(isArchive ? null : draggedTask.id);
+    if (isArchive) taskRefs.current.delete(draggedTask.id);
     setDragOverColumn(null);
     setDropIndicatorIndex(null);
 
