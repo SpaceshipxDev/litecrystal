@@ -31,19 +31,23 @@ function normalizeBoardData(data: BoardData) {
 
   // Normalize task arrays in columns
   for (const col of data.columns) {
-    col.pendingTaskIds = Array.from(new Set(
-      (col.pendingTaskIds || []).filter(id => {
-        const t = (data.tasks as Record<string, any>)[id]
-        return t && t.awaitingAcceptance && t.columnId === col.id
-      })
-    ))
+    col.pendingTaskIds = Array.from(
+      new Set(
+        (col.pendingTaskIds || []).filter(id => {
+          const t = (data.tasks as Record<string, any>)[id]
+          return t && t.awaitingAcceptance
+        })
+      )
+    )
 
-    col.taskIds = Array.from(new Set(
-      col.taskIds.filter(id => {
-        const t = (data.tasks as Record<string, any>)[id]
-        return t && !t.awaitingAcceptance && t.columnId === col.id
-      })
-    ))
+    col.taskIds = Array.from(
+      new Set(
+        col.taskIds.filter(id => {
+          const t = (data.tasks as Record<string, any>)[id]
+          return !!t
+        })
+      )
+    )
   }
 
   for (const [id, task] of Object.entries(data.tasks)) {

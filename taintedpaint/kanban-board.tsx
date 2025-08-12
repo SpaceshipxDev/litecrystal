@@ -39,6 +39,7 @@ export default function KanbanBoard() {
   const [addPickerQuery, setAddPickerQuery] = useState("");
   const [acceptingPending, setAcceptingPending] = useState<Record<string, boolean>>({});
   const [decliningPending, setDecliningPending] = useState<Record<string, boolean>>({});
+  const [completing, setCompleting] = useState<Record<string, boolean>>({});
   const [handoffToast, setHandoffToast] = useState<{ message: string } | null>(null);
   const [handoffToastVisible, setHandoffToastVisible] = useState(false);
 
@@ -579,7 +580,6 @@ export default function KanbanBoard() {
     let updatedTask: Task = {
       ...existingTask,
       ...draggedTask,
-      columnId: targetColumnId,
       previousColumnId: sourceColumnId,
       deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
       awaitingAcceptance: !isArchive,
@@ -587,7 +587,7 @@ export default function KanbanBoard() {
       updatedBy: userName,
       history: [
         ...(existingTask?.history || []),
-        { user: userName, timestamp: moveTime, description: `移动到${columns.find((c) => c.id === targetColumnId)?.title || ""}` },
+        { user: userName, timestamp: moveTime, description: `添加到${columns.find((c) => c.id === targetColumnId)?.title || ""}` },
       ],
     };
     if (targetColumnId === "ship") {
@@ -650,6 +650,7 @@ export default function KanbanBoard() {
       ...tasks,
       [taskId]: {
         ...task,
+        columnId,
         awaitingAcceptance: false,
         previousColumnId: undefined,
         updatedAt: time,
@@ -708,6 +709,18 @@ export default function KanbanBoard() {
     nextColumns = sortColumnsData(nextColumns, tasks as any);
     setColumns(nextColumns);
     await saveBoard({ tasks: tasks as any, columns: nextColumns });
+  };
+
+  const animateCompleteTask = async (taskId: string, columnId: string) => {
+    setCompleting((prev) => ({ ...prev, [taskId]: true }));
+    setTimeout(async () => {
+      await handleCompleteTask(taskId, columnId);
+      setCompleting((prev) => {
+        const next = { ...prev };
+        delete next[taskId];
+        return next;
+      });
+    }, 160);
   };
 
   // Tiny animations for accept/decline click
@@ -939,7 +952,8 @@ export default function KanbanBoard() {
                   setOpenPending={setOpenPending}
                   animateAcceptPending={animateAcceptPending}
                   animateDeclinePending={animateDeclinePending}
-                  handleCompleteTask={handleCompleteTask}
+                  animateCompleteTask={animateCompleteTask}
+                  completing={completing}
                   getTaskDisplayName={getTaskDisplayName}
                   acceptingPending={acceptingPending}
                   decliningPending={decliningPending}
