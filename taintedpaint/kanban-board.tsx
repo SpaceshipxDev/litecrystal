@@ -588,6 +588,7 @@ export default function KanbanBoard() {
       ],
     };
     if (targetColumnId === "ship") {
+      updatedTask = { ...updatedTask, columnId: targetColumnId };
       try {
         const res = await fetch(`/api/jobs/${draggedTask.id}/delivery-note`, { method: "POST" });
         if (res.ok) updatedTask.deliveryNoteGenerated = true;
@@ -604,10 +605,17 @@ export default function KanbanBoard() {
           if (col.taskIds.includes(draggedTask.id)) return col;
           return { ...col, taskIds: [draggedTask.id, ...col.taskIds] };
         }
+        if (targetColumnId === "ship") {
+          if (col.taskIds.includes(draggedTask.id)) return col;
+          return { ...col, taskIds: [draggedTask.id, ...col.taskIds] };
+        }
         if (col.pendingTaskIds.includes(draggedTask.id) || col.taskIds.includes(draggedTask.id)) {
           return col;
         }
         return { ...col, pendingTaskIds: [draggedTask.id, ...col.pendingTaskIds] };
+      }
+      if (targetColumnId === "ship" && col.id === sourceColumnId) {
+        return { ...col, taskIds: col.taskIds.filter((id) => id !== draggedTask.id) };
       }
       return col;
     });
@@ -620,7 +628,7 @@ export default function KanbanBoard() {
     setDragOverColumn(null);
     setDropIndicatorIndex(null);
 
-    if (!isArchive) {
+    if (!isArchive && targetColumnId !== "ship") {
       const colTitle = columns.find((c) => c.id === targetColumnId)?.title || "";
       setHandoffToast({ message: `已移交到「${colTitle}」，由该环节负责人处理` });
       setHandoffToastVisible(true);
