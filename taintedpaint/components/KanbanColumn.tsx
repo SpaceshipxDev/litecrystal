@@ -37,7 +37,8 @@ interface KanbanColumnProps {
   setOpenPending: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   animateAcceptPending: (taskId: string, columnId: string) => void;
   animateDeclinePending: (taskId: string, columnId: string) => void;
-  handleCompleteTask: (taskId: string, columnId: string) => void;
+  animateCompleteTask: (taskId: string, columnId: string) => void;
+  completing: Record<string, boolean>;
   getTaskDisplayName: (task: TaskSummary) => string;
   acceptingPending: Record<string, boolean>;
   decliningPending: Record<string, boolean>;
@@ -75,7 +76,8 @@ export default function KanbanColumn({
   setOpenPending,
   animateAcceptPending,
   animateDeclinePending,
-  handleCompleteTask,
+  animateCompleteTask,
+  completing,
   getTaskDisplayName,
   acceptingPending,
   decliningPending,
@@ -285,14 +287,14 @@ export default function KanbanColumn({
                     </div>
                     <div className="flex gap-1 ml-2 flex-shrink-0">
                       <button
-                        className="p-1 rounded-[2px] bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                        className="p-1.5 rounded-[2px] bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           animateAcceptPending(task.id, column.id);
                         }}
                       >
-                        <Check className="w-3 h-3" />
+                        <Check className="w-4 h-4" />
                       </button>
                       <button
                         className="p-1 rounded-[2px] bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
@@ -335,7 +337,12 @@ export default function KanbanColumn({
                 {tasks.map((task) => {
                   const currentIndex = idx++;
                   return (
-                    <div key={task.id} className="relative group">
+                    <div
+                      key={task.id}
+                      className={`relative group ${
+                        completing[task.id] ? "opacity-0 scale-95 transition-all duration-300" : ""
+                      }`}
+                    >
                       <div
                         ref={(node) => {
                           if (node) taskRefs.current.set(task.id, node);
@@ -359,13 +366,13 @@ export default function KanbanColumn({
                         />
                       </div>
                       <button
-                        className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
+                        className="absolute top-1 right-1 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleCompleteTask(task.id, column.id);
+                          animateCompleteTask(task.id, column.id);
                         }}
                       >
-                        <Check className="w-3 h-3" />
+                        <Check className="w-4 h-4" />
                       </button>
                       {dragOverColumn === column.id && dropIndicatorIndex === currentIndex + 1 && (
                         <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
@@ -377,44 +384,52 @@ export default function KanbanColumn({
             ));
           })()
         ) : (
-          columnTasks.map((task, index) => (
-            <div key={task.id} className="relative group">
+          columnTasks.map((task, index) => {
+            const isCompleting = completing[task.id];
+            return (
               <div
-                ref={(node) => {
-                  if (node) taskRefs.current.set(task.id, node);
-                  else taskRefs.current.delete(task.id);
-                }}
+                key={task.id}
+                className={`relative group ${
+                  isCompleting ? "opacity-0 scale-95 transition-all duration-300" : ""
+                }`}
               >
-                <TaskCard
-                  task={task as any}
-                  viewMode={viewMode}
-                  isRestricted={isRestricted}
-                  searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
-                  isHighlighted={highlightTaskId === task.id}
-                  isArchive={false}
-                  onClick={(e) => handleTaskClick(task as Task, column.id, e)}
-                  draggableProps={{
-                    draggable: true,
-                    onDragStart: (e) => handleDragStart(e, task as any, column.id),
-                    onDragEnd: handleDragEnd,
-                    onDragOver: (e) => handleDragOverTask(e, index, column.id),
+                <div
+                  ref={(node) => {
+                    if (node) taskRefs.current.set(task.id, node);
+                    else taskRefs.current.delete(task.id);
                   }}
-                />
+                >
+                  <TaskCard
+                    task={task as any}
+                    viewMode={viewMode}
+                    isRestricted={isRestricted}
+                    searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
+                    isHighlighted={highlightTaskId === task.id}
+                    isArchive={false}
+                    onClick={(e) => handleTaskClick(task as Task, column.id, e)}
+                    draggableProps={{
+                      draggable: true,
+                      onDragStart: (e) => handleDragStart(e, task as any, column.id),
+                      onDragEnd: handleDragEnd,
+                      onDragOver: (e) => handleDragOverTask(e, index, column.id),
+                    }}
+                  />
+                </div>
+                <button
+                  className="absolute top-1 right-1 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    animateCompleteTask(task.id, column.id);
+                  }}
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
+                  <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
+                )}
               </div>
-              <button
-                className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCompleteTask(task.id, column.id);
-                }}
-              >
-                <Check className="w-3 h-3" />
-              </button>
-              {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
-                <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
