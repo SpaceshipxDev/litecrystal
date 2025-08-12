@@ -16,7 +16,7 @@ interface KanbanColumnProps {
   searchQuery: string;
   renderHighlighted: (text: string | undefined, q: string) => React.ReactNode;
   highlightTaskId: string | null;
-  handleTaskClick: (task: Task, e: React.MouseEvent) => void;
+  handleTaskClick: (task: Task, columnId: string, e: React.MouseEvent) => void;
   handleDragStart: (e: React.DragEvent, task: Task, sourceColumnId: string) => void;
   handleDragEnd: () => void;
   handleDragOverTask: (e: React.DragEvent, index: number, columnId: string) => void;
@@ -37,7 +37,7 @@ interface KanbanColumnProps {
   setOpenPending: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   animateAcceptPending: (taskId: string, columnId: string) => void;
   animateDeclinePending: (taskId: string, columnId: string) => void;
-  handleRemoveTask: (taskId: string, columnId: string) => void;
+  handleCompleteTask: (taskId: string, columnId: string) => void;
   getTaskDisplayName: (task: TaskSummary) => string;
   acceptingPending: Record<string, boolean>;
   decliningPending: Record<string, boolean>;
@@ -75,7 +75,7 @@ export default function KanbanColumn({
   setOpenPending,
   animateAcceptPending,
   animateDeclinePending,
-  handleRemoveTask,
+  handleCompleteTask,
   getTaskDisplayName,
   acceptingPending,
   decliningPending,
@@ -263,7 +263,7 @@ export default function KanbanColumn({
                       isDropHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
                       isAccepting || isDeclining ? "transform scale-[0.98] opacity-80" : "",
                     ].join(" ")}
-                    onClick={(e) => handleTaskClick(task as Task, e)}
+                    onClick={(e) => handleTaskClick(task as Task, column.id, e)}
                   >
                   {/* Left status strip for pending tasks as well */}
                   {(() => {
@@ -349,7 +349,7 @@ export default function KanbanColumn({
                           searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
                           isHighlighted={highlightTaskId === task.id}
                           isArchive
-                          onClick={(e) => handleTaskClick(task as Task, e)}
+                          onClick={(e) => handleTaskClick(task as Task, column.id, e)}
                           draggableProps={{
                             draggable: true,
                             onDragStart: (e) => handleDragStart(e, task as any, column.id),
@@ -359,13 +359,13 @@ export default function KanbanColumn({
                         />
                       </div>
                       <button
-                        className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
+                        className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemoveTask(task.id, column.id);
+                          handleCompleteTask(task.id, column.id);
                         }}
                       >
-                        <X className="w-3 h-3" />
+                        <Check className="w-3 h-3" />
                       </button>
                       {dragOverColumn === column.id && dropIndicatorIndex === currentIndex + 1 && (
                         <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
@@ -392,7 +392,7 @@ export default function KanbanColumn({
                   searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
                   isHighlighted={highlightTaskId === task.id}
                   isArchive={false}
-                  onClick={(e) => handleTaskClick(task as Task, e)}
+                  onClick={(e) => handleTaskClick(task as Task, column.id, e)}
                   draggableProps={{
                     draggable: true,
                     onDragStart: (e) => handleDragStart(e, task as any, column.id),
@@ -402,13 +402,13 @@ export default function KanbanColumn({
                 />
               </div>
               <button
-                className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
+                className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleRemoveTask(task.id, column.id);
+                  handleCompleteTask(task.id, column.id);
                 }}
               >
-                <X className="w-3 h-3" />
+                <Check className="w-3 h-3" />
               </button>
               {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
                 <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
