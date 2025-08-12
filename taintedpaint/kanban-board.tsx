@@ -290,11 +290,25 @@ export default function KanbanBoard() {
 
   const sortColumnsData = useCallback(
     (cols: Column[], taskMap: Record<string, TaskSummary>) => {
-      return cols.map((c) => ({
-        ...c,
-        taskIds: sortTaskIds(c.taskIds, taskMap),
-        pendingTaskIds: sortTaskIds(c.pendingTaskIds, taskMap),
-      }));
+      return cols.map((c) => {
+        const sortedTaskIds = (ids: string[]) => {
+          if (c.id === ARCHIVE_COLUMN_ID || c.id === "archive2") {
+            return [...ids].sort((a, b) => {
+              const ta = taskMap[a];
+              const tb = taskMap[b];
+              const da = ta?.updatedAt || ta?.createdAt || "";
+              const db = tb?.updatedAt || tb?.createdAt || "";
+              return db.localeCompare(da);
+            });
+          }
+          return sortTaskIds(ids, taskMap);
+        };
+        return {
+          ...c,
+          taskIds: sortedTaskIds(c.taskIds),
+          pendingTaskIds: sortTaskIds(c.pendingTaskIds, taskMap),
+        };
+      });
     },
     [sortTaskIds]
   );
@@ -585,19 +599,16 @@ export default function KanbanBoard() {
       }
     }
 
-    const nextTasks = { ...tasks };
-    if (isArchive) {
-      delete nextTasks[draggedTask.id];
-    } else {
-      nextTasks[draggedTask.id] = updatedTask;
-    }
+    const nextTasks = { ...tasks, [draggedTask.id]: updatedTask };
 
     let nextColumns = columns.map((col) => {
       if (col.id === sourceColumnId) {
         return { ...col, taskIds: col.taskIds.filter((id) => id !== draggedTask.id) };
       }
       if (col.id === targetColumnId) {
-        if (isArchive) return col;
+        if (isArchive) {
+          return { ...col, taskIds: [draggedTask.id, ...col.taskIds] };
+        }
         return { ...col, pendingTaskIds: [draggedTask.id, ...col.pendingTaskIds] };
       }
       return col;

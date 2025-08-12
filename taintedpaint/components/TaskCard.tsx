@@ -11,6 +11,7 @@ export default function TaskCard({
   isRestricted,
   searchRender,
   isHighlighted,
+  isArchive = false,
   onClick,
   draggableProps,
 }: {
@@ -19,6 +20,7 @@ export default function TaskCard({
   isRestricted: boolean;
   searchRender: (text?: string) => React.ReactNode;
   isHighlighted: boolean;
+  isArchive?: boolean;
   onClick: (e: React.MouseEvent) => void;
   draggableProps: {
     draggable: boolean;
@@ -49,7 +51,12 @@ export default function TaskCard({
       ].join(" ")}
     >
       {/* Left status strip based on column */}
-      <div aria-hidden="true" className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[2px] ${stripClass}`} />
+      {!isArchive && (
+        <div
+          aria-hidden="true"
+          className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[2px] ${stripClass}`}
+        />
+      )}
       <h3 className="truncate text-[13px] leading-snug font-medium text-gray-900">{titleNode}</h3>
 
       <div className="mt-2 flex flex-wrap gap-1">

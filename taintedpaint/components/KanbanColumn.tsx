@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { Archive, Plus, Search, X, Check } from "lucide-react";
 import TaskCard from "@/components/TaskCard";
 import type { Task, TaskSummary, Column } from "@/types";
@@ -83,6 +83,21 @@ export default function KanbanColumn({
   const todayStr = new Date().toISOString().slice(0, 10);
   const bodyRef = useRef<HTMLDivElement>(null);
   const hideNames = viewMode === "production" || isRestricted;
+
+  const archiveGroups = useMemo(() => {
+    if (!isArchive) return [];
+    const sorted = [...columnTasks].sort((a, b) => {
+      const da = a.updatedAt || a.createdAt || "";
+      const db = b.updatedAt || b.createdAt || "";
+      return db.localeCompare(da);
+    });
+    const groups: Record<string, (TaskSummary & Partial<Task>)[]> = {};
+    for (const t of sorted) {
+      const day = (t.updatedAt || t.createdAt || "").slice(0, 10) || "无日期";
+      (groups[day] = groups[day] || []).push(t);
+    }
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [isArchive, columnTasks]);
 
   useEffect(() => {
     if (openPending[column.id]) {
@@ -311,6 +326,56 @@ export default function KanbanColumn({
               )}
             </div>
           </div>
+        ) : isArchive ? (
+          (() => {
+            let idx = 0;
+            return archiveGroups.map(([day, tasks]) => (
+              <div key={day} className="mb-2">
+                <div className="px-3 py-1 text-xs text-gray-500 bg-gray-50">{day}</div>
+                {tasks.map((task) => {
+                  const currentIndex = idx++;
+                  return (
+                    <div key={task.id} className="relative group">
+                      <div
+                        ref={(node) => {
+                          if (node) taskRefs.current.set(task.id, node);
+                          else taskRefs.current.delete(task.id);
+                        }}
+                      >
+                        <TaskCard
+                          task={task as any}
+                          viewMode={viewMode}
+                          isRestricted={isRestricted}
+                          searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
+                          isHighlighted={highlightTaskId === task.id}
+                          isArchive
+                          onClick={(e) => handleTaskClick(task as Task, e)}
+                          draggableProps={{
+                            draggable: true,
+                            onDragStart: (e) => handleDragStart(e, task as any, column.id),
+                            onDragEnd: handleDragEnd,
+                            onDragOver: (e) => handleDragOverTask(e, currentIndex, column.id),
+                          }}
+                        />
+                      </div>
+                      <button
+                        className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveTask(task.id, column.id);
+                        }}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      {dragOverColumn === column.id && dropIndicatorIndex === currentIndex + 1 && (
+                        <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ));
+          })()
         ) : (
           columnTasks.map((task, index) => (
             <div key={task.id} className="relative group">
@@ -326,6 +391,7 @@ export default function KanbanColumn({
                   isRestricted={isRestricted}
                   searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
                   isHighlighted={highlightTaskId === task.id}
+                  isArchive={false}
                   onClick={(e) => handleTaskClick(task as Task, e)}
                   draggableProps={{
                     draggable: true,
