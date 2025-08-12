@@ -82,6 +82,7 @@ export default function KanbanColumn({
 }: KanbanColumnProps) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const hideNames = viewMode === "production" || isRestricted;
 
   useEffect(() => {
     if (openPending[column.id]) {
@@ -174,7 +175,7 @@ export default function KanbanColumn({
                   .filter((t) => !column.taskIds.includes((t as any).id))
                   .filter((t) => {
                     if (q === "") return true;
-                    const text = isRestricted
+                    const text = hideNames
                       ? `${t.ynmxId || ""}`.toLowerCase()
                       : `${t.customerName} ${t.representative} ${t.ynmxId || ""} ${t.notes || ""}`.toLowerCase();
                     return text.includes(q);
@@ -192,7 +193,7 @@ export default function KanbanColumn({
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-[2px] transition-colors"
                     >
                       <div className="min-w-0">
-                        {isRestricted ? (
+                        {hideNames ? (
                           <div className="text-sm font-medium text-gray-900 truncate">
                             {(t as any).ynmxId || "—"}
                           </div>
@@ -263,9 +264,9 @@ export default function KanbanColumn({
                       <h3 className="text-sm font-medium text-gray-900 truncate">
                         {getTaskDisplayName(task)}
                       </h3>
-                      {!isRestricted && (
+              {!hideNames && (
                         <p className="text-xs text-gray-600">{task.representative}</p>
-                      )}
+              )}
                     </div>
                     <div className="flex gap-1 ml-2 flex-shrink-0">
                       <button

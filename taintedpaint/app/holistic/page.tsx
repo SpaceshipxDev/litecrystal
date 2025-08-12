@@ -60,11 +60,17 @@ const statusInfo = {
 export default function ArchivePage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [viewMode, setViewMode] = useState<'business' | 'production'>('production');
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (!user) {
       router.replace('/login');
     } else {
+      try {
+        const u = JSON.parse(user);
+        const dept = u.department || '';
+        setViewMode(['商务', '检验'].includes(dept) ? 'business' : 'production');
+      } catch {}
       setReady(true);
     }
   }, [router]);
@@ -98,11 +104,12 @@ export default function ArchivePage() {
   , [tasks]);
 
   const customers = useMemo(() => {
+    if (viewMode !== 'business') return [];
     const names = jobs
       .map(j => j.customerName)
       .filter((n): n is string => Boolean(n));
     return Array.from(new Set(names));
-  }, [jobs]);
+  }, [jobs, viewMode]);
   const months    = useMemo(() => {
     const formatted = jobs
       .map(j => j.inquiryDate)
@@ -139,12 +146,19 @@ export default function ArchivePage() {
   // ③ 过滤 + 排序 -----------------------------------------------------------------
   const filtered = jobs
     .filter(j => {
-      const okCustomer = activeCustomer === "All" || j.customerName === activeCustomer;
+      const okCustomer =
+        viewMode === 'business'
+          ? activeCustomer === "All" || j.customerName === activeCustomer
+          : true;
       const okMonth =
         activeMonth === "All" ||
         (j.inquiryDate ? dayjs(j.inquiryDate).format("YYYY-MM") === activeMonth : false);
       const okSearch =
-        q === "" || (j.representative || "").toLowerCase().includes(q.toLowerCase());
+        q === ""
+          ? true
+          : viewMode === 'business'
+          ? (j.representative || "").toLowerCase().includes(q.toLowerCase())
+          : (j.ynmxId || "").toLowerCase().includes(q.toLowerCase());
       return okCustomer && okMonth && okSearch;
     })
     .sort(
@@ -224,7 +238,7 @@ export default function ArchivePage() {
             {/* 搜索框 */}
             <input
               type="search"
-              placeholder="搜索工程师"
+              placeholder={viewMode === 'business' ? '搜索工程师' : '搜索编号'}
               value={q}
               onChange={e => setQ(e.target.value)}
               className="w-full max-w-sm border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm
@@ -239,7 +253,9 @@ export default function ArchivePage() {
             <div key={day}>
               <h2 className="text-sm font-medium text-gray-400 mb-6 uppercase tracking-wider">{day}</h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {jobs.map(job => <JobCard key={job.id} job={job} onClick={() => handleJobClick(job)} />)}
+                {jobs.map(job => (
+                  <JobCard key={job.id} job={job} onClick={() => handleJobClick(job)} viewMode={viewMode} />
+                ))}
               </div>
             </div>
           ))}
@@ -253,7 +269,7 @@ export default function ArchivePage() {
           open={isModalOpen}
           task={selectedTask}
           columnTitle={selectedTaskColumnTitle}
-          viewMode="business"
+          viewMode={viewMode}
           userName={userName}
           onOpenChange={(o) => !o && closeModal()}
           onTaskUpdated={handleTaskUpdated}
@@ -296,7 +312,7 @@ function BlockedField() {
   );
 }
 
-function JobCard({ job, onClick }: { job: Job; onClick: () => void }) {
+function JobCard({ job, onClick, viewMode }: { job: Job; onClick: () => void; viewMode: 'business' | 'production' }) {
   const colors = statusInfo[job.status];
 
   return (
@@ -307,8 +323,12 @@ function JobCard({ job, onClick }: { job: Job; onClick: () => void }) {
       <div className="pl-6 pr-4 py-4">
         <div className="flex items-start justify-between mb-3">
           <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-gray-900 leading-tight">{job.representative}</h3>
-            <p className="text-sm text-gray-500 mt-0.5">{job.customerName}</p>
+            <h3 className="font-medium text-gray-900 leading-tight">
+              {viewMode === 'business' ? job.representative : job.ynmxId}
+            </h3>
+            {viewMode === 'business' && (
+              <p className="text-sm text-gray-500 mt-0.5">{job.customerName}</p>
+            )}
           </div>
           <span className={clsx(
             'text-xs font-medium px-2 py-1 rounded ml-3 whitespace-nowrap',

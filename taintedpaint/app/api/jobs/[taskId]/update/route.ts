@@ -46,11 +46,11 @@ export async function PATCH(
       const changes: string[] = [];
       if (typeof customerName === 'string' && customerName.trim() !== t.customerName) {
         t.customerName = customerName.trim();
-        changes.push(`将客户名称改为 ${t.customerName}`);
+        changes.push('更新客户名称');
       }
       if (typeof representative === 'string' && representative.trim() !== t.representative) {
         t.representative = representative.trim();
-        changes.push(`将负责人改为 ${t.representative}`);
+        changes.push('更新负责人');
       }
       if (typeof ynmxId === 'string') {
         const trimmed = ynmxId.trim();

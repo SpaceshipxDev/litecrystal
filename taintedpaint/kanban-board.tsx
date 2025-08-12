@@ -59,12 +59,18 @@ export default function KanbanBoard() {
   const latestFetchRef = useRef(0);
 
   // Search match helper (simple .includes across a few fields)
-  const doesTaskMatchQuery = useCallback((task: TaskSummary & Partial<Task>, q: string) => {
-    const query = q.trim().toLowerCase();
-    if (query === "") return true;
-    const haystack = `${task.customerName || ""} ${task.representative || ""} ${task.ynmxId || ""} ${task.notes || ""}`.toLowerCase();
-    return haystack.includes(query);
-  }, []);
+  const doesTaskMatchQuery = useCallback(
+    (task: TaskSummary & Partial<Task>, q: string) => {
+      const query = q.trim().toLowerCase();
+      if (query === "") return true;
+      let haystack = `${task.ynmxId || ""} ${task.notes || ""}`.toLowerCase();
+      if (viewMode === "business" && !isRestricted) {
+        haystack += ` ${task.customerName || ""} ${task.representative || ""}`;
+      }
+      return haystack.includes(query);
+    },
+    [viewMode, isRestricted]
+  );
 
   // Highlight matched text spans with <mark> (cheap visual)
   const renderHighlighted = useCallback((text: string | undefined, q: string) => {
@@ -260,11 +266,8 @@ export default function KanbanBoard() {
 
   // Display name differs by viewMode
   const getTaskDisplayName = (task: TaskSummary) => {
-    if (isRestricted) {
+    if (viewMode === "production" || isRestricted) {
       return task.ynmxId || "—";
-    }
-    if (viewMode === "production") {
-      return task.ynmxId || `${task.customerName} - ${task.representative}`;
     }
     return `${task.customerName} - ${task.representative}`;
   };
