@@ -602,12 +602,13 @@ export default function KanbanBoard() {
     const nextTasks = { ...tasks, [draggedTask.id]: updatedTask };
 
     let nextColumns = columns.map((col) => {
-      if (col.id === sourceColumnId) {
-        return { ...col, taskIds: col.taskIds.filter((id) => id !== draggedTask.id) };
-      }
       if (col.id === targetColumnId) {
         if (isArchive) {
+          if (col.taskIds.includes(draggedTask.id)) return col;
           return { ...col, taskIds: [draggedTask.id, ...col.taskIds] };
+        }
+        if (col.pendingTaskIds.includes(draggedTask.id) || col.taskIds.includes(draggedTask.id)) {
+          return col;
         }
         return { ...col, pendingTaskIds: [draggedTask.id, ...col.pendingTaskIds] };
       }
@@ -693,6 +694,22 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
+  const handleCompleteTask = async (taskId: string, columnId: string) => {
+    if (!tasks[taskId]) return;
+    let nextColumns = columns.map((col) =>
+      col.id === columnId
+        ? {
+            ...col,
+            taskIds: col.taskIds.filter((id) => id !== taskId),
+            pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId),
+          }
+        : col
+    );
+    nextColumns = sortColumnsData(nextColumns, tasks as any);
+    setColumns(nextColumns);
+    await saveBoard({ tasks: tasks as any, columns: nextColumns });
+  };
+
   // Tiny animations for accept/decline click
   const animateAcceptPending = async (taskId: string, columnId: string) => {
     setAcceptingPending((prev) => ({ ...prev, [taskId]: true }));
@@ -737,10 +754,10 @@ export default function KanbanBoard() {
   };
 
   // Open task modal
-  const handleTaskClick = async (task: Task, e: React.MouseEvent) => {
+  const handleTaskClick = async (task: Task, columnId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const column = columns.find((c) => c.id === task.columnId);
+    const column = columns.find((c) => c.id === columnId);
     setSelectedTaskColumnTitle(column ? column.title : null);
     try {
       const res = await fetch(`/api/jobs/${task.id}`);
@@ -922,7 +939,7 @@ export default function KanbanBoard() {
                   setOpenPending={setOpenPending}
                   animateAcceptPending={animateAcceptPending}
                   animateDeclinePending={animateDeclinePending}
-                  handleRemoveTask={handleDeclineTask}
+                  handleCompleteTask={handleCompleteTask}
                   getTaskDisplayName={getTaskDisplayName}
                   acceptingPending={acceptingPending}
                   decliningPending={decliningPending}
