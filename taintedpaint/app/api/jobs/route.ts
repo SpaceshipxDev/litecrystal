@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
           ynmxId: t.ynmxId,
           deliveryNoteGenerated: t.deliveryNoteGenerated,
           awaitingAcceptance: t.awaitingAcceptance,
+          archivedAt: t.archivedAt,
           updatedAt: t.updatedAt,
           updatedBy: t.updatedBy,
         },
