@@ -132,6 +132,8 @@ export default function KanbanBoard() {
     nextColumns = sortColumnsData(nextColumns, nextTasks as any);
     setTasks(nextTasks);
     setColumns(nextColumns);
+    // Spotlight the task we just added so it doesn't get lost
+    setHighlightTaskId(taskId);
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
@@ -768,6 +770,8 @@ export default function KanbanBoard() {
       );
       return next;
     });
+    // Auto-scroll and highlight the new task so it's visible
+    setHighlightTaskId(newTask.id);
   };
 
   // Open task modal
