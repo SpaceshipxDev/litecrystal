@@ -109,6 +109,7 @@ export default function TaskModal({
   onOpenChange,
   onTaskUpdated,
   onTaskDeleted,
+  viewMode = "business",
   userName = "",
 }: TaskModalProps) {
   /* — edit mode + form state (inline Jira editing) — */
@@ -139,6 +140,17 @@ export default function TaskModal({
 
   /* — autofocus first field when entering edit — */
   useEffect(() => { if (isEditMode) firstEditRef.current?.focus() }, [isEditMode])
+
+  const hideNames = viewMode !== "business";
+  const sanitizeHistory = useCallback(
+    (text: string) =>
+      hideNames
+        ? text
+            .replace(/将客户名称改为[^；]*/g, '更新客户名称')
+            .replace(/将负责人改为[^；]*/g, '更新负责人')
+        : text,
+    [hideNames]
+  );
 
   /* — save/update — */
   const handleSave = useCallback(async () => {
@@ -202,8 +214,10 @@ export default function TaskModal({
           {/* title left, open-folder + close right */}
           <div className="flex items-start justify-between gap-3">
             <h2 id="task-modal-title" className="text-[20px] font-semibold tracking-tight leading-tight truncate">
-              {task.customerName || "—"}
-              {task.representative ? <span className="text-zinc-500"> · {task.representative}</span> : null}
+              {hideNames ? task.ynmxId || "—" : task.customerName || "—"}
+              {!hideNames && task.representative ? (
+                <span className="text-zinc-500"> · {task.representative}</span>
+              ) : null}
             </h2>
 
             <div className="flex items-center gap-2">
@@ -239,20 +253,25 @@ export default function TaskModal({
                 <div className="space-y-3">
                   {/* main identity fields inline (Jira edits in place) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {!hideNames && (
+                      <>
+                        <Input
+                          ref={firstEditRef}
+                          value={formData.customerName}
+                          onChange={(e) => setFormData((f) => ({ ...f, customerName: e.target.value }))}
+                          placeholder="客户名称"
+                          className="h-9 rounded-none"
+                        />
+                        <Input
+                          value={formData.representative}
+                          onChange={(e) => setFormData((f) => ({ ...f, representative: e.target.value }))}
+                          placeholder="负责人"
+                          className="h-9 rounded-none"
+                        />
+                      </>
+                    )}
                     <Input
-                      ref={firstEditRef}
-                      value={formData.customerName}
-                      onChange={(e) => setFormData((f) => ({ ...f, customerName: e.target.value }))}
-                      placeholder="客户名称"
-                      className="h-9 rounded-none"
-                    />
-                    <Input
-                      value={formData.representative}
-                      onChange={(e) => setFormData((f) => ({ ...f, representative: e.target.value }))}
-                      placeholder="负责人"
-                      className="h-9 rounded-none"
-                    />
-                    <Input
+                      ref={hideNames ? firstEditRef : undefined}
                       value={formData.ynmxId}
                       onChange={(e) => setFormData((f) => ({ ...f, ynmxId: e.target.value }))}
                       placeholder="编号（YNMX）"
@@ -298,7 +317,7 @@ export default function TaskModal({
                         <div className="flex items-baseline justify-between gap-3">
                           <div className="text-[13px] text-zinc-800">
                             <span className="font-medium text-zinc-900 mr-1">{h.user}</span>
-                            <span className="text-zinc-600">{h.description}</span>
+                            <span className="text-zinc-600">{sanitizeHistory(h.description)}</span>
                           </div>
                           <div className="text-[11px] text-zinc-500 whitespace-nowrap">
                             {formatTimeAgo(h.timestamp)}
@@ -322,8 +341,12 @@ export default function TaskModal({
               {/* read mode rows */}
               {!isEditMode ? (
                 <div className="grid grid-cols-1 gap-3 text-sm">
-                  <FieldRow icon={<Building2 className="h-4 w-4 text-zinc-500" />} label="客户" value={task.customerName || "—"} />
-                  <FieldRow icon={<User className="h-4 w-4 text-zinc-500" />} label="负责人" value={task.representative || "—"} />
+                  {!hideNames && (
+                    <>
+                      <FieldRow icon={<Building2 className="h-4 w-4 text-zinc-500" />} label="客户" value={task.customerName || "—"} />
+                      <FieldRow icon={<User className="h-4 w-4 text-zinc-500" />} label="负责人" value={task.representative || "—"} />
+                    </>
+                  )}
                   <FieldRow icon={<Hash className="h-4 w-4 text-zinc-500" />} label="编号" value={task.ynmxId || "—"} />
                   <FieldRow icon={<CalendarDays className="h-4 w-4 text-zinc-500" />} label="询价日期" value={task.inquiryDate || "—"} />
                   <FieldRow icon={<CalendarDays className="h-4 w-4 text-zinc-500" />} label="交期" value={task.deliveryDate || "—"} />
@@ -331,8 +354,12 @@ export default function TaskModal({
               ) : (
                 /* edit mode rows */
                 <div className="grid grid-cols-1 gap-3 text-sm">
-                  <LabeledInput label="客户" value={formData.customerName} onChange={(v) => setFormData((f) => ({ ...f, customerName: v }))} />
-                  <LabeledInput label="负责人" value={formData.representative} onChange={(v) => setFormData((f) => ({ ...f, representative: v }))} />
+                  {!hideNames && (
+                    <>
+                      <LabeledInput label="客户" value={formData.customerName} onChange={(v) => setFormData((f) => ({ ...f, customerName: v }))} />
+                      <LabeledInput label="负责人" value={formData.representative} onChange={(v) => setFormData((f) => ({ ...f, representative: v }))} />
+                    </>
+                  )}
                   <LabeledInput label="编号" value={formData.ynmxId} onChange={(v) => setFormData((f) => ({ ...f, ynmxId: v }))} />
                   <LabeledInput label="询价日期" type="date" value={formData.inquiryDate} onChange={(v) => setFormData((f) => ({ ...f, inquiryDate: v }))} />
                   <LabeledInput label="交期" type="date" value={formData.deliveryDate} onChange={(v) => setFormData((f) => ({ ...f, deliveryDate: v }))} />
