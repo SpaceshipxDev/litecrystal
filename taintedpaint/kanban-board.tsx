@@ -39,6 +39,7 @@ export default function KanbanBoard() {
   const [addPickerQuery, setAddPickerQuery] = useState("");
   const [acceptingPending, setAcceptingPending] = useState<Record<string, boolean>>({});
   const [decliningPending, setDecliningPending] = useState<Record<string, boolean>>({});
+  const [completingTasks, setCompletingTasks] = useState<Record<string, boolean>>({});
   const [handoffToast, setHandoffToast] = useState<{ message: string } | null>(null);
   const [handoffToastVisible, setHandoffToastVisible] = useState(false);
 
@@ -141,13 +142,6 @@ export default function KanbanBoard() {
     const nextTasks = { ...tasks, [taskId]: updatedTask };
 
     let nextColumns = columns.map((col) => {
-      if (col.id === original.columnId) {
-        return {
-          ...col,
-          taskIds: col.taskIds.filter((id) => id !== taskId),
-          pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId),
-        };
-      }
       if (col.id === columnId) {
         return isArchive
           ? { ...col, taskIds: [taskId, ...col.taskIds] }
@@ -632,10 +626,10 @@ export default function KanbanBoard() {
     const nextTasks = { ...tasks, [draggedTask.id]: updatedTask };
 
     let nextColumns = columns.map((col) => {
-      if (col.id === sourceColumnId) {
-        return { ...col, taskIds: col.taskIds.filter((id) => id !== draggedTask.id) };
-      }
       if (col.id === targetColumnId) {
+        if (col.taskIds.includes(draggedTask.id) || col.pendingTaskIds.includes(draggedTask.id)) {
+          return col;
+        }
         if (isArchive) {
           return { ...col, taskIds: [draggedTask.id, ...col.taskIds] };
         }
@@ -721,6 +715,34 @@ export default function KanbanBoard() {
     setTasks(nextTasks);
     setColumns(nextColumns);
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
+  };
+
+  const handleCompleteTask = async (taskId: string, columnId: string) => {
+    let nextColumns = columns.map((col) => {
+      if (col.id === columnId) {
+        return {
+          ...col,
+          taskIds: col.taskIds.filter((id) => id !== taskId),
+          pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId),
+        };
+      }
+      return col;
+    });
+    nextColumns = sortColumnsData(nextColumns, tasks as any);
+    setColumns(nextColumns);
+    await saveBoard({ tasks: tasks as any, columns: nextColumns });
+  };
+
+  const animateCompleteTask = async (taskId: string, columnId: string) => {
+    setCompletingTasks((prev) => ({ ...prev, [taskId]: true }));
+    setTimeout(async () => {
+      await handleCompleteTask(taskId, columnId);
+      setCompletingTasks((prev) => {
+        const next = { ...prev };
+        delete next[taskId];
+        return next;
+      });
+    }, 160);
   };
 
   // Tiny animations for accept/decline click
@@ -952,7 +974,8 @@ export default function KanbanBoard() {
                   setOpenPending={setOpenPending}
                   animateAcceptPending={animateAcceptPending}
                   animateDeclinePending={animateDeclinePending}
-                  handleRemoveTask={handleDeclineTask}
+                  handleCompleteTask={animateCompleteTask}
+                  completingTasks={completingTasks}
                   getTaskDisplayName={getTaskDisplayName}
                   acceptingPending={acceptingPending}
                   decliningPending={decliningPending}

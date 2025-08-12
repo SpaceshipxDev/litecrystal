@@ -37,7 +37,8 @@ interface KanbanColumnProps {
   setOpenPending: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   animateAcceptPending: (taskId: string, columnId: string) => void;
   animateDeclinePending: (taskId: string, columnId: string) => void;
-  handleRemoveTask: (taskId: string, columnId: string) => void;
+  handleCompleteTask: (taskId: string, columnId: string) => void;
+  completingTasks: Record<string, boolean>;
   getTaskDisplayName: (task: TaskSummary) => string;
   acceptingPending: Record<string, boolean>;
   decliningPending: Record<string, boolean>;
@@ -75,7 +76,8 @@ export default function KanbanColumn({
   setOpenPending,
   animateAcceptPending,
   animateDeclinePending,
-  handleRemoveTask,
+  handleCompleteTask,
+  completingTasks,
   getTaskDisplayName,
   acceptingPending,
   decliningPending,
@@ -335,7 +337,10 @@ export default function KanbanColumn({
                 {tasks.map((task) => {
                   const currentIndex = idx++;
                   return (
-                    <div key={task.id} className="relative group">
+                    <div
+                      key={task.id}
+                      className={["relative group", completingTasks[task.id] ? "transform scale-[0.98] opacity-60 transition-all duration-300" : ""].join(" ")}
+                    >
                       <div
                         ref={(node) => {
                           if (node) taskRefs.current.set(task.id, node);
@@ -359,13 +364,13 @@ export default function KanbanColumn({
                         />
                       </div>
                       <button
-                        className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
+                        className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-green-100 text-green-700 hover:bg-green-200"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemoveTask(task.id, column.id);
+                          handleCompleteTask(task.id, column.id);
                         }}
                       >
-                        <X className="w-3 h-3" />
+                        <Check className="w-3 h-3" />
                       </button>
                       {dragOverColumn === column.id && dropIndicatorIndex === currentIndex + 1 && (
                         <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
@@ -377,44 +382,50 @@ export default function KanbanColumn({
             ));
           })()
         ) : (
-          columnTasks.map((task, index) => (
-            <div key={task.id} className="relative group">
+          columnTasks.map((task, index) => {
+            const isCompleting = completingTasks[task.id];
+            return (
               <div
-                ref={(node) => {
-                  if (node) taskRefs.current.set(task.id, node);
-                  else taskRefs.current.delete(task.id);
-                }}
+                key={task.id}
+                className={["relative group", isCompleting ? "transform scale-[0.98] opacity-60 transition-all duration-300" : ""].join(" ")}
               >
-                <TaskCard
-                  task={task as any}
-                  viewMode={viewMode}
-                  isRestricted={isRestricted}
-                  searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
-                  isHighlighted={highlightTaskId === task.id}
-                  isArchive={false}
-                  onClick={(e) => handleTaskClick(task as Task, e)}
-                  draggableProps={{
-                    draggable: true,
-                    onDragStart: (e) => handleDragStart(e, task as any, column.id),
-                    onDragEnd: handleDragEnd,
-                    onDragOver: (e) => handleDragOverTask(e, index, column.id),
+                <div
+                  ref={(node) => {
+                    if (node) taskRefs.current.set(task.id, node);
+                    else taskRefs.current.delete(task.id);
                   }}
-                />
+                >
+                  <TaskCard
+                    task={task as any}
+                    viewMode={viewMode}
+                    isRestricted={isRestricted}
+                    searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
+                    isHighlighted={highlightTaskId === task.id}
+                    isArchive={false}
+                    onClick={(e) => handleTaskClick(task as Task, e)}
+                    draggableProps={{
+                      draggable: true,
+                      onDragStart: (e) => handleDragStart(e, task as any, column.id),
+                      onDragEnd: handleDragEnd,
+                      onDragOver: (e) => handleDragOverTask(e, index, column.id),
+                    }}
+                  />
+                </div>
+                <button
+                  className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-green-100 text-green-700 hover:bg-green-200"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCompleteTask(task.id, column.id);
+                  }}
+                >
+                  <Check className="w-3 h-3" />
+                </button>
+                {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
+                  <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
+                )}
               </div>
-              <button
-                className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveTask(task.id, column.id);
-                }}
-              >
-                <X className="w-3 h-3" />
-              </button>
-              {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
-                <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
