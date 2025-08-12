@@ -19,7 +19,14 @@ export async function GET(
   }
   try {
     const data = await fs.readFile(normalised)
-    return new NextResponse(data)
+    // fs.readFile returns a Node Buffer which isn't directly accepted by
+    // the NextResponse constructor's `BodyInit` type. Convert the buffer to
+    // an ArrayBuffer so the Response can be constructed without type errors.
+    const arrayBuffer = data.buffer.slice(
+      data.byteOffset,
+      data.byteOffset + data.byteLength,
+    ) as ArrayBuffer
+    return new NextResponse(arrayBuffer)
   } catch (err: any) {
     if (err.code === 'ENOENT') {
       return new NextResponse('Not Found', { status: 404 })
