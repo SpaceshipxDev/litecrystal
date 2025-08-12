@@ -41,16 +41,12 @@ function normalizeBoardData(data: BoardData) {
     col.taskIds = Array.from(new Set(
       col.taskIds.filter(id => {
         const t = (data.tasks as Record<string, any>)[id]
-        return t && !t.awaitingAcceptance && t.columnId !== ARCHIVE_COLUMN_ID && t.columnId !== 'archive2'
+        return t && !t.awaitingAcceptance && t.columnId === col.id
       })
     ))
   }
 
   for (const [id, task] of Object.entries(data.tasks)) {
-    if (task.columnId === ARCHIVE_COLUMN_ID || task.columnId === 'archive2') {
-      delete data.tasks[id]
-      continue
-    }
     if (!columnIds.has(task.columnId)) {
       task.columnId = ARCHIVE_COLUMN_ID
     }

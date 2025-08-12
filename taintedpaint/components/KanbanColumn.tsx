@@ -312,43 +312,61 @@ export default function KanbanColumn({
             </div>
           </div>
         ) : (
-          columnTasks.map((task, index) => (
-            <div key={task.id} className="relative group">
-              <div
-                ref={(node) => {
-                  if (node) taskRefs.current.set(task.id, node);
-                  else taskRefs.current.delete(task.id);
-                }}
-              >
-                <TaskCard
-                  task={task as any}
-                  viewMode={viewMode}
-                  isRestricted={isRestricted}
-                  searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
-                  isHighlighted={highlightTaskId === task.id}
-                  onClick={(e) => handleTaskClick(task as Task, e)}
-                  draggableProps={{
-                    draggable: true,
-                    onDragStart: (e) => handleDragStart(e, task as any, column.id),
-                    onDragEnd: handleDragEnd,
-                    onDragOver: (e) => handleDragOverTask(e, index, column.id),
-                  }}
-                />
-              </div>
-              <button
-                className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveTask(task.id, column.id);
-                }}
-              >
-                <X className="w-3 h-3" />
-              </button>
-              {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
-                <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
-              )}
-            </div>
-          ))
+          (() => {
+            const nodes: React.ReactNode[] = [];
+            let lastDate = "";
+            columnTasks.forEach((task, index) => {
+              if (isArchive) {
+                const d = (task.updatedAt || task.createdAt || "").slice(0, 10);
+                if (d !== lastDate) {
+                  nodes.push(
+                    <div key={`hdr-${d}`} className="mt-4 mb-2 text-xs font-semibold text-gray-500">
+                      {d || "未知日期"}
+                    </div>
+                  );
+                  lastDate = d;
+                }
+              }
+              nodes.push(
+                <div key={task.id} className="relative group">
+                  <div
+                    ref={(node) => {
+                      if (node) taskRefs.current.set(task.id, node);
+                      else taskRefs.current.delete(task.id);
+                    }}
+                  >
+                    <TaskCard
+                      task={task as any}
+                      viewMode={viewMode}
+                      isRestricted={isRestricted}
+                      searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
+                      isHighlighted={highlightTaskId === task.id}
+                      onClick={(e) => handleTaskClick(task as Task, e)}
+                      draggableProps={{
+                        draggable: true,
+                        onDragStart: (e) => handleDragStart(e, task as any, column.id),
+                        onDragEnd: handleDragEnd,
+                        onDragOver: (e) => handleDragOverTask(e, index, column.id),
+                      }}
+                    />
+                  </div>
+                  <button
+                    className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveTask(task.id, column.id);
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
+                    <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
+                  )}
+                </div>
+              );
+            });
+            return nodes;
+          })()
         )}
       </div>
     </div>
