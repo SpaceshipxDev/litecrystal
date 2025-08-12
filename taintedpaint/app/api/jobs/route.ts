@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
           inquiryDate: t.inquiryDate,
           deliveryDate: t.deliveryDate,
           notes: t.notes,
+          taskFolderPath: t.taskFolderPath,
           ynmxId: t.ynmxId,
           deliveryNoteGenerated: t.deliveryNoteGenerated,
           updatedAt: t.updatedAt,
