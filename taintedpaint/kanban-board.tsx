@@ -49,7 +49,7 @@ export default function KanbanBoard() {
   const [userName, setUserName] = useState("");
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<
-    null | "active" | "dueToday" | "overdue" | "awaiting" | "inactive8h"
+    null | "active" | "dueToday" | "overdue" | "inactive8h"
   >(null);
 
   const taskRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
@@ -212,7 +212,6 @@ export default function KanbanBoard() {
     let active = 0; // non-archived, accepted or not
     let dueToday = 0;
     let overdue = 0;
-    let awaiting = 0;
     let inactive8h = 0;
     for (const t of allTasks) {
       if (!t) continue;
@@ -221,7 +220,6 @@ export default function KanbanBoard() {
       const d = (t.deliveryDate || "").slice(0, 10);
       if (!isArchived) {
         active += 1;
-        if (t.awaitingAcceptance) awaiting += 1;
         const lastActivityIso = (t.updatedAt || t.createdAt || "").toString();
         if (lastActivityIso) {
           const last = Date.parse(lastActivityIso);
@@ -236,8 +234,9 @@ export default function KanbanBoard() {
         }
       }
     }
+    const awaiting = columns.reduce((sum, c) => sum + c.pendingTaskIds.length, 0);
     return { active, dueToday, overdue, awaiting, inactive8h };
-  }, [tasks]);
+  }, [tasks, columns]);
 
   // Filter helper for status chips
   const matchesStatFilter = useCallback(
@@ -250,7 +249,6 @@ export default function KanbanBoard() {
       if (isArchived) return false;
       if (filter === "dueToday") return !!deliveryDateStr && deliveryDateStr === todayStr;
       if (filter === "overdue") return !!deliveryDateStr && deliveryDateStr < todayStr;
-      if (filter === "awaiting") return !!task.awaitingAcceptance;
       if (filter === "inactive8h") {
         const eightHoursMs = 8 * 60 * 60 * 1000;
         const now = Date.now();
@@ -582,7 +580,6 @@ export default function KanbanBoard() {
       ...draggedTask,
       previousColumnId: sourceColumnId,
       deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
-      awaitingAcceptance: !isArchive,
       updatedAt: moveTime,
       updatedBy: userName,
       history: [
@@ -651,7 +648,6 @@ export default function KanbanBoard() {
       [taskId]: {
         ...task,
         columnId,
-        awaitingAcceptance: false,
         previousColumnId: undefined,
         updatedAt: time,
         updatedBy: userName,

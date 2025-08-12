@@ -15,8 +15,6 @@ export interface Task {
   files?: string[];
   ynmxId?: string; // Order ID provided by users
   deliveryNoteGenerated?: boolean;
-  /** Whether this task is waiting for acceptance in the target column */
-  awaitingAcceptance?: boolean;
   /** ISO timestamp when the task was created */
   createdAt?: string;
   /** ISO timestamp of the last modification */
@@ -45,7 +43,6 @@ export interface TaskSummary {
   notes?: string;
   ynmxId?: string;
   deliveryNoteGenerated?: boolean;
-  awaitingAcceptance?: boolean;
   /** ISO timestamp when the task was created */
   createdAt?: string;
   /** ISO timestamp of the last modification */

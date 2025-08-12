@@ -35,7 +35,7 @@ function normalizeBoardData(data: BoardData) {
       new Set(
         (col.pendingTaskIds || []).filter(id => {
           const t = (data.tasks as Record<string, any>)[id]
-          return t && t.awaitingAcceptance
+          return !!t
         })
       )
     )
@@ -50,13 +50,10 @@ function normalizeBoardData(data: BoardData) {
     )
   }
 
-  for (const [id, task] of Object.entries(data.tasks)) {
+  for (const task of Object.values(data.tasks)) {
     if (!columnIds.has(task.columnId)) {
       task.columnId = ARCHIVE_COLUMN_ID
     }
-    const col = columnMap.get(task.columnId) || archiveCol
-    const list = task.awaitingAcceptance ? col.pendingTaskIds : col.taskIds
-    if (!list.includes(id)) list.push(id)
   }
 }
 
