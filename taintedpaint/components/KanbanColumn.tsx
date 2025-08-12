@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef } from "react";
 import { Archive, Plus, Search, X, Check } from "lucide-react";
 import TaskCard from "@/components/TaskCard";
 import type { Task, TaskSummary, Column } from "@/types";
@@ -83,30 +83,6 @@ export default function KanbanColumn({
   const todayStr = new Date().toISOString().slice(0, 10);
   const bodyRef = useRef<HTMLDivElement>(null);
   const hideNames = viewMode === "production" || isRestricted;
-
-  const sortedArchiveTasks = useMemo(() => {
-    if (!isArchive) return columnTasks;
-    return [...columnTasks].sort((a, b) => {
-      const da = (a.archivedAt || a.updatedAt || a.createdAt || "");
-      const db = (b.archivedAt || b.updatedAt || b.createdAt || "");
-      return db.localeCompare(da);
-    });
-  }, [columnTasks, isArchive]);
-
-  const archiveItems = useMemo(() => {
-    if (!isArchive) return [] as Array<{ header: string } | { task: (TaskSummary & Partial<Task>) }>;
-    const items: Array<{ header: string } | { task: (TaskSummary & Partial<Task>) }> = [];
-    let lastDate = "";
-    for (const t of sortedArchiveTasks) {
-      const date = (t.archivedAt || t.updatedAt || t.createdAt || "").slice(0, 10) || "未知日期";
-      if (date !== lastDate) {
-        items.push({ header: date });
-        lastDate = date;
-      }
-      items.push({ task: t });
-    }
-    return items;
-  }, [sortedArchiveTasks, isArchive]);
 
   useEffect(() => {
     if (openPending[column.id]) {
@@ -336,98 +312,43 @@ export default function KanbanColumn({
             </div>
           </div>
         ) : (
-          isArchive
-            ? (() => {
-                let archiveIndex = 0;
-                return archiveItems.map((item) => {
-                  if ("header" in item) {
-                    return (
-                      <div
-                        key={`h-${item.header}`}
-                        className="mt-4 mb-1 text-[10px] font-semibold text-gray-500"
-                      >
-                        {item.header}
-                      </div>
-                    );
-                  }
-                  const task = item.task;
-                  const index = archiveIndex++;
-                  return (
-                    <div key={task.id} className="relative group">
-                      <div
-                        ref={(node) => {
-                          if (node) taskRefs.current.set(task.id, node);
-                          else taskRefs.current.delete(task.id);
-                        }}
-                      >
-                        <TaskCard
-                          task={task as any}
-                          viewMode={viewMode}
-                          isRestricted={isRestricted}
-                          searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
-                          isHighlighted={highlightTaskId === task.id}
-                          onClick={(e) => handleTaskClick(task as Task, e)}
-                          draggableProps={{
-                            draggable: true,
-                            onDragStart: (e) => handleDragStart(e, task as any, column.id),
-                            onDragEnd: handleDragEnd,
-                            onDragOver: (e) => handleDragOverTask(e, index, column.id),
-                          }}
-                        />
-                      </div>
-                      <button
-                        className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveTask(task.id, column.id);
-                        }}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                      {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
-                        <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
-                      )}
-                    </div>
-                  );
-                });
-              })()
-            : columnTasks.map((task, index) => (
-                <div key={task.id} className="relative group">
-                  <div
-                    ref={(node) => {
-                      if (node) taskRefs.current.set(task.id, node);
-                      else taskRefs.current.delete(task.id);
-                    }}
-                  >
-                    <TaskCard
-                      task={task as any}
-                      viewMode={viewMode}
-                      isRestricted={isRestricted}
-                      searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
-                      isHighlighted={highlightTaskId === task.id}
-                      onClick={(e) => handleTaskClick(task as Task, e)}
-                      draggableProps={{
-                        draggable: true,
-                        onDragStart: (e) => handleDragStart(e, task as any, column.id),
-                        onDragEnd: handleDragEnd,
-                        onDragOver: (e) => handleDragOverTask(e, index, column.id),
-                      }}
-                    />
-                  </div>
-                  <button
-                    className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveTask(task.id, column.id);
-                    }}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                  {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
-                    <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
-                  )}
-                </div>
-              ))
+          columnTasks.map((task, index) => (
+            <div key={task.id} className="relative group">
+              <div
+                ref={(node) => {
+                  if (node) taskRefs.current.set(task.id, node);
+                  else taskRefs.current.delete(task.id);
+                }}
+              >
+                <TaskCard
+                  task={task as any}
+                  viewMode={viewMode}
+                  isRestricted={isRestricted}
+                  searchRender={(txt?: string) => renderHighlighted(txt, searchQuery)}
+                  isHighlighted={highlightTaskId === task.id}
+                  onClick={(e) => handleTaskClick(task as Task, e)}
+                  draggableProps={{
+                    draggable: true,
+                    onDragStart: (e) => handleDragStart(e, task as any, column.id),
+                    onDragEnd: handleDragEnd,
+                    onDragOver: (e) => handleDragOverTask(e, index, column.id),
+                  }}
+                />
+              </div>
+              <button
+                className="absolute top-1 right-1 hidden group-hover:inline-flex p-1 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveTask(task.id, column.id);
+                }}
+              >
+                <X className="w-3 h-3" />
+              </button>
+              {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
+                <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
+              )}
+            </div>
+          ))
         )}
       </div>
     </div>
