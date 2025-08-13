@@ -279,11 +279,13 @@ export default function KanbanColumn({
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-medium text-gray-900 truncate">
-                        {getTaskDisplayName(task)}
+                        {renderHighlighted(getTaskDisplayName(task), searchQuery)}
                       </h3>
-              {!hideNames && (
-                        <p className="text-xs text-gray-600">{task.representative}</p>
-              )}
+                      {!hideNames && (
+                        <p className="text-xs text-gray-600">
+                          {renderHighlighted(task.representative, searchQuery)}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-1 ml-2 flex-shrink-0">
                       <button
