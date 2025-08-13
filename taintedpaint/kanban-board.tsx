@@ -265,6 +265,28 @@ export default function KanbanBoard() {
     []
   );
 
+  // Auto-open pending sections when search matches a task in the inbox
+  useEffect(() => {
+    if (!searchQuery) return;
+    setOpenPending((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const col of columns) {
+        const hasMatch = col.pendingTaskIds
+          .map((id) => tasks[id])
+          .filter(Boolean)
+          .filter((t) => doesTaskMatchQuery(t as any, searchQuery))
+          .filter((t) => (activeFilter ? matchesStatFilter(t as any, activeFilter) : true))
+          .length > 0;
+        if (hasMatch && !next[col.id]) {
+          next[col.id] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [searchQuery, columns, tasks, doesTaskMatchQuery, activeFilter, matchesStatFilter]);
+
   // Display name differs by viewMode
   const getTaskDisplayName = (task: TaskSummary) => {
     if (viewMode === "production" || isRestricted) {
@@ -923,6 +945,7 @@ export default function KanbanBoard() {
             const pendingTasks = column.pendingTaskIds
               .map((id) => tasks[id])
               .filter(Boolean)
+              .filter((t) => doesTaskMatchQuery(t as any, searchQuery))
               .filter((t) => (activeFilter ? matchesStatFilter(t as any, activeFilter) : true));
             const isArchive = ["archive", "archive2"].includes(column.id);
 
