@@ -69,7 +69,7 @@ export default function ArchivePage() {
       try {
         const u = JSON.parse(user);
         const dept = u.department || '';
-        setViewMode(['商务', '检验'].includes(dept) ? 'business' : 'production');
+        setViewMode(dept === '商务' ? 'business' : 'production');
       } catch {}
       setReady(true);
     }
