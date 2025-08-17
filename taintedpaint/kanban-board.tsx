@@ -665,6 +665,89 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
+  // Move task via action menu
+  const handleMoveTask = async (
+    taskId: string,
+    sourceColumnId: string,
+    targetColumnId: string
+  ) => {
+    if (!columns.some((c) => c.id === targetColumnId)) return;
+    const isArchive =
+      targetColumnId === ARCHIVE_COLUMN_ID || targetColumnId === "archive2";
+    const existingTask = tasks[taskId] as Task;
+    if (!existingTask) return;
+    const moveTime = new Date().toISOString();
+    let updatedTask: Task = {
+      ...existingTask,
+      previousColumnId: sourceColumnId,
+      updatedAt: moveTime,
+      updatedBy: userName,
+      history: [
+        ...(existingTask.history || []),
+        {
+          user: userName,
+          timestamp: moveTime,
+          description: `添加到${
+            columns.find((c) => c.id === targetColumnId)?.title || ""
+          }`,
+        },
+      ],
+    };
+    if (targetColumnId === "ship") {
+      updatedTask = { ...updatedTask, columnId: targetColumnId };
+      try {
+        const res = await fetch(`/api/jobs/${taskId}/delivery-note`, {
+          method: "POST",
+        });
+        if (res.ok) updatedTask.deliveryNoteGenerated = true;
+      } catch (err) {
+        console.error("生成出货单失败", err);
+      }
+    }
+    const nextTasks = { ...tasks, [taskId]: updatedTask };
+    let nextColumns = columns.map((col) => {
+      if (col.id === targetColumnId) {
+        if (isArchive) {
+          if (col.taskIds.includes(taskId)) return col;
+          return { ...col, taskIds: [taskId, ...col.taskIds] };
+        }
+        if (targetColumnId === "ship") {
+          if (col.taskIds.includes(taskId)) return col;
+          return { ...col, taskIds: [taskId, ...col.taskIds] };
+        }
+        if (col.pendingTaskIds.includes(taskId) || col.taskIds.includes(taskId)) {
+          return col;
+        }
+        return { ...col, pendingTaskIds: [taskId, ...col.pendingTaskIds] };
+      }
+      if (targetColumnId === "ship" && col.id === sourceColumnId) {
+        return { ...col, taskIds: col.taskIds.filter((id) => id !== taskId) };
+      }
+      return col;
+    });
+    nextColumns = sortColumnsData(nextColumns, nextTasks as any);
+    setTasks(nextTasks);
+    setColumns(nextColumns);
+    setHighlightTaskId(isArchive ? null : taskId);
+    if (isArchive) taskRefs.current.delete(taskId);
+    if (!isArchive && targetColumnId !== "ship") {
+      const colTitle =
+        columns.find((c) => c.id === targetColumnId)?.title || "";
+      setHandoffToast({
+        message: `已移交到「${colTitle}」，由该环节负责人处理`,
+      });
+      setHandoffToastVisible(true);
+      setOpenPending((prev) => ({ ...prev, [targetColumnId]: true }));
+      setTimeout(
+        () => setOpenPending((prev) => ({ ...prev, [targetColumnId]: false })),
+        4500
+      );
+      setTimeout(() => setHandoffToastVisible(false), 2200);
+      setTimeout(() => setHandoffToast(null), 2600);
+    }
+    await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
+  };
+
   // Toggle "pending" drawer
   const togglePending = (columnId: string) => {
     setOpenPending((prev) => ({ ...prev, [columnId]: !prev[columnId] }));
@@ -984,6 +1067,7 @@ export default function KanbanBoard() {
                   animateAcceptPending={animateAcceptPending}
                   animateDeclinePending={animateDeclinePending}
                   animateCompleteTask={animateCompleteTask}
+                  handleMoveTask={handleMoveTask}
                   completing={completing}
                   getTaskDisplayName={getTaskDisplayName}
                   acceptingPending={acceptingPending}
