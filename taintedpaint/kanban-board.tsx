@@ -20,7 +20,7 @@ import { Check } from "lucide-react";
 export default function KanbanBoard() {
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const department = storedUser ? JSON.parse(storedUser).department : "";
-  const viewMode: "business" | "production" = ["商务", "检验"].includes(department)
+  const viewMode: "business" | "production" = department === "商务"
     ? "business"
     : "production";
   const isRestricted = storedUser ? !!JSON.parse(storedUser).restricted : false;
