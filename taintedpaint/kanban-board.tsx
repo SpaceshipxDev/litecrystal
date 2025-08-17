@@ -665,6 +665,54 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
+  // Quick handoff without drag-and-drop
+  const handleQuickHandoff = async (
+    taskId: string,
+    sourceColumnId: string,
+    targetColumnId: string
+  ) => {
+    const existingTask = tasks[taskId];
+    if (!existingTask) return;
+    const moveTime = new Date().toISOString();
+    const updatedTask: Task = {
+      ...existingTask,
+      previousColumnId: sourceColumnId,
+      updatedAt: moveTime,
+      updatedBy: userName,
+      history: [
+        ...(existingTask.history || []),
+        {
+          user: userName,
+          timestamp: moveTime,
+          description: `添加到${
+            columns.find((c) => c.id === targetColumnId)?.title || ""
+          }`,
+        },
+      ],
+    };
+    const nextTasks = { ...tasks, [taskId]: updatedTask };
+    let nextColumns = columns.map((col) => {
+      if (col.id === targetColumnId) {
+        if (col.pendingTaskIds.includes(taskId) || col.taskIds.includes(taskId)) {
+          return col;
+        }
+        return { ...col, pendingTaskIds: [taskId, ...col.pendingTaskIds] };
+      }
+      return col;
+    });
+    nextColumns = sortColumnsData(nextColumns, nextTasks as any);
+    setTasks(nextTasks);
+    setColumns(nextColumns);
+    const colTitle = columns.find((c) => c.id === targetColumnId)?.title || "";
+    setHandoffToast({ message: `已移交到「${colTitle}」，由该环节负责人处理` });
+    setHandoffToastVisible(true);
+    setOpenPending((prev) => ({ ...prev, [targetColumnId]: true }));
+    setTimeout(() => setOpenPending((prev) => ({ ...prev, [targetColumnId]: false })), 4500);
+    setTimeout(() => setHandoffToastVisible(false), 2200);
+    setTimeout(() => setHandoffToast(null), 2600);
+    await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
+  };
+
   // Toggle "pending" drawer
   const togglePending = (columnId: string) => {
     setOpenPending((prev) => ({ ...prev, [columnId]: !prev[columnId] }));
@@ -972,6 +1020,7 @@ export default function KanbanBoard() {
                   handleDrop={handleDrop}
                   dragOverColumn={dragOverColumn}
                   dropIndicatorIndex={dropIndicatorIndex}
+                  handleQuickHandoff={handleQuickHandoff}
                   addPickerOpenFor={addPickerOpenFor}
                   setAddPickerOpenFor={setAddPickerOpenFor}
                   addPickerQuery={addPickerQuery}

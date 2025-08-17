@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useMemo } from "react";
-import { Archive, Plus, Search, X, Check } from "lucide-react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
+import { Archive, Plus, Search, X, Check, MoveRight } from "lucide-react";
 import TaskCard from "@/components/TaskCard";
 import type { Task, TaskSummary, Column } from "@/types";
 
@@ -26,6 +26,7 @@ interface KanbanColumnProps {
   handleDrop: (e: React.DragEvent, columnId: string, dropIndex?: number) => void;
   dragOverColumn: string | null;
   dropIndicatorIndex: number | null;
+  handleQuickHandoff: (taskId: string, sourceColumnId: string, targetColumnId: string) => void;
   addPickerOpenFor: string | null;
   setAddPickerOpenFor: React.Dispatch<React.SetStateAction<string | null>>;
   addPickerQuery: string;
@@ -65,6 +66,7 @@ export default function KanbanColumn({
   handleDrop,
   dragOverColumn,
   dropIndicatorIndex,
+  handleQuickHandoff,
   addPickerOpenFor,
   setAddPickerOpenFor,
   addPickerQuery,
@@ -85,6 +87,14 @@ export default function KanbanColumn({
   const todayStr = new Date().toISOString().slice(0, 10);
   const bodyRef = useRef<HTMLDivElement>(null);
   const hideNames = viewMode === "production" || isRestricted;
+  const [handoffOpenFor, setHandoffOpenFor] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!handoffOpenFor) return;
+    const close = () => setHandoffOpenFor(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [handoffOpenFor]);
 
   const archiveGroups = useMemo(() => {
     if (!isArchive) return [];
@@ -417,6 +427,34 @@ export default function KanbanColumn({
                     }}
                   />
                 </div>
+                <button
+                  className="absolute top-1 right-7 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150 hover:scale-110"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setHandoffOpenFor(task.id);
+                  }}
+                >
+                  <MoveRight className="w-4 h-4" />
+                </button>
+                {handoffOpenFor === task.id && (
+                  <div className="absolute top-6 right-1 z-20 flex flex-col rounded-[2px] border border-gray-200 bg-white shadow-lg">
+                    {columns
+                      .filter((c) => c.id !== column.id)
+                      .map((c) => (
+                        <button
+                          key={c.id}
+                          className="px-2 py-1 text-left text-[11px] text-gray-700 hover:bg-gray-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickHandoff(task.id, column.id, c.id);
+                            setHandoffOpenFor(null);
+                          }}
+                        >
+                          {c.title}
+                        </button>
+                      ))}
+                  </div>
+                )}
                 <button
                   className="absolute top-1 right-1 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
                   onClick={(e) => {
