@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useMemo } from "react";
-import { Archive, Plus, Search, X, Check } from "lucide-react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
+import { Archive, Plus, Search, X, Check, ArrowRight } from "lucide-react";
 import TaskCard from "@/components/TaskCard";
 import type { Task, TaskSummary, Column } from "@/types";
 
@@ -42,6 +42,7 @@ interface KanbanColumnProps {
   getTaskDisplayName: (task: TaskSummary) => string;
   acceptingPending: Record<string, boolean>;
   decliningPending: Record<string, boolean>;
+  handleQuickMove: (task: TaskSummary, sourceColumnId: string, targetColumnId: string) => void;
 }
 
 export default function KanbanColumn({
@@ -63,6 +64,7 @@ export default function KanbanColumn({
   handleDragEnterColumn,
   handleDragLeaveColumn,
   handleDrop,
+  handleQuickMove,
   dragOverColumn,
   dropIndicatorIndex,
   addPickerOpenFor,
@@ -85,6 +87,7 @@ export default function KanbanColumn({
   const todayStr = new Date().toISOString().slice(0, 10);
   const bodyRef = useRef<HTMLDivElement>(null);
   const hideNames = viewMode === "production" || isRestricted;
+  const [moveMenuFor, setMoveMenuFor] = useState<string | null>(null);
 
   const archiveGroups = useMemo(() => {
     if (!isArchive) return [];
@@ -106,6 +109,11 @@ export default function KanbanColumn({
       bodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [openPending[column.id]]);
+  useEffect(() => {
+    const close = () => setMoveMenuFor(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, []);
   return (
     <div
       data-col-id={column.id}
@@ -368,6 +376,34 @@ export default function KanbanColumn({
                         />
                       </div>
                       <button
+                        className="absolute top-1 right-7 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150 hover:scale-110"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMoveMenuFor(moveMenuFor === task.id ? null : task.id);
+                        }}
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                      {moveMenuFor === task.id && (
+                        <div className="absolute top-6 right-7 z-20 bg-white border border-gray-200 rounded-[2px] shadow-md">
+                          {columns
+                            .filter((c) => c.id !== column.id)
+                            .map((c) => (
+                              <button
+                                key={c.id}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await handleQuickMove(task as any, column.id, c.id);
+                                  setMoveMenuFor(null);
+                                }}
+                                className="block w-full px-3 py-1 text-left text-[12px] text-gray-700 hover:bg-gray-100"
+                              >
+                                {c.title}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                      <button
                         className="absolute top-1 right-1 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -417,6 +453,34 @@ export default function KanbanColumn({
                     }}
                   />
                 </div>
+                <button
+                  className="absolute top-1 right-7 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150 hover:scale-110"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMoveMenuFor(moveMenuFor === task.id ? null : task.id);
+                  }}
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                {moveMenuFor === task.id && (
+                  <div className="absolute top-6 right-7 z-20 bg-white border border-gray-200 rounded-[2px] shadow-md">
+                    {columns
+                      .filter((c) => c.id !== column.id)
+                      .map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleQuickMove(task as any, column.id, c.id);
+                            setMoveMenuFor(null);
+                          }}
+                          className="block w-full px-3 py-1 text-left text-[12px] text-gray-700 hover:bg-gray-100"
+                        >
+                          {c.title}
+                        </button>
+                      ))}
+                  </div>
+                )}
                 <button
                   className="absolute top-1 right-1 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
                   onClick={(e) => {

@@ -665,6 +665,17 @@ export default function KanbanBoard() {
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
+  // Quick move without drag-and-drop
+  const handleQuickMove = async (
+    task: TaskSummary,
+    sourceColumnId: string,
+    targetColumnId: string
+  ) => {
+    setDraggedTask(task);
+    setDragSourceColumnId(sourceColumnId);
+    await handleDrop({ preventDefault() {}, stopPropagation() {} } as any, targetColumnId);
+  };
+
   // Toggle "pending" drawer
   const togglePending = (columnId: string) => {
     setOpenPending((prev) => ({ ...prev, [columnId]: !prev[columnId] }));
@@ -970,6 +981,7 @@ export default function KanbanBoard() {
                   handleDragEnterColumn={handleDragEnterColumn}
                   handleDragLeaveColumn={handleDragLeaveColumn}
                   handleDrop={handleDrop}
+                  handleQuickMove={handleQuickMove}
                   dragOverColumn={dragOverColumn}
                   dropIndicatorIndex={dropIndicatorIndex}
                   addPickerOpenFor={addPickerOpenFor}
