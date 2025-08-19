@@ -695,6 +695,8 @@ export default function KanbanBoard() {
       },
     };
     setTasks(nextTasks);
+    // Highlight and scroll to the task so it stays in view after reordering
+    setHighlightTaskId(taskId);
     await saveBoard({ tasks: nextTasks as any, columns });
   };
 
@@ -724,6 +726,8 @@ export default function KanbanBoard() {
     e.stopPropagation();
     const column = columns.find((c) => c.id === columnId);
     setSelectedTaskColumnTitle(column ? column.title : null);
+    // Highlight immediately so the user retains context
+    setHighlightTaskId(task.id);
     try {
       const res = await fetch(`/api/jobs/${task.id}`);
       if (res.ok) {
@@ -740,6 +744,10 @@ export default function KanbanBoard() {
 
   const closeModal = () => {
     setIsModalOpen(false);
+    if (selectedTask) {
+      // Re-highlight the task after closing so it remains visible
+      setHighlightTaskId(selectedTask.id);
+    }
     setTimeout(() => {
       setSelectedTask(null);
       setSelectedTaskColumnTitle(null);
