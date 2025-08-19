@@ -305,7 +305,7 @@ export default function KanbanColumn({
                   />
                 </div>
                 <button
-                  className="absolute top-1 right-7 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150 hover:scale-110"
+                  className="absolute top-1 right-7 z-10 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150 hover:scale-110"
                   onClick={(e) => {
                     e.stopPropagation();
                     setHandoffOpenFor(task.id);
@@ -343,7 +343,7 @@ export default function KanbanColumn({
                     <Play className="w-4 h-4" />
                   </button>
                 ) : (
-                  <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-[2px] bg-blue-50 text-blue-600 text-[10px]">
+                  <div className="absolute top-1 right-1 z-0 px-1.5 py-0.5 rounded-[2px] bg-blue-50 text-blue-600 text-[10px] pointer-events-none">
                     进行中
                   </div>
                 )}
