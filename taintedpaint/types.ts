@@ -2,9 +2,9 @@
 
 export interface Task {
   id: string;
-  columnId: string; // <-- NEW
-  /** Previous column when awaiting acceptance */
-  previousColumnId?: string;
+  columnId: string;
+  /** Whether someone has confirmed they are working on this task */
+  inProgress?: boolean;
   customerName?: string;
   representative?: string;
   inquiryDate?: string;
@@ -35,7 +35,7 @@ export interface TaskHistoryEntry {
 export interface TaskSummary {
   id: string;
   columnId: string;
-  previousColumnId?: string;
+  inProgress?: boolean;
   customerName?: string;
   representative?: string;
   inquiryDate?: string;
@@ -54,9 +54,7 @@ export interface TaskSummary {
 export interface Column {
   id: string;
   title: string;
-  taskIds: string[]; // <-- CHANGED from tasks: Task[]
-  /** Tasks waiting to be accepted for this column */
-  pendingTaskIds: string[];
+  taskIds: string[];
 }
 
 // NEW: A type for the entire board data

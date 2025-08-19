@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useEffect, useRef, useMemo, useState } from "react";
-import { Archive, Plus, Search, X, Check, MoveRight } from "lucide-react";
+import { Archive, Plus, Search, X, MoveRight, Play } from "lucide-react";
 import TaskCard from "@/components/TaskCard";
 import type { Task, TaskSummary, Column } from "@/types";
 
 interface KanbanColumnProps {
   column: Column;
   columnTasks: (TaskSummary & Partial<Task>)[];
-  pendingTasks: (TaskSummary & Partial<Task>)[];
   isArchive: boolean;
   taskRefs: React.MutableRefObject<Map<string, HTMLDivElement | null>>;
   viewMode: "business" | "production";
@@ -34,21 +33,13 @@ interface KanbanColumnProps {
   handleSelectAddTask: (taskId: string, columnId: string) => void;
   columns: Column[];
   tasks: Record<string, (TaskSummary & Partial<Task>)>;
-  openPending: Record<string, boolean>;
-  setOpenPending: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  animateAcceptPending: (taskId: string, columnId: string) => void;
-  animateDeclinePending: (taskId: string, columnId: string) => void;
-  animateCompleteTask: (taskId: string, columnId: string) => void;
-  completing: Record<string, boolean>;
   getTaskDisplayName: (task: TaskSummary) => string;
-  acceptingPending: Record<string, boolean>;
-  decliningPending: Record<string, boolean>;
+  handleConfirmWork: (taskId: string, columnId: string) => void;
 }
 
 export default function KanbanColumn({
   column,
   columnTasks,
-  pendingTasks,
   isArchive,
   taskRefs,
   viewMode,
@@ -74,15 +65,8 @@ export default function KanbanColumn({
   handleSelectAddTask,
   columns,
   tasks,
-  openPending,
-  setOpenPending,
-  animateAcceptPending,
-  animateDeclinePending,
-  animateCompleteTask,
-  completing,
   getTaskDisplayName,
-  acceptingPending,
-  decliningPending,
+  handleConfirmWork,
 }: KanbanColumnProps) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -111,11 +95,6 @@ export default function KanbanColumn({
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
   }, [isArchive, columnTasks]);
 
-  useEffect(() => {
-    if (openPending[column.id]) {
-      bodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [openPending[column.id]]);
   return (
     <div
       data-col-id={column.id}
@@ -134,19 +113,6 @@ export default function KanbanColumn({
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          {pendingTasks.length > 0 && (
-            <button
-              onClick={() => setOpenPending((prev) => ({ ...prev, [column.id]: !prev[column.id] }))}
-              className="inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1 rounded-[2px] border border-gray-200 bg-white text-gray-800 hover:bg-gray-100 transition"
-              title="待接收"
-            >
-              <span aria-hidden className="h-2 w-2 rounded-full bg-slate-500" />
-              <span>待接收</span>
-              <span className="ml-0.5 inline-flex items-center justify-center rounded-[2px] border border-gray-300 bg-white px-1.5 py-0.5 text-[11px] tabular-nums">
-                {pendingTasks.length}
-              </span>
-            </button>
-          )}
           <button
             onClick={() => {
               setAddPickerQuery("");
@@ -247,86 +213,6 @@ export default function KanbanColumn({
           </div>
         )}
 
-        {openPending[column.id] && pendingTasks.length > 0 && (
-          <div className="mb-3 rounded-[2px] border border-gray-200 bg-white p-2 shadow-sm">
-            <div className="flex items-center justify-between px-1 pb-2">
-              <div className="text-[11px] font-medium text-gray-700">待接收</div>
-              <button
-                className="text-[11px] px-2 py-0.5 rounded-[2px] border border-gray-200 bg-white hover:bg-gray-100"
-                onClick={() => setOpenPending((prev) => ({ ...prev, [column.id]: !prev[column.id] }))}
-              >
-                收起
-              </button>
-            </div>
-            <div className="space-y-1.5">
-              {pendingTasks.map((task) => {
-                const isDropHighlighted = highlightTaskId === task.id;
-                const isAccepting = acceptingPending[task.id];
-                const isDeclining = decliningPending[task.id];
-                return (
-                  <div
-                    key={task.id}
-                    ref={(node) => {
-                      if (node) taskRefs.current.set(task.id, node);
-                      else taskRefs.current.delete(task.id);
-                    }}
-                    className={[
-                      "relative rounded-[2px] border border-yellow-200 bg-yellow-50 p-2.5 cursor-pointer transition-all duration-300",
-                      isDropHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
-                      isAccepting || isDeclining ? "transform scale-[0.98] opacity-80" : "",
-                    ].join(" ")}
-                    onClick={(e) => handleTaskClick(task as Task, column.id, e)}
-                  >
-                  {/* Left status strip for pending tasks as well */}
-                  {(() => {
-                    const dueToday = task.deliveryDate && task.deliveryDate === todayStr;
-                    const overdue = task.deliveryDate && task.deliveryDate < todayStr;
-                    const cls = overdue ? "bg-red-400" : dueToday ? "bg-amber-400" : "bg-gray-300";
-                    return (
-                      <div aria-hidden="true" className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[2px] ${cls}`} />
-                    );
-                  })()}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium text-gray-900 truncate">
-                        {renderHighlighted(getTaskDisplayName(task), searchQuery)}
-                      </h3>
-                      {!hideNames && (
-                        <p className="text-xs text-gray-600">
-                          {renderHighlighted(task.representative, searchQuery)}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-1 ml-2 flex-shrink-0">
-                      <button
-                        className="p-1.5 rounded-[2px] bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          animateAcceptPending(task.id, column.id);
-                        }}
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="p-1 rounded-[2px] bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          animateDeclinePending(task.id, column.id);
-                        }}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {columnTasks.length === 0 ? (
           <div className="py-8 flex items-center justify-center rounded-md">
             <div className="text-center">
@@ -351,9 +237,7 @@ export default function KanbanColumn({
                   return (
                     <div
                       key={task.id}
-                      className={`relative group ${
-                        completing[task.id] ? "opacity-0 scale-95 transition-all duration-300" : ""
-                      }`}
+                      className="relative group"
                     >
                       <div
                         ref={(node) => {
@@ -377,15 +261,6 @@ export default function KanbanColumn({
                           }}
                         />
                       </div>
-                      <button
-                        className="absolute top-1 right-1 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          animateCompleteTask(task.id, column.id);
-                        }}
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
                       {dragOverColumn === column.id && dropIndicatorIndex === currentIndex + 1 && (
                         <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
                       )}
@@ -397,13 +272,10 @@ export default function KanbanColumn({
           })()
         ) : (
           columnTasks.map((task, index) => {
-            const isCompleting = completing[task.id];
             return (
               <div
                 key={task.id}
-                className={`relative group ${
-                  isCompleting ? "opacity-0 scale-95 transition-all duration-300" : ""
-                }`}
+                className="relative group"
               >
                 <div
                   ref={(node) => {
@@ -455,15 +327,21 @@ export default function KanbanColumn({
                       ))}
                   </div>
                 )}
-                <button
-                  className="absolute top-1 right-1 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-green-600 transition-transform duration-150 hover:scale-110"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    animateCompleteTask(task.id, column.id);
-                  }}
-                >
-                  <Check className="w-4 h-4" />
-                </button>
+                {!task.inProgress ? (
+                  <button
+                    className="absolute top-1 right-1 p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleConfirmWork(task.id, column.id);
+                    }}
+                  >
+                    <Play className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-[2px] bg-blue-50 text-blue-600 text-[10px]">
+                    进行中
+                  </div>
+                )}
                 {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
                   <div className="h-0.5 bg-blue-500 mt-2 animate-pulse" />
                 )}
