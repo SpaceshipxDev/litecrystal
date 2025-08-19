@@ -33,13 +33,8 @@ export default function KanbanBoard() {
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [openPending, setOpenPending] = useState<Record<string, boolean>>({});
-  const [isNewOpen, setIsNewOpen] = useState(false);
   const [addPickerOpenFor, setAddPickerOpenFor] = useState<string | null>(null);
   const [addPickerQuery, setAddPickerQuery] = useState("");
-  const [acceptingPending, setAcceptingPending] = useState<Record<string, boolean>>({});
-  const [decliningPending, setDecliningPending] = useState<Record<string, boolean>>({});
-  const [completing, setCompleting] = useState<Record<string, boolean>>({});
   const [handoffToast, setHandoffToast] = useState<{ message: string } | null>(null);
   const [handoffToastVisible, setHandoffToastVisible] = useState(false);
 
@@ -211,7 +206,7 @@ export default function KanbanBoard() {
     const now = Date.now();
     const todayStr = new Date().toISOString().slice(0, 10);
     const eightHoursMs = 8 * 60 * 60 * 1000;
-    let active = 0; // non-archived, accepted or not
+    let active = 0; // non-archived
     let dueToday = 0;
     let overdue = 0;
     let inactive8h = 0;
@@ -236,8 +231,7 @@ export default function KanbanBoard() {
         }
       }
     }
-    const awaiting = columns.reduce((sum, c) => sum + c.pendingTaskIds.length, 0);
-    return { active, dueToday, overdue, awaiting, inactive8h };
+    return { active, dueToday, overdue, inactive8h };
   }, [tasks, columns]);
 
   // Filter helper for status chips
@@ -264,28 +258,6 @@ export default function KanbanBoard() {
     },
     []
   );
-
-  // Auto-open pending sections when search matches a task in the inbox
-  useEffect(() => {
-    if (!searchQuery) return;
-    setOpenPending((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const col of columns) {
-        const hasMatch = col.pendingTaskIds
-          .map((id) => tasks[id])
-          .filter(Boolean)
-          .filter((t) => doesTaskMatchQuery(t as any, searchQuery))
-          .filter((t) => (activeFilter ? matchesStatFilter(t as any, activeFilter) : true))
-          .length > 0;
-        if (hasMatch && !next[col.id]) {
-          next[col.id] = true;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [searchQuery, columns, tasks, doesTaskMatchQuery, activeFilter, matchesStatFilter]);
 
   // Display name differs by viewMode
   const getTaskDisplayName = (task: TaskSummary) => {
@@ -329,7 +301,6 @@ export default function KanbanBoard() {
         return {
           ...c,
           taskIds: sortedTaskIds(c.taskIds),
-          pendingTaskIds: sortTaskIds(c.pendingTaskIds, taskMap),
         };
       });
     },
@@ -345,7 +316,6 @@ export default function KanbanBoard() {
         ...baseCol,
         ...savedCol,
         taskIds: savedCol?.taskIds || [],
-        pendingTaskIds: savedCol?.pendingTaskIds || [],
       };
     });
   };
@@ -492,7 +462,6 @@ export default function KanbanBoard() {
             c.map((col) => ({
               ...col,
               taskIds: col.taskIds.filter((id) => id !== taskId),
-              pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId),
             })),
             t
           )
@@ -602,17 +571,17 @@ export default function KanbanBoard() {
     let updatedTask: Task = {
       ...existingTask,
       ...draggedTask,
-      previousColumnId: sourceColumnId,
+      columnId: targetColumnId,
+      inProgress: false,
       deliveryNoteGenerated: draggedTask.deliveryNoteGenerated,
       updatedAt: moveTime,
       updatedBy: userName,
       history: [
         ...(existingTask?.history || []),
-        { user: userName, timestamp: moveTime, description: `添加到${columns.find((c) => c.id === targetColumnId)?.title || ""}` },
+        { user: userName, timestamp: moveTime, description: `移动到${columns.find((c) => c.id === targetColumnId)?.title || ""}` },
       ],
     };
     if (targetColumnId === "ship") {
-      updatedTask = { ...updatedTask, columnId: targetColumnId };
       try {
         const res = await fetch(`/api/jobs/${draggedTask.id}/delivery-note`, { method: "POST" });
         if (res.ok) updatedTask.deliveryNoteGenerated = true;
@@ -624,22 +593,15 @@ export default function KanbanBoard() {
     const nextTasks = { ...tasks, [draggedTask.id]: updatedTask };
 
     let nextColumns = columns.map((col) => {
-      if (col.id === targetColumnId) {
-        if (isArchive) {
-          if (col.taskIds.includes(draggedTask.id)) return col;
-          return { ...col, taskIds: [draggedTask.id, ...col.taskIds] };
-        }
-        if (targetColumnId === "ship") {
-          if (col.taskIds.includes(draggedTask.id)) return col;
-          return { ...col, taskIds: [draggedTask.id, ...col.taskIds] };
-        }
-        if (col.pendingTaskIds.includes(draggedTask.id) || col.taskIds.includes(draggedTask.id)) {
-          return col;
-        }
-        return { ...col, pendingTaskIds: [draggedTask.id, ...col.pendingTaskIds] };
-      }
-      if (targetColumnId === "ship" && col.id === sourceColumnId) {
+      if (col.id === sourceColumnId) {
         return { ...col, taskIds: col.taskIds.filter((id) => id !== draggedTask.id) };
+      }
+      if (col.id === targetColumnId) {
+        if (col.taskIds.includes(draggedTask.id)) return col;
+        const ids = [...col.taskIds];
+        const insertAt = dropIndex !== undefined ? dropIndex : 0;
+        ids.splice(insertAt, 0, draggedTask.id);
+        return { ...col, taskIds: ids };
       }
       return col;
     });
@@ -656,9 +618,6 @@ export default function KanbanBoard() {
       const colTitle = columns.find((c) => c.id === targetColumnId)?.title || "";
       setHandoffToast({ message: `已移交到「${colTitle}」，由该环节负责人处理` });
       setHandoffToastVisible(true);
-      // Keep pending drawer open longer so user clearly sees where the card went
-      setOpenPending((prev) => ({ ...prev, [targetColumnId]: true }));
-      setTimeout(() => setOpenPending((prev) => ({ ...prev, [targetColumnId]: false })), 4500);
       setTimeout(() => setHandoffToastVisible(false), 2200);
       setTimeout(() => setHandoffToast(null), 2600);
     }
@@ -676,7 +635,8 @@ export default function KanbanBoard() {
     const moveTime = new Date().toISOString();
     const updatedTask: Task = {
       ...existingTask,
-      previousColumnId: sourceColumnId,
+      columnId: targetColumnId,
+      inProgress: false,
       updatedAt: moveTime,
       updatedBy: userName,
       history: [
@@ -684,7 +644,7 @@ export default function KanbanBoard() {
         {
           user: userName,
           timestamp: moveTime,
-          description: `添加到${
+          description: `移动到${
             columns.find((c) => c.id === targetColumnId)?.title || ""
           }`,
         },
@@ -692,11 +652,12 @@ export default function KanbanBoard() {
     };
     const nextTasks = { ...tasks, [taskId]: updatedTask };
     let nextColumns = columns.map((col) => {
+      if (col.id === sourceColumnId) {
+        return { ...col, taskIds: col.taskIds.filter((id) => id !== taskId) };
+      }
       if (col.id === targetColumnId) {
-        if (col.pendingTaskIds.includes(taskId) || col.taskIds.includes(taskId)) {
-          return col;
-        }
-        return { ...col, pendingTaskIds: [taskId, ...col.pendingTaskIds] };
+        if (col.taskIds.includes(taskId)) return col;
+        return { ...col, taskIds: [taskId, ...col.taskIds] };
       }
       return col;
     });
@@ -706,122 +667,30 @@ export default function KanbanBoard() {
     const colTitle = columns.find((c) => c.id === targetColumnId)?.title || "";
     setHandoffToast({ message: `已移交到「${colTitle}」，由该环节负责人处理` });
     setHandoffToastVisible(true);
-    setOpenPending((prev) => ({ ...prev, [targetColumnId]: true }));
-    setTimeout(() => setOpenPending((prev) => ({ ...prev, [targetColumnId]: false })), 4500);
     setTimeout(() => setHandoffToastVisible(false), 2200);
     setTimeout(() => setHandoffToast(null), 2600);
     await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
   };
 
-  // Toggle "pending" drawer
-  const togglePending = (columnId: string) => {
-    setOpenPending((prev) => ({ ...prev, [columnId]: !prev[columnId] }));
-  };
-
-  // Accept task from pending area
-  const handleAcceptTask = async (taskId: string, columnId: string) => {
+  const handleConfirmWork = async (taskId: string, columnId: string) => {
     const task = tasks[taskId];
-    if (!task) return;
+    if (!task || task.inProgress) return;
     const time = new Date().toISOString();
     const nextTasks = {
       ...tasks,
       [taskId]: {
         ...task,
-        columnId,
-        previousColumnId: undefined,
+        inProgress: true,
         updatedAt: time,
         updatedBy: userName,
         history: [
           ...(task.history || []),
-          { user: userName, timestamp: time, description: `确认进入${columns.find((c) => c.id === columnId)?.title || ""}` },
+          { user: userName, timestamp: time, description: `确认处理${columns.find((c) => c.id === columnId)?.title || ""}` },
         ],
       },
     };
-    let nextColumns = columns.map((col) => {
-      if (col.id === columnId) {
-        return {
-          ...col,
-          pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId),
-          taskIds: [taskId, ...col.taskIds],
-        };
-      }
-      return col;
-    });
-    nextColumns = sortColumnsData(nextColumns, nextTasks as any);
     setTasks(nextTasks);
-    setColumns(nextColumns);
-    // Spotlight the newly accepted task directly in the main list
-    setHighlightTaskId(taskId);
-    await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
-  };
-
-  // Decline task from pending area
-  const handleDeclineTask = async (taskId: string, columnId: string) => {
-    const task = tasks[taskId];
-    if (!task) return;
-    const nextTasks = { ...tasks, [taskId]: { ...task, previousColumnId: undefined } };
-    let nextColumns = columns.map((col) =>
-      col.id === columnId
-        ? { ...col, pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId) }
-        : col
-    );
-    nextColumns = sortColumnsData(nextColumns, nextTasks as any);
-    setTasks(nextTasks);
-    setColumns(nextColumns);
-    await saveBoard({ tasks: nextTasks as any, columns: nextColumns });
-  };
-
-  const handleCompleteTask = async (taskId: string, columnId: string) => {
-    if (!tasks[taskId]) return;
-    let nextColumns = columns.map((col) =>
-      col.id === columnId
-        ? {
-            ...col,
-            taskIds: col.taskIds.filter((id) => id !== taskId),
-            pendingTaskIds: col.pendingTaskIds.filter((id) => id !== taskId),
-          }
-        : col
-    );
-    nextColumns = sortColumnsData(nextColumns, tasks as any);
-    setColumns(nextColumns);
-    await saveBoard({ tasks: tasks as any, columns: nextColumns });
-  };
-
-  const animateCompleteTask = async (taskId: string, columnId: string) => {
-    setCompleting((prev) => ({ ...prev, [taskId]: true }));
-    setTimeout(async () => {
-      await handleCompleteTask(taskId, columnId);
-      setCompleting((prev) => {
-        const next = { ...prev };
-        delete next[taskId];
-        return next;
-      });
-    }, 160);
-  };
-
-  // Tiny animations for accept/decline click
-  const animateAcceptPending = async (taskId: string, columnId: string) => {
-    setAcceptingPending((prev) => ({ ...prev, [taskId]: true }));
-    setTimeout(async () => {
-      await handleAcceptTask(taskId, columnId);
-      setAcceptingPending((prev) => {
-        const next = { ...prev };
-        delete next[taskId];
-        return next;
-      });
-    }, 160);
-  };
-
-  const animateDeclinePending = async (taskId: string, columnId: string) => {
-    setDecliningPending((prev) => ({ ...prev, [taskId]: true }));
-    setTimeout(async () => {
-      await handleDeclineTask(taskId, columnId);
-      setDecliningPending((prev) => {
-        const next = { ...prev };
-        delete next[taskId];
-        return next;
-      });
-    }, 160);
+    await saveBoard({ tasks: nextTasks as any, columns });
   };
 
   // New job created from CreateJobForm
@@ -832,7 +701,7 @@ export default function KanbanBoard() {
         sortColumnsData(
           c.map((col) =>
             col.id === START_COLUMN_ID
-              ? { ...col, taskIds: [...col.taskIds, newTask.id], pendingTaskIds: col.pendingTaskIds }
+              ? { ...col, taskIds: [...col.taskIds, newTask.id] }
               : col
           ),
           next as any
@@ -990,11 +859,6 @@ export default function KanbanBoard() {
               .filter(Boolean)
               .filter((t) => doesTaskMatchQuery(t as any, searchQuery))
               .filter((t) => (activeFilter ? matchesStatFilter(t as any, activeFilter) : true));
-            const pendingTasks = column.pendingTaskIds
-              .map((id) => tasks[id])
-              .filter(Boolean)
-              .filter((t) => doesTaskMatchQuery(t as any, searchQuery))
-              .filter((t) => (activeFilter ? matchesStatFilter(t as any, activeFilter) : true));
             const isArchive = ["archive", "archive2"].includes(column.id);
 
               return (
@@ -1002,7 +866,6 @@ export default function KanbanBoard() {
                   key={column.id}
                   column={column}
                   columnTasks={columnTasks}
-                  pendingTasks={pendingTasks}
                   isArchive={isArchive}
                   taskRefs={taskRefs}
                   viewMode={viewMode}
@@ -1028,15 +891,8 @@ export default function KanbanBoard() {
                   handleSelectAddTask={handleSelectAddTask}
                   columns={columns}
                   tasks={tasks}
-                  openPending={openPending}
-                  setOpenPending={setOpenPending}
-                  animateAcceptPending={animateAcceptPending}
-                  animateDeclinePending={animateDeclinePending}
-                  animateCompleteTask={animateCompleteTask}
-                  completing={completing}
                   getTaskDisplayName={getTaskDisplayName}
-                  acceptingPending={acceptingPending}
-                  decliningPending={decliningPending}
+                  handleConfirmWork={handleConfirmWork}
                 />
               );
           })

@@ -31,15 +31,6 @@ function normalizeBoardData(data: BoardData) {
 
   // Normalize task arrays in columns
   for (const col of data.columns) {
-    col.pendingTaskIds = Array.from(
-      new Set(
-        (col.pendingTaskIds || []).filter(id => {
-          const t = (data.tasks as Record<string, any>)[id]
-          return !!t
-        })
-      )
-    )
-
     col.taskIds = Array.from(
       new Set(
         col.taskIds.filter(id => {

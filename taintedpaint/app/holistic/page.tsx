@@ -89,7 +89,7 @@ export default function ArchivePage() {
           setColumns(
             baseColumns.map(b => {
               const saved = map.get(b.id);
-              return { ...b, ...saved, pendingTaskIds: saved?.pendingTaskIds || [] };
+              return { ...b, ...saved, taskIds: saved?.taskIds || [] };
             })
           );
         }

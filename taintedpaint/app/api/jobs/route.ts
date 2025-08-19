@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         {
           id: t.id,
           columnId: t.columnId,
-          previousColumnId: t.previousColumnId,
+          inProgress: t.inProgress,
           customerName: t.customerName,
           representative: t.representative,
           inquiryDate: t.inquiryDate,
@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
     const newTask: Task = {
       id: taskId,
       columnId: START_COLUMN_ID,
+      inProgress: false,
       customerName: customerName.trim() || undefined,
       representative: representative.trim() || undefined,
       inquiryDate: inquiryDate.trim() || undefined,
