@@ -304,15 +304,32 @@ export default function KanbanColumn({
                     }}
                   />
                 </div>
-                <button
-                  className="absolute top-1 right-7 hidden group-hover:inline-flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150 hover:scale-110"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setHandoffOpenFor(task.id);
-                  }}
-                >
-                  <MoveRight className="w-4 h-4" />
-                </button>
+                <div className="absolute top-1 right-1 flex items-center gap-1">
+                  <button
+                    className="hidden group-hover:flex p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150 hover:scale-110"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHandoffOpenFor(task.id);
+                    }}
+                  >
+                    <MoveRight className="w-4 h-4" />
+                  </button>
+                  {!task.inProgress ? (
+                    <button
+                      className="p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleConfirmWork(task.id, column.id);
+                      }}
+                    >
+                      <Play className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded-[2px] bg-blue-50 text-blue-600 text-[10px] pointer-events-none">
+                      进行中
+                    </span>
+                  )}
+                </div>
                 {handoffOpenFor === task.id && (
                   <div className="absolute top-6 right-1 z-20 flex flex-col rounded-[2px] border border-gray-200 bg-white shadow-lg">
                     {columns
@@ -330,21 +347,6 @@ export default function KanbanColumn({
                           {c.title}
                         </button>
                       ))}
-                  </div>
-                )}
-                {!task.inProgress ? (
-                  <button
-                    className="absolute top-1 right-1 p-1.5 rounded-[2px] bg-white text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-transform duration-150"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleConfirmWork(task.id, column.id);
-                    }}
-                  >
-                    <Play className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-[2px] bg-blue-50 text-blue-600 text-[10px]">
-                    进行中
                   </div>
                 )}
                 {dragOverColumn === column.id && dropIndicatorIndex === index + 1 && (
