@@ -194,7 +194,7 @@ export default function KanbanBoard() {
     };
     attemptScroll();
     // Auto-clear highlight after a short while so the flash doesn't persist forever
-    const clearTimer = setTimeout(() => setHighlightTaskId(null), 6000);
+    const clearTimer = setTimeout(() => setHighlightTaskId(null), 10000);
     return () => {
       clearTimeout(clearTimer);
       cancelAnimationFrame(raf);
@@ -485,7 +485,8 @@ export default function KanbanBoard() {
   const handleDragStart = (e: React.DragEvent, task: TaskSummary, sourceColumnId: string) => {
     setDraggedTask(task);
     setDragSourceColumnId(sourceColumnId);
-    setHighlightTaskId(task.id);
+    // Reset highlight so dropping can spotlight the new location
+    setHighlightTaskId(null);
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = "move";
       const dragImage = e.currentTarget as HTMLElement;
@@ -566,6 +567,8 @@ export default function KanbanBoard() {
         tasks as any
       );
       setColumns(nextColumns);
+      // Spotlight the task's new position
+      setHighlightTaskId(draggedTask.id);
       setDragOverColumn(null);
       setDropIndicatorIndex(null);
       await saveBoard({ tasks: tasks as any, columns: nextColumns });
@@ -935,12 +938,12 @@ export default function KanbanBoard() {
         /* Flash glow for dropped/accepted tasks */
         @keyframes dropFlash {
           0% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
-          12% { box-shadow: 0 0 0 3px rgba(59,130,246,0.55), 0 0 12px 2px rgba(59,130,246,0.35); }
-          28% { box-shadow: 0 0 0 2px rgba(59,130,246,0.45), 0 0 16px 3px rgba(59,130,246,0.3); }
+          20% { box-shadow: 0 0 0 4px rgba(59,130,246,0.8), 0 0 20px 4px rgba(59,130,246,0.6); }
+          60% { box-shadow: 0 0 0 4px rgba(59,130,246,0.6), 0 0 20px 4px rgba(59,130,246,0.4); }
           100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
         }
         .drop-flash {
-          animation: dropFlash 1600ms ease-out;
+          animation: dropFlash 4000ms ease-out;
         }
         /* Gentle appear animation for new/just-moved cards */
         @keyframes cardAppear {
