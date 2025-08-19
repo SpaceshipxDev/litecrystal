@@ -272,6 +272,11 @@ export default function KanbanBoard() {
     return [...ids].sort((a, b) => {
       const ta = taskMap[a];
       const tb = taskMap[b];
+      // Tasks that are marked as in progress should always appear before those that are not
+      const aProgress = !!ta?.inProgress;
+      const bProgress = !!tb?.inProgress;
+      if (aProgress && !bProgress) return -1;
+      if (!aProgress && bProgress) return 1;
       const hasDa = ta?.deliveryDate;
       const hasDb = tb?.deliveryDate;
       if (hasDa && !hasDb) return -1;

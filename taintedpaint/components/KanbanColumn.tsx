@@ -83,6 +83,11 @@ export default function KanbanColumn({
   const archiveGroups = useMemo(() => {
     if (!isArchive) return [];
     const sorted = [...columnTasks].sort((a, b) => {
+      // Ensure in-progress tasks are listed before others
+      const aProgress = !!a.inProgress;
+      const bProgress = !!b.inProgress;
+      if (aProgress && !bProgress) return -1;
+      if (!aProgress && bProgress) return 1;
       const da = a.updatedAt || a.createdAt || "";
       const db = b.updatedAt || b.createdAt || "";
       return db.localeCompare(da);
