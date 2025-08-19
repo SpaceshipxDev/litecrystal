@@ -47,7 +47,7 @@ export default function TaskCard({
         "relative cursor-move rounded-[2px] border bg-white p-3 transition-shadow",
         "border-gray-200 hover:shadow shadow-sm",
         "",
-        isHighlighted ? "ring-2 ring-blue-500/40 drop-flash card-appear" : "",
+        isHighlighted ? "ring-4 ring-blue-500/70 drop-flash card-appear" : "",
       ].join(" ")}
     >
       {/* Left status strip based on column */}
