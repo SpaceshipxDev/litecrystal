@@ -43,6 +43,7 @@ export default function KanbanBoard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userName, setUserName] = useState("");
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(null);
+  const [lastInteractedTaskId, setLastInteractedTaskId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<
     null | "active" | "dueToday" | "overdue" | "inactive8h"
   >(null);
@@ -695,6 +696,8 @@ export default function KanbanBoard() {
       },
     };
     setTasks(nextTasks);
+    setLastInteractedTaskId(taskId);
+    setHighlightTaskId(taskId);
     await saveBoard({ tasks: nextTasks as any, columns });
   };
 
@@ -722,6 +725,8 @@ export default function KanbanBoard() {
   const handleTaskClick = async (task: Task, columnId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setLastInteractedTaskId(task.id);
+    setHighlightTaskId(task.id);
     const column = columns.find((c) => c.id === columnId);
     setSelectedTaskColumnTitle(column ? column.title : null);
     try {
@@ -740,6 +745,10 @@ export default function KanbanBoard() {
 
   const closeModal = () => {
     setIsModalOpen(false);
+    if (lastInteractedTaskId) {
+      setHighlightTaskId(null);
+      setTimeout(() => setHighlightTaskId(lastInteractedTaskId), 0);
+    }
     setTimeout(() => {
       setSelectedTask(null);
       setSelectedTaskColumnTitle(null);
