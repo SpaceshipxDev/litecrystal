@@ -2,7 +2,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import { promises as fs } from "fs";
+import { promises as fs, createWriteStream } from "fs";
+import { pipeline } from "stream/promises";
+import { Readable } from "stream";
 import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
 import { readBoardData, updateBoardData } from "@/lib/boardDataStore";
@@ -75,8 +77,8 @@ export async function POST(req: NextRequest) {
         const relative = file.name;
         const dest = path.join(absoluteTaskPath, relative);
         await fs.mkdir(path.dirname(dest), { recursive: true });
-        const arrayBuffer = await file.arrayBuffer();
-        await fs.writeFile(dest, Buffer.from(arrayBuffer));
+        const stream = Readable.fromWeb(file.stream());
+        await pipeline(stream, createWriteStream(dest));
         relativePaths.push(relative);
       }
     } catch (err) {
@@ -146,7 +148,7 @@ export async function PUT(req: NextRequest) {
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '500mb'
+      sizeLimit: '2gb'
     }
   }
 };
