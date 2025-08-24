@@ -21,6 +21,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [customerOptions, setCustomerOptions] = useState<string[]>([])
   const [userName, setUserName] = useState("")
+  const [errorMsg, setErrorMsg] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inquiryDateInputRef = useRef<HTMLInputElement>(null)
   const deliveryDateInputRef = useRef<HTMLInputElement>(null)
@@ -87,34 +88,53 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
 
   const handleCreateJob = async () => {
     setIsCreating(true)
+    setErrorMsg("")
     try {
-      const formData = new FormData()
+      // Step 1: create job metadata
+      const metaForm = new FormData()
 
-      formData.append("customerName", customerName.trim())
-      formData.append("representative", representative.trim())
-      formData.append("inquiryDate", inquiryDate.trim())
-      formData.append("deliveryDate", deliveryDate.trim())
-      formData.append("ynmxId", ynmxId.trim())
-      formData.append("notes", notes.trim())
-      formData.append("updatedBy", userName)
-
-      if (selectedFiles && selectedFiles.length > 0) {
-        Array.from(selectedFiles).forEach((f) => {
-          const rel = (f as any).webkitRelativePath || f.name
-          formData.append("files", f, rel)
-        })
-      }
+      metaForm.append("customerName", customerName.trim())
+      metaForm.append("representative", representative.trim())
+      metaForm.append("inquiryDate", inquiryDate.trim())
+      metaForm.append("deliveryDate", deliveryDate.trim())
+      metaForm.append("ynmxId", ynmxId.trim())
+      metaForm.append("notes", notes.trim())
+      metaForm.append("updatedBy", userName)
 
       const res = await fetch("/api/jobs", {
         method: "POST",
-        body: formData,
+        body: metaForm,
       })
 
       if (!res.ok) throw new Error("服务端错误")
 
       const newTask: Task = await res.json()
 
-      onJobCreated(newTask)
+      let finalTask: Task = newTask
+
+      // Step 2: upload files if any
+      if (selectedFiles && selectedFiles.length > 0) {
+        const uploadForm = new FormData()
+        Array.from(selectedFiles).forEach((f) => {
+          const rel = (f as any).webkitRelativePath || f.name
+          uploadForm.append("files", f, rel)
+        })
+        uploadForm.append("updatedBy", userName)
+
+        const uploadRes = await fetch(`/api/jobs/${newTask.id}/upload`, {
+          method: "POST",
+          body: uploadForm,
+        })
+
+        if (!uploadRes.ok) {
+          setErrorMsg("文件上传失败，请重试")
+          return
+        }
+
+        finalTask = await uploadRes.json()
+      }
+
+      onJobCreated(finalTask)
 
       setSelectedFiles(null)
       setCustomerName("")
@@ -128,6 +148,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       }
     } catch (err) {
       console.error("任务创建失败", err)
+      setErrorMsg("任务创建失败，请稍后重试")
     } finally {
       setIsCreating(false)
     }
@@ -238,6 +259,9 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           onChange={(e) => setNotes(e.target.value)}
           className="h-9 text-sm rounded-[2px]"
         />
+        {errorMsg && (
+          <p className="text-sm text-red-500">{errorMsg}</p>
+        )}
 
         <Button
           onClick={handleCreateJob}
