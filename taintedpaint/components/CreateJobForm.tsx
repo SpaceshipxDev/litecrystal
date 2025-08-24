@@ -88,15 +88,22 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const handleCreateJob = async () => {
     setIsCreating(true)
     try {
-    const formData = new FormData()
+      const formData = new FormData()
 
-    formData.append("customerName", customerName.trim())
-    formData.append("representative", representative.trim())
-    formData.append("inquiryDate", inquiryDate.trim())
-    formData.append("deliveryDate", deliveryDate.trim())
-    formData.append("ynmxId", ynmxId.trim())
-    formData.append("notes", notes.trim())
-    formData.append("updatedBy", userName)
+      formData.append("customerName", customerName.trim())
+      formData.append("representative", representative.trim())
+      formData.append("inquiryDate", inquiryDate.trim())
+      formData.append("deliveryDate", deliveryDate.trim())
+      formData.append("ynmxId", ynmxId.trim())
+      formData.append("notes", notes.trim())
+      formData.append("updatedBy", userName)
+
+      if (selectedFiles && selectedFiles.length > 0) {
+        Array.from(selectedFiles).forEach((f) => {
+          const rel = (f as any).webkitRelativePath || f.name
+          formData.append("files", f, rel)
+        })
+      }
 
       const res = await fetch("/api/jobs", {
         method: "POST",
@@ -105,23 +112,7 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
 
       if (!res.ok) throw new Error("服务端错误")
 
-      let newTask: Task = await res.json()
-
-      if (selectedFiles && selectedFiles.length > 0) {
-        const uploadData = new FormData()
-        Array.from(selectedFiles).forEach(f => {
-          const rel = (f as any).webkitRelativePath || f.name
-          uploadData.append("files", f, rel)
-        })
-        uploadData.append("updatedBy", userName)
-        const uploadRes = await fetch(`/api/jobs/${newTask.id}/upload`, {
-          method: "POST",
-          body: uploadData,
-        })
-        if (uploadRes.ok) {
-          newTask = await uploadRes.json()
-        }
-      }
+      const newTask: Task = await res.json()
 
       onJobCreated(newTask)
 
