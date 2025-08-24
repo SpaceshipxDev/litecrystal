@@ -1,8 +1,10 @@
 // src/app/api/jobs/[taskId]/upload/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
+import { promises as fs, createWriteStream } from "fs";
 import path from "path";
+import { pipeline } from "stream/promises";
+import { Readable } from "stream";
 import type { BoardData } from "@/types";
 import { updateBoardData, readBoardData } from "@/lib/boardDataStore";
 import { invalidateFilesCache } from "@/lib/filesCache";
@@ -20,7 +22,6 @@ export async function POST(
     return NextResponse.json({ error: "Task ID is required" }, { status: 400 });
   }
 
-  let taskDir = "";
   try {
     const formData = await req.formData();
     const files = formData.getAll("files") as File[];
@@ -36,7 +37,7 @@ export async function POST(
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
-    taskDir = path.join(STORAGE_ROOT, task.taskFolderPath || taskId);
+    const taskDir = path.join(STORAGE_ROOT, task.taskFolderPath || taskId);
     await fs.mkdir(taskDir, { recursive: true });
 
     const relativePaths: string[] = [];
@@ -44,8 +45,8 @@ export async function POST(
       const relative = file.name;
       const dest = path.join(taskDir, relative);
       await fs.mkdir(path.dirname(dest), { recursive: true });
-      const arrayBuffer = await file.arrayBuffer();
-      await fs.writeFile(dest, Buffer.from(arrayBuffer));
+      const stream = Readable.fromWeb(file.stream());
+      await pipeline(stream, createWriteStream(dest));
       relativePaths.push(relative);
     }
 
@@ -70,29 +71,7 @@ export async function POST(
     return NextResponse.json(updatedTask);
   } catch (err) {
     console.error(`Failed to upload files for task ${taskId}:`, err);
-
-    if (taskDir) {
-      try {
-        await fs.rm(taskDir, { recursive: true, force: true });
-      } catch (e) {
-        console.error(`Failed to remove folder for task ${taskId}:`, e);
-      }
-    }
-
-    try {
-      await updateBoardData(async (data) => {
-        delete data.tasks[taskId];
-        for (const col of data.columns) {
-          const idx = col.taskIds.indexOf(taskId);
-          if (idx !== -1) col.taskIds.splice(idx, 1);
-        }
-      });
-    } catch (e) {
-      console.error(`Failed to remove task ${taskId} from metadata:`, e);
-    }
-
     invalidateFilesCache(taskId);
-
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -100,7 +79,7 @@ export async function POST(
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '500mb'
+      sizeLimit: '2gb'
     }
   }
 };

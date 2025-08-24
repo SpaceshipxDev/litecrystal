@@ -22,6 +22,9 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
   const [customerOptions, setCustomerOptions] = useState<string[]>([])
   const [userName, setUserName] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadIndex, setUploadIndex] = useState(0)
+  const [resumeTask, setResumeTask] = useState<Task | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inquiryDateInputRef = useRef<HTMLInputElement>(null)
   const deliveryDateInputRef = useRef<HTMLInputElement>(null)
@@ -86,6 +89,32 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
     return firstPath.split("/")[0] || "已选文件夹"
   }
 
+  const uploadFilesSequentially = async (
+    taskId: string,
+    startIndex = 0
+  ): Promise<Task> => {
+    if (!selectedFiles) throw new Error("no files")
+    let latest: Task | null = null
+    const filesArr = Array.from(selectedFiles)
+    for (let i = startIndex; i < filesArr.length; i++) {
+      const file = filesArr[i]
+      const rel = (file as any).webkitRelativePath || file.name
+      const form = new FormData()
+      form.append("files", file, rel)
+      form.append("updatedBy", userName)
+      const res = await fetch(`/api/jobs/${taskId}/upload`, {
+        method: "POST",
+        body: form,
+      })
+      if (!res.ok) throw new Error("upload failed")
+      latest = await res.json()
+      setUploadIndex(i + 1)
+      setUploadProgress(Math.round(((i + 1) / filesArr.length) * 100))
+    }
+    if (!latest) throw new Error("no response")
+    return latest
+  }
+
   const handleCreateJob = async () => {
     setIsCreating(true)
     setErrorMsg("")
@@ -114,24 +143,13 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
 
       // Step 2: upload files if any
       if (selectedFiles && selectedFiles.length > 0) {
-        const uploadForm = new FormData()
-        Array.from(selectedFiles).forEach((f) => {
-          const rel = (f as any).webkitRelativePath || f.name
-          uploadForm.append("files", f, rel)
-        })
-        uploadForm.append("updatedBy", userName)
-
-        const uploadRes = await fetch(`/api/jobs/${newTask.id}/upload`, {
-          method: "POST",
-          body: uploadForm,
-        })
-
-        if (!uploadRes.ok) {
+        try {
+          finalTask = await uploadFilesSequentially(newTask.id)
+        } catch (e) {
           setErrorMsg("文件上传失败，请重试")
+          setResumeTask(newTask)
           return
         }
-
-        finalTask = await uploadRes.json()
       }
 
       onJobCreated(finalTask)
@@ -143,12 +161,40 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       setDeliveryDate("")
       setYnmxId("")
       setNotes("")
+      setUploadProgress(0)
+      setUploadIndex(0)
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
     } catch (err) {
       console.error("任务创建失败", err)
       setErrorMsg("任务创建失败，请稍后重试")
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const resumeUpload = async () => {
+    if (!resumeTask) return
+    setIsCreating(true)
+    setErrorMsg("")
+    try {
+      const finalTask = await uploadFilesSequentially(resumeTask.id, uploadIndex)
+      onJobCreated(finalTask)
+      setResumeTask(null)
+      setSelectedFiles(null)
+      setCustomerName("")
+      setRepresentative("")
+      setInquiryDate("")
+      setDeliveryDate("")
+      setYnmxId("")
+      setNotes("")
+      setUploadProgress(0)
+      setUploadIndex(0)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    } catch (e) {
+      console.error("继续上传失败", e)
+      setErrorMsg("文件上传失败，请重试")
     } finally {
       setIsCreating(false)
     }
@@ -259,21 +305,40 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
           onChange={(e) => setNotes(e.target.value)}
           className="h-9 text-sm rounded-[2px]"
         />
+        {uploadProgress > 0 && (
+          <p className="text-sm text-gray-500">
+            上传进度 {uploadProgress}% ({uploadIndex}/{selectedFiles?.length || 0})
+          </p>
+        )}
         {errorMsg && (
           <p className="text-sm text-red-500">{errorMsg}</p>
         )}
 
-        <Button
-          onClick={handleCreateJob}
-          className="w-full h-9 text-white text-sm font-medium rounded-[2px] transition-all disabled:opacity-50"
-          disabled={isCreating}
-        >
-          {isCreating ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            "创建任务"
-          )}
-        </Button>
+        {resumeTask ? (
+          <Button
+            onClick={resumeUpload}
+            className="w-full h-9 text-white text-sm font-medium rounded-[2px] transition-all disabled:opacity-50"
+            disabled={isCreating}
+          >
+            {isCreating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              "继续上传"
+            )}
+          </Button>
+        ) : (
+          <Button
+            onClick={handleCreateJob}
+            className="w-full h-9 text-white text-sm font-medium rounded-[2px] transition-all disabled:opacity-50"
+            disabled={isCreating}
+          >
+            {isCreating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              "创建任务"
+            )}
+          </Button>
+        )}
       </div>
     </div>
   )
