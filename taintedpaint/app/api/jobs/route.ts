@@ -60,13 +60,30 @@ export async function POST(req: NextRequest) {
     const ynmxId = (formData.get("ynmxId") as string | null) || "";
     const notes = (formData.get("notes") as string | null) || "";
     const updatedBy = (formData.get("updatedBy") as string | null) || "";
+    const files = formData.getAll("files") as File[];
 
     const taskId = Date.now().toString();
     const taskFolderPath = taskId; // store relative to SMB root
 
-    // Ensure the task directory exists on the shared drive
     const absoluteTaskPath = path.join(STORAGE_ROOT, taskFolderPath);
-    await fs.mkdir(absoluteTaskPath, { recursive: true });
+
+    const relativePaths: string[] = [];
+
+    try {
+      await fs.mkdir(absoluteTaskPath, { recursive: true });
+      for (const file of files) {
+        const relative = file.name;
+        const dest = path.join(absoluteTaskPath, relative);
+        await fs.mkdir(path.dirname(dest), { recursive: true });
+        const arrayBuffer = await file.arrayBuffer();
+        await fs.writeFile(dest, Buffer.from(arrayBuffer));
+        relativePaths.push(relative);
+      }
+    } catch (err) {
+      await fs.rm(absoluteTaskPath, { recursive: true, force: true });
+      console.error(`Failed to write files for task ${taskId}:`, err);
+      return NextResponse.json({ error: "Failed to save files" }, { status: 500 });
+    }
 
     const now = new Date().toISOString();
     const newTask: Task = {
@@ -80,7 +97,7 @@ export async function POST(req: NextRequest) {
       notes: notes.trim() || undefined,
       ynmxId: ynmxId.trim() || undefined,
       taskFolderPath,
-      files: [],
+      files: relativePaths,
       deliveryNoteGenerated: false,
       updatedAt: now,
       updatedBy: updatedBy.trim() || undefined,
