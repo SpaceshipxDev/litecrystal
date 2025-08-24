@@ -5,6 +5,7 @@ import path from "path";
 import { promises as fs, createWriteStream } from "fs";
 import { pipeline } from "stream/promises";
 import { Readable } from "stream";
+import type { ReadableStream as WebReadableStream } from "stream/web";
 import type { BoardData, Task } from "@/types";
 import { baseColumns, START_COLUMN_ID } from "@/lib/baseColumns";
 import { readBoardData, updateBoardData } from "@/lib/boardDataStore";
@@ -77,7 +78,8 @@ export async function POST(req: NextRequest) {
         const relative = file.name;
         const dest = path.join(absoluteTaskPath, relative);
         await fs.mkdir(path.dirname(dest), { recursive: true });
-        const stream = Readable.fromWeb(file.stream());
+        const webStream = file.stream() as unknown as WebReadableStream;
+        const stream = Readable.fromWeb(webStream);
         await pipeline(stream, createWriteStream(dest));
         relativePaths.push(relative);
       }
