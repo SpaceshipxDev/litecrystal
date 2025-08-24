@@ -1,10 +1,8 @@
 // src/app/api/jobs/[taskId]/upload/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs, createWriteStream } from "fs";
+import { promises as fs } from "fs";
 import path from "path";
-import { pipeline } from "stream/promises";
-import { Readable } from "stream";
 import type { BoardData } from "@/types";
 import { updateBoardData, readBoardData } from "@/lib/boardDataStore";
 import { invalidateFilesCache } from "@/lib/filesCache";
@@ -45,8 +43,20 @@ export async function POST(
       const relative = file.name;
       const dest = path.join(taskDir, relative);
       await fs.mkdir(path.dirname(dest), { recursive: true });
-      const stream = Readable.fromWeb(file.stream());
-      await pipeline(stream, createWriteStream(dest));
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        await fs.writeFile(dest, buffer);
+      } catch (err: any) {
+        if (err?.code === "EACCES" || err?.code === "EBUSY") {
+          return NextResponse.json(
+            {
+              error: `Unable to write file ${relative}. Please close or unlock it and try again.`,
+            },
+            { status: 423 }
+          );
+        }
+        throw err;
+      }
       relativePaths.push(relative);
     }
 
