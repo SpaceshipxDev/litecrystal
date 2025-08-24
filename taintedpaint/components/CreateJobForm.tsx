@@ -106,7 +106,14 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
         method: "POST",
         body: form,
       })
-      if (!res.ok) throw new Error("upload failed")
+      if (!res.ok) {
+        let message = "文件上传失败，请重试"
+        try {
+          const data = await res.json()
+          if (data?.error) message = data.error
+        } catch {}
+        throw new Error(message)
+      }
       latest = await res.json()
       setUploadIndex(i + 1)
       setUploadProgress(Math.round(((i + 1) / filesArr.length) * 100))
@@ -145,8 +152,8 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       if (selectedFiles && selectedFiles.length > 0) {
         try {
           finalTask = await uploadFilesSequentially(newTask.id)
-        } catch (e) {
-          setErrorMsg("文件上传失败，请重试")
+        } catch (e: any) {
+          setErrorMsg(e?.message || "文件上传失败，请重试")
           setResumeTask(newTask)
           return
         }
@@ -192,9 +199,9 @@ export default function CreateJobForm({ onJobCreated }: CreateJobFormProps) {
       setUploadProgress(0)
       setUploadIndex(0)
       if (fileInputRef.current) fileInputRef.current.value = ""
-    } catch (e) {
+    } catch (e: any) {
       console.error("继续上传失败", e)
-      setErrorMsg("文件上传失败，请重试")
+      setErrorMsg(e?.message || "文件上传失败，请重试")
     } finally {
       setIsCreating(false)
     }
