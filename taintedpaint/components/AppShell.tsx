@@ -14,6 +14,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
   const [deliveryStart, setDeliveryStart] = useState("")
   const [deliveryEnd, setDeliveryEnd] = useState("")
+  const [resultCount, setResultCount] = useState<number | null>(null)
 
   // Listen to board refresh state to animate the header refresh icon
   useEffect(() => {
@@ -24,6 +25,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
     window.addEventListener("board:refreshing" as any, onRefreshing as any)
     return () => window.removeEventListener("board:refreshing" as any, onRefreshing as any)
+  }, [])
+
+  useEffect(() => {
+    const onCount = (e: Event) => {
+      const ce = e as unknown as CustomEvent<number>
+      setResultCount(ce.detail)
+    }
+    window.addEventListener("board:resultCount" as any, onCount as any)
+    return () => window.removeEventListener("board:resultCount" as any, onCount as any)
   }, [])
 
   const dispatchSearch = (value: string) => {
@@ -64,7 +74,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             {isBoard && (
-              <div className="relative hidden sm:block">
+              <div className="relative hidden sm:flex items-center">
+                <div className="relative">
                   <input
                     id="board-search"
                     type="text"
@@ -131,6 +142,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       </div>
                     </div>
                   )}
+                </div>
+                {( (search || deliveryStart || deliveryEnd) && resultCount !== null) && (
+                  <span className="ml-2 text-xs text-gray-500 whitespace-nowrap">
+                    {resultCount} 条结果
+                  </span>
+                )}
               </div>
             )}
             <AccountButton />
