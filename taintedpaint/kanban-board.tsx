@@ -210,35 +210,37 @@ export default function KanbanBoard() {
 
   // Lightweight board stats (Jira-style overview)
   const boardStats = useMemo(() => {
-    const allTasks = Object.values(tasks || {});
+    const ids = new Set<string>();
+    for (const col of columns) {
+      for (const id of col.taskIds) ids.add(id);
+    }
     const now = Date.now();
     const todayStr = new Date().toISOString().slice(0, 10);
     const eightHoursMs = 8 * 60 * 60 * 1000;
-    let active = 0; // non-archived
+    let active = 0;
     let dueToday = 0;
     let overdue = 0;
     let inactive8h = 0;
-    for (const t of allTasks) {
-      if (!t) continue;
+    ids.forEach((id) => {
+      const t = tasks[id];
+      if (!t) return;
       const col = t.columnId;
       const isArchived = col === ARCHIVE_COLUMN_ID || col === "archive2";
       const d = (t.deliveryDate || "").slice(0, 10);
-      if (!isArchived) {
-        active += 1;
-        const lastActivityIso = (t.updatedAt || t.createdAt || "").toString();
-        if (lastActivityIso) {
-          const last = Date.parse(lastActivityIso);
-          if (!Number.isNaN(last) && now - last >= eightHoursMs) inactive8h += 1;
-        } else {
-          // No timestamps → consider stale
-          inactive8h += 1;
-        }
-        if (d) {
-          if (d === todayStr) dueToday += 1;
-          else if (d < todayStr) overdue += 1;
-        }
+      if (isArchived) return;
+      active += 1;
+      const lastActivityIso = (t.updatedAt || t.createdAt || "").toString();
+      if (lastActivityIso) {
+        const last = Date.parse(lastActivityIso);
+        if (!Number.isNaN(last) && now - last >= eightHoursMs) inactive8h += 1;
+      } else {
+        inactive8h += 1;
       }
-    }
+      if (d) {
+        if (d === todayStr) dueToday += 1;
+        else if (d < todayStr) overdue += 1;
+      }
+    });
     return { active, dueToday, overdue, inactive8h };
   }, [tasks, columns]);
 
@@ -266,6 +268,31 @@ export default function KanbanBoard() {
     },
     []
   );
+
+  const filteredTaskIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const col of columns) {
+      for (const id of col.taskIds) {
+        const t = tasks[id];
+        if (!t) continue;
+        if (!doesTaskMatchQuery(t as any, searchQuery)) continue;
+        const d = t.deliveryDate;
+        if (deliveryRange.start && (!d || d < deliveryRange.start)) continue;
+        if (deliveryRange.end && (!d || d > deliveryRange.end)) continue;
+        if (activeFilter && !matchesStatFilter(t as any, activeFilter)) continue;
+        ids.add(id);
+      }
+    }
+    return ids;
+  }, [columns, tasks, searchQuery, deliveryRange, activeFilter, doesTaskMatchQuery, matchesStatFilter]);
+
+  useEffect(() => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent("board:resultCount", { detail: filteredTaskIds.size })
+      );
+    } catch {}
+  }, [filteredTaskIds]);
 
   // Display name differs by viewMode
   const getTaskDisplayName = (task: TaskSummary) => {
