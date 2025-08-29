@@ -37,6 +37,7 @@ export default function KanbanBoard() {
   const [addPickerQuery, setAddPickerQuery] = useState("");
   const [handoffToast, setHandoffToast] = useState<{ message: string } | null>(null);
   const [handoffToastVisible, setHandoffToastVisible] = useState(false);
+  const [deliveryRange, setDeliveryRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTaskColumnTitle, setSelectedTaskColumnTitle] = useState<string | null>(null);
@@ -157,15 +158,21 @@ export default function KanbanBoard() {
       const ce = e as unknown as CustomEvent<string>;
       setSearchQuery(ce.detail ?? "");
     };
+    const onDeliveryRange = (e: Event) => {
+      const ce = e as unknown as CustomEvent<{ start?: string; end?: string }>;
+      setDeliveryRange({ start: ce.detail?.start || null, end: ce.detail?.end || null });
+    };
     const onRefresh = async () => {
       await handleRefresh();
     };
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("board:search" as any, onSearch as any);
+    window.addEventListener("board:deliveryRange" as any, onDeliveryRange as any);
     window.addEventListener("board:refresh" as any, onRefresh as any);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("board:search" as any, onSearch as any);
+      window.removeEventListener("board:deliveryRange" as any, onDeliveryRange as any);
       window.removeEventListener("board:refresh" as any, onRefresh as any);
     };
   }, []);
@@ -875,6 +882,14 @@ export default function KanbanBoard() {
               .map((id) => tasks[id])
               .filter(Boolean)
               .filter((t) => doesTaskMatchQuery(t as any, searchQuery))
+              .filter((t) => {
+                if (!deliveryRange.start && !deliveryRange.end) return true;
+                const d = t.deliveryDate;
+                if (!d) return false;
+                if (deliveryRange.start && d < deliveryRange.start) return false;
+                if (deliveryRange.end && d > deliveryRange.end) return false;
+                return true;
+              })
               .filter((t) => (activeFilter ? matchesStatFilter(t as any, activeFilter) : true));
             const isArchive = ["archive", "archive2"].includes(column.id);
 
