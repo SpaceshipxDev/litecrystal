@@ -214,7 +214,7 @@ export default function KanbanBoard() {
     const now = Date.now();
     const todayStr = new Date().toISOString().slice(0, 10);
     const eightHoursMs = 8 * 60 * 60 * 1000;
-    let active = 0; // non-archived
+    let active = 0; // tasks in progress
     let dueToday = 0;
     let overdue = 0;
     let inactive8h = 0;
@@ -224,7 +224,7 @@ export default function KanbanBoard() {
       const isArchived = col === ARCHIVE_COLUMN_ID || col === "archive2";
       const d = (t.deliveryDate || "").slice(0, 10);
       if (!isArchived) {
-        active += 1;
+        if (t.inProgress) active += 1;
         const lastActivityIso = (t.updatedAt || t.createdAt || "").toString();
         if (lastActivityIso) {
           const last = Date.parse(lastActivityIso);
@@ -249,7 +249,7 @@ export default function KanbanBoard() {
       const isArchived = columnId === ARCHIVE_COLUMN_ID || columnId === "archive2";
       const todayStr = new Date().toISOString().slice(0, 10);
       const deliveryDateStr = (task.deliveryDate || "").slice(0, 10);
-      if (filter === "active") return !isArchived;
+      if (filter === "active") return !isArchived && !!task.inProgress;
       if (isArchived) return false;
       if (filter === "dueToday") return !!deliveryDateStr && deliveryDateStr === todayStr;
       if (filter === "overdue") return !!deliveryDateStr && deliveryDateStr < todayStr;
@@ -776,6 +776,31 @@ export default function KanbanBoard() {
     }
     return columns;
   }, [viewMode, columns]);
+
+  const filteredTaskCount = useMemo(() => {
+    return visibleColumns.reduce((total, column) => {
+      const count = column.taskIds
+        .map((id) => tasks[id])
+        .filter(Boolean)
+        .filter((t) => doesTaskMatchQuery(t as any, searchQuery))
+        .filter((t) => {
+          if (!deliveryRange.start && !deliveryRange.end) return true;
+          const d = t.deliveryDate;
+          if (!d) return false;
+          if (deliveryRange.start && d < deliveryRange.start) return false;
+          if (deliveryRange.end && d > deliveryRange.end) return false;
+          return true;
+        })
+        .filter((t) => (activeFilter ? matchesStatFilter(t as any, activeFilter) : true)).length;
+      return total + count;
+    }, 0);
+  }, [visibleColumns, tasks, searchQuery, deliveryRange, activeFilter, doesTaskMatchQuery, matchesStatFilter]);
+
+  useEffect(() => {
+    try {
+      window.dispatchEvent(new CustomEvent("board:resultsCount", { detail: filteredTaskCount }));
+    } catch {}
+  }, [filteredTaskCount]);
 
   /* ──────────────────────────────────────────────────────────────────────────
      RENDER

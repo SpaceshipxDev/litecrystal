@@ -14,6 +14,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
   const [deliveryStart, setDeliveryStart] = useState("")
   const [deliveryEnd, setDeliveryEnd] = useState("")
+  const [resultCount, setResultCount] = useState<number | null>(null)
 
   // Listen to board refresh state to animate the header refresh icon
   useEffect(() => {
@@ -24,6 +25,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
     window.addEventListener("board:refreshing" as any, onRefreshing as any)
     return () => window.removeEventListener("board:refreshing" as any, onRefreshing as any)
+  }, [])
+
+  useEffect(() => {
+    const onResults = (e: Event) => {
+      const ce = e as unknown as CustomEvent<number>
+      setResultCount(typeof ce.detail === "number" ? ce.detail : null)
+    }
+    window.addEventListener("board:resultsCount" as any, onResults as any)
+    return () => window.removeEventListener("board:resultsCount" as any, onResults as any)
   }, [])
 
   const dispatchSearch = (value: string) => {
@@ -89,6 +99,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     >
                       <X className="w-3.5 h-3.5 text-gray-400" />
                     </button>
+                  )}
+                  {(search || deliveryStart || deliveryEnd) && resultCount !== null && (
+                    <div className="absolute -bottom-5 left-8 text-xs text-gray-500">
+                      {resultCount} results
+                    </div>
                   )}
                   {isDatePickerOpen && (
                     <div className="absolute right-0 mt-2 w-72 p-3 rounded-lg bg-white/90 backdrop-blur border apple-border-light shadow flex flex-col gap-2 z-50">
